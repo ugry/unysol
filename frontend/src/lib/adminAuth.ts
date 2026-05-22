@@ -1,0 +1,34 @@
+import api from './api';
+import type { AdminLoginResponse, AdminUser } from '@/types';
+
+export async function adminLogin(email: string, password: string): Promise<AdminUser> {
+  const res = await api.post<AdminLoginResponse>('/api/auth/login', { email, password });
+
+  if (res.data.user.rol !== 'SUPER_ADMIN') {
+    throw new Error('Bu hesap yönetici yetkisine sahip değil');
+  }
+
+  localStorage.setItem('logisol_admin_token', res.data.access_token);
+  localStorage.setItem('logisol_admin_user', JSON.stringify(res.data.user));
+  return res.data.user;
+}
+
+export function adminLogout(): void {
+  localStorage.removeItem('logisol_admin_token');
+  localStorage.removeItem('logisol_admin_user');
+  window.location.href = '/admin/login';
+}
+
+export function isAdminAuthenticated(): boolean {
+  return !!localStorage.getItem('logisol_admin_token');
+}
+
+export function getStoredAdminUser(): AdminUser | null {
+  const raw = localStorage.getItem('logisol_admin_user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AdminUser;
+  } catch {
+    return null;
+  }
+}
