@@ -108,7 +108,7 @@ func (h *TripsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trip models.Trip
-	var baslangic time.Time
+	var baslangic *time.Time
 	var bitis *time.Time
 	err := h.DB.QueryRow(r.Context(),
 		`INSERT INTO trips (tenant_id, truck_id, customer_id, sofor, yukleme, teslimat, ucret, payment_method, invoice_id, durum, baslangic)
@@ -119,8 +119,10 @@ func (h *TripsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	).Scan(&trip.ID, &trip.TenantID, &trip.TruckID, &trip.CustomerID,
 		&trip.Sofor, &trip.Yukleme, &trip.Teslimat, &trip.Ucret, &trip.PaymentMethod, &trip.InvoiceID,
 		&trip.Durum, &baslangic, &bitis, &trip.CreatedAt)
-	sBaslangic := baslangic.Format(time.RFC3339)
-	trip.Baslangic = &sBaslangic
+	if baslangic != nil {
+		sBaslangic := baslangic.Format(time.RFC3339)
+		trip.Baslangic = &sBaslangic
+	}
 	if bitis != nil {
 		sBitis := bitis.Format(time.RFC3339)
 		trip.Bitis = &sBitis

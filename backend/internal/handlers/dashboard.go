@@ -40,7 +40,7 @@ func (h *DashboardHandler) Summary(w http.ResponseWriter, r *http.Request) {
 
 	err = h.DB.QueryRow(r.Context(),
 		`SELECT COALESCE(SUM(ucret), 0) FROM trips
-		 WHERE tenant_id = $1 AND DATE(baslangic) = CURRENT_DATE AND durum = 'tamamlandi'`,
+		 WHERE tenant_id = $1 AND DATE(baslangic) = CURRENT_DATE AND durum = 'TAMAMLANDI'`,
 		tenantID,
 	).Scan(&summary.BugunkuKazanc)
 	if err != nil {
@@ -50,7 +50,7 @@ func (h *DashboardHandler) Summary(w http.ResponseWriter, r *http.Request) {
 	var gelir, gider float64
 	err = h.DB.QueryRow(r.Context(),
 		`SELECT COALESCE(SUM(ucret), 0) FROM trips
-		 WHERE tenant_id = $1 AND durum = 'tamamlandi'
+		 WHERE tenant_id = $1 AND durum = 'TAMAMLANDI'
 		 AND DATE_TRUNC('month', baslangic) = DATE_TRUNC('month', CURRENT_DATE)`,
 		tenantID,
 	).Scan(&gelir)
@@ -97,7 +97,7 @@ func (h *DashboardHandler) getMonthlyRevenue(ctx context.Context, tenantID strin
 
 		h.DB.QueryRow(ctx,
 			`SELECT COALESCE(SUM(ucret), 0) FROM trips
-			 WHERE tenant_id = $1 AND durum = 'tamamlandi'
+			 WHERE tenant_id = $1 AND durum = 'TAMAMLANDI'
 			 AND baslangic >= $2 AND baslangic < $3`,
 			tenantID, monthStart, monthEnd,
 		).Scan(&gelir)

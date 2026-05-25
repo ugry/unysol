@@ -71,10 +71,17 @@ func (h *EmployeesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.EhliyetBitis == "" {
+		req.EhliyetBitis = "NULL"
+	}
+	if req.SrcBitis == "" {
+		req.SrcBitis = "NULL"
+	}
+
 	var e models.Employee
 	err := h.DB.QueryRow(r.Context(),
 		`INSERT INTO employees (tenant_id, ad_soyad, rol, telefon, ehliyet_bitis, src_bitis)
-		 VALUES ($1, $2, $3, $4, $5::date, $6::date)
+		 VALUES ($1, $2, $3, $4, NULLIF($5, 'NULL')::date, NULLIF($6, 'NULL')::date)
 		 RETURNING id, tenant_id, ad_soyad, COALESCE(rol,''), COALESCE(telefon,''), COALESCE(ehliyet_bitis::text,''), COALESCE(src_bitis::text,''), created_at`,
 		tenantID, req.AdSoyad, req.Rol, req.Telefon, req.EhliyetBitis, req.SrcBitis,
 	).Scan(&e.ID, &e.TenantID, &e.AdSoyad, &e.Rol, &e.Telefon, &e.EhliyetBitis, &e.SrcBitis, &e.CreatedAt)

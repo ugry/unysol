@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -31,7 +32,7 @@ func (h *ExpensesHandler) Routes() chi.Router {
 
 func (h *ExpensesHandler) List(w http.ResponseWriter, r *http.Request) {
 	tenantID := middleware.GetTenantID(r.Context())
-	kategori := r.URL.Query().Get("kategori")
+	kategori := strings.ToUpper(r.URL.Query().Get("kategori"))
 
 	query := `SELECT id, tenant_id, truck_id, kategori, tutar, aciklama, tarih, plaka, fatura_no, odeme_durumu, created_at
 		FROM expenses WHERE tenant_id = $1`
@@ -103,7 +104,7 @@ func (h *ExpensesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO expenses (tenant_id, truck_id, kategori, tutar, aciklama, tarih, plaka, fatura_no, odeme_durumu)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'odendi')
 		 RETURNING id, tenant_id, truck_id, kategori, tutar, aciklama, tarih, plaka, fatura_no, odeme_durumu, created_at`,
-		tenantID, truckID, req.Kategori, req.Tutar, req.Aciklama, tarih, req.Plaka, req.FaturaNo,
+		tenantID, truckID, strings.ToUpper(req.Kategori), req.Tutar, req.Aciklama, tarih, req.Plaka, req.FaturaNo,
 	).Scan(&e.ID, &e.TenantID, &e.TruckID, &e.Kategori, &e.Tutar,
 		&e.Aciklama, &tarihOut, &e.Plaka, &e.FaturaNo, &e.OdemeDurumu, &e.CreatedAt)
 	if err != nil {
@@ -166,7 +167,7 @@ func (h *ExpensesHandler) Update(w http.ResponseWriter, r *http.Request) {
 	err = h.DB.QueryRow(r.Context(),
 		`UPDATE expenses SET
 		 truck_id = COALESCE(NULLIF($1, 0), truck_id),
-		 kategori = COALESCE(NULLIF($2, ''), kategori),
+		 kategori = COALESCE(NULLIF($2, ''), kategori::text)::expense_kategori_enum,
 		 tutar = COALESCE(NULLIF($3, 0), tutar),
 		 aciklama = COALESCE(NULLIF($4, ''), aciklama),
 		 tarih = COALESCE($5, tarih),
@@ -174,7 +175,7 @@ func (h *ExpensesHandler) Update(w http.ResponseWriter, r *http.Request) {
 		 fatura_no = COALESCE(NULLIF($7, ''), fatura_no)
 		 WHERE id = $8 AND tenant_id = $9
 		 RETURNING id, tenant_id, truck_id, kategori, tutar, aciklama, tarih, plaka, fatura_no, odeme_durumu, created_at`,
-		req.TruckID, req.Kategori, req.Tutar, req.Aciklama, tarih, req.Plaka, req.FaturaNo, id, tenantID,
+		req.TruckID, strings.ToUpper(req.Kategori), req.Tutar, req.Aciklama, tarih, req.Plaka, req.FaturaNo, id, tenantID,
 	).Scan(&e.ID, &e.TenantID, &e.TruckID, &e.Kategori, &e.Tutar,
 		&e.Aciklama, &tarihOut, &e.Plaka, &e.FaturaNo, &e.OdemeDurumu, &e.CreatedAt)
 	if err != nil {

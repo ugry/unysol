@@ -71,6 +71,10 @@ func (h *TrucksHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.TrackingSource == "" {
+		req.TrackingSource = "MANUEL"
+	}
+
 	var truck models.Truck
 	err := h.DB.QueryRow(r.Context(),
 		`INSERT INTO trucks (tenant_id, plaka, marka, model, yil, tracking_source)
