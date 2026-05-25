@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Truck,
@@ -12,6 +13,7 @@ import {
   TrendingUp,
   Settings,
   Package,
+  Globe,
   LogOut,
 } from 'lucide-react';
 
@@ -33,6 +35,12 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const next = i18n.language === 'tr' ? 'en' : 'tr';
+    i18n.changeLanguage(next);
+  };
 
   return (
     <aside className="w-56 bg-[#0f1011] border-r border-[rgba(255,255,255,0.05)] flex flex-col h-screen flex-shrink-0">
@@ -74,6 +82,15 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Language switcher */}
+      <div className="px-3 py-2">
+        <button onClick={toggleLanguage}
+          className="w-full flex items-center gap-2 text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] transition-colors py-1.5 rounded-md hover:bg-[rgba(255,255,255,0.05)] px-2">
+          <Globe size={14} />
+          {i18n.language === 'tr' ? 'TR → EN' : 'EN → TR'}
+        </button>
+      </div>
+
       {/* User footer */}
       <div className="p-3 border-t border-[rgba(255,255,255,0.05)]">
         <div className="flex items-center gap-2.5 mb-2.5">
@@ -92,7 +109,7 @@ export default function Sidebar() {
           className="w-full flex items-center gap-2 text-[13px] text-[#8a8f98] hover:text-[#DC2626] transition-colors py-1 rounded-md hover:bg-[#DC2626]/5 px-2 -mx-2"
         >
           <LogOut size={14} />
-          Çıkış Yap
+          {t('nav.logout')}
         </button>
       </div>
     </aside>

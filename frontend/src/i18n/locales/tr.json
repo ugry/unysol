@@ -1,0 +1,119 @@
+{
+  "app": {
+    "name": "Unysol",
+    "tagline": "Filonuzu Tek Ekrandan Yönetin"
+  },
+  "landing": {
+    "hero_title_1": "Filonuzu",
+    "hero_title_2": "Tek Ekrandan",
+    "hero_title_3": "Yönetin",
+    "hero_subtitle": "GPS takip, fatura, CRM, personel ve tahmin — hepsi Unysol'de. Donanım şart değil, telefonunuzla başlayın.",
+    "cta_free": "Ücretsiz Başla",
+    "cta_demo": "Demo Hesap Oluştur",
+    "cta_login": "Giriş Yap",
+    "features": "Özellikler",
+    "pricing": "Fiyatlar",
+    "faq": "SSS",
+    "features_title": "Her Şey Tek Platformda",
+    "pricing_title": "Size Uygun Paket",
+    "pricing_monthly": "Aylık",
+    "pricing_yearly": "Yıllık",
+    "pricing_free": "Ücretsiz",
+    "pricing_custom": "İletişime Geçin",
+    "footer_cta": "Filonuzu yönetmeye hemen başlayın",
+    "footer_cta_btn": "Hemen Başla"
+  },
+  "nav": {
+    "dashboard": "Ana Panel",
+    "trucks": "Kamyonlar",
+    "trips": "Seferler",
+    "customers": "Müşteriler",
+    "invoices": "Faturalar",
+    "cek_senet": "Çek/Senet",
+    "expenses": "Giderler",
+    "employees": "Personel",
+    "predictions": "Tahminler",
+    "load_board": "Yük Panosu",
+    "settings": "Ayarlar",
+    "actions": "İşlem Kayıtları",
+    "logout": "Çıkış"
+  },
+  "common": {
+    "add": "Yeni Ekle",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "search": "Ara...",
+    "export": "Dışa Aktar",
+    "csv": "CSV",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "confirm_delete": "Bu işlem geri alınamaz. Silmek istediğinize emin misiniz?",
+    "no_data": "Henüz kayıt bulunmuyor",
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu"
+  },
+  "trucks": {
+    "title": "Kamyonlar",
+    "plaka": "Plaka",
+    "marka": "Marka",
+    "model": "Model",
+    "yil": "Yıl",
+    "yakit_tipi": "Yakıt Tipi",
+    "takip": "Takip Yöntemi"
+  },
+  "trips": {
+    "title": "Seferler",
+    "sofor": "Şoför",
+    "musteri": "Müşteri",
+    "yukleme": "Yükleme",
+    "teslimat": "Teslimat",
+    "ucret": "Ücret"
+  },
+  "customers": {
+    "title": "Müşteriler",
+    "firma_unvani": "Firma Unvanı",
+    "yetkili": "Yetkili",
+    "telefon": "Telefon",
+    "email": "E-posta"
+  },
+  "invoices": {
+    "title": "Faturalar",
+    "fatura_no": "Fatura No",
+    "tarih": "Tarih",
+    "vade": "Vade",
+    "genel_toplam": "Genel Toplam"
+  },
+  "expenses": {
+    "title": "Giderler",
+    "kategori": "Kategori",
+    "tutar": "Tutar",
+    "aciklama": "Açıklama"
+  },
+  "employees": {
+    "title": "Personel",
+    "ad_soyad": "Ad Soyad",
+    "rol": "Rol"
+  },
+  "predictions": {
+    "title": "Tahminler",
+    "gelir": "Gelir",
+    "gider": "Gider",
+    "kar": "Kar"
+  },
+  "load_board": {
+    "title": "Yük Panosu",
+    "type": "Tür",
+    "from": "Nereden",
+    "to": "Nereye",
+    "load_date": "Tarih",
+    "weight": "Ağırlık",
+    "vehicle": "Araç Tipi",
+    "price": "Fiyat",
+    "contact": "İletişim",
+    "yuk_var": "Yük Var",
+    "yuk_ara": "Yük Ara"
+  },
+  "language": "Dil"
+}

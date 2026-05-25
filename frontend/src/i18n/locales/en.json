@@ -1,0 +1,119 @@
+{
+  "app": {
+    "name": "Unysol",
+    "tagline": "Manage Your Fleet from a Single Screen"
+  },
+  "landing": {
+    "hero_title_1": "Manage Your",
+    "hero_title_2": "Fleet from a",
+    "hero_title_3": "Single Screen",
+    "hero_subtitle": "GPS tracking, invoicing, CRM, HR, and predictions — all in Unysol. No hardware needed, start with your phone.",
+    "cta_free": "Get Started Free",
+    "cta_demo": "Create Demo Account",
+    "cta_login": "Sign In",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "features_title": "Everything in One Platform",
+    "pricing_title": "Choose Your Plan",
+    "pricing_monthly": "Monthly",
+    "pricing_yearly": "Yearly",
+    "pricing_free": "Free",
+    "pricing_custom": "Contact Us",
+    "footer_cta": "Start managing your fleet today",
+    "footer_cta_btn": "Get Started"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "trucks": "Trucks",
+    "trips": "Trips",
+    "customers": "Customers",
+    "invoices": "Invoices",
+    "cek_senet": "Cheques/Notes",
+    "expenses": "Expenses",
+    "employees": "Employees",
+    "predictions": "Predictions",
+    "load_board": "Load Board",
+    "settings": "Settings",
+    "actions": "Action Log",
+    "logout": "Logout"
+  },
+  "common": {
+    "add": "Add New",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search...",
+    "export": "Export",
+    "csv": "CSV",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "confirm_delete": "This action cannot be undone. Are you sure you want to delete?",
+    "no_data": "No records found",
+    "loading": "Loading...",
+    "error": "An error occurred"
+  },
+  "trucks": {
+    "title": "Trucks",
+    "plaka": "Plate",
+    "marka": "Brand",
+    "model": "Model",
+    "yil": "Year",
+    "yakit_tipi": "Fuel Type",
+    "takip": "Tracking"
+  },
+  "trips": {
+    "title": "Trips",
+    "sofor": "Driver",
+    "musteri": "Customer",
+    "yukleme": "Origin",
+    "teslimat": "Destination",
+    "ucret": "Price"
+  },
+  "customers": {
+    "title": "Customers",
+    "firma_unvani": "Company Name",
+    "yetkili": "Contact Person",
+    "telefon": "Phone",
+    "email": "Email"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "fatura_no": "Invoice No",
+    "tarih": "Date",
+    "vade": "Due Date",
+    "genel_toplam": "Total"
+  },
+  "expenses": {
+    "title": "Expenses",
+    "kategori": "Category",
+    "tutar": "Amount",
+    "aciklama": "Description"
+  },
+  "employees": {
+    "title": "Employees",
+    "ad_soyad": "Full Name",
+    "rol": "Role"
+  },
+  "predictions": {
+    "title": "Predictions",
+    "gelir": "Revenue",
+    "gider": "Expense",
+    "kar": "Profit"
+  },
+  "load_board": {
+    "title": "Load Board",
+    "type": "Type",
+    "from": "From",
+    "to": "To",
+    "load_date": "Date",
+    "weight": "Weight",
+    "vehicle": "Vehicle",
+    "price": "Price",
+    "contact": "Contact",
+    "yuk_var": "Load Available",
+    "yuk_ara": "Load Wanted"
+  },
+  "language": "Language"
+}

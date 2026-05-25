@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Truck, MapPin, FileText, Users, BarChart3, UserCheck,
   Smartphone, ArrowRight, Check, Zap, Play,
@@ -10,6 +11,7 @@ import api from '@/lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [pricing, setPricing] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -65,12 +67,12 @@ export default function LandingPage() {
             <span className="text-base font-[590] tracking-tight text-[#f7f8f8]">Logisol</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-[14px] text-[#8a8f98] font-[510]">
-            <button onClick={() => scrollTo('features')} className="hover:text-[#f7f8f8] transition-colors">Özellikler</button>
-            <button onClick={() => scrollTo('pricing')} className="hover:text-[#f7f8f8] transition-colors">Fiyatlar</button>
-            <button onClick={() => scrollTo('faq')} className="hover:text-[#f7f8f8] transition-colors">SSS</button>
+            <button onClick={() => scrollTo('features')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.features')}</button>
+            <button onClick={() => scrollTo('pricing')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.pricing')}</button>
+            <button onClick={() => scrollTo('faq')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.faq')}</button>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/login')} className="text-[14px] text-[#8a8f98] hover:text-[#d0d6e0] font-[510] transition-colors">Giriş Yap</button>
+            <button onClick={() => navigate('/login')} className="text-[14px] text-[#8a8f98] hover:text-[#d0d6e0] font-[510] transition-colors">{t('landing.cta_login')}</button>
             <button onClick={() => navigate('/login')} className="text-[14px] bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white px-4 py-2 rounded-md font-[510] transition-colors">
               Ücretsiz Başla
             </button>
@@ -86,19 +88,18 @@ export default function LandingPage() {
             Türkiye'nin Yeni Lojistik Otomasyonu
           </div>
           <h1 className="text-[40px] md:text-[56px] font-[590] leading-[1.05] tracking-[-0.96px] text-[#f7f8f8] mb-5">
-            Filonuzu<br />
-            <span className="text-[#FF5F03]">Tek Ekrandan</span> Yönetin
+            {t('landing.hero_title_1')}<br />
+            <span className="text-[#FF5F03]">{t('landing.hero_title_2')}</span> {t('landing.hero_title_3')}
           </h1>
           <p className="text-[16px] md:text-[18px] text-[#8a8f98] max-w-xl mx-auto mb-8 leading-relaxed">
-            GPS takip, fatura, CRM, personel ve tahmin — hepsi Logisol'de.
-            Donanım şart değil, telefonunuzla başlayın.
+            {t('landing.hero_subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
             <button
               onClick={() => navigate('/login')}
               className="bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors flex items-center gap-2"
             >
-              Ücretsiz Başla
+              {t('landing.cta_free')}
               <ArrowRight size={18} />
             </button>
             <button
@@ -122,7 +123,7 @@ export default function LandingPage() {
               className="bg-[#2a2a2a] hover:bg-[#333333] text-[#f7f8f8] border border-[#FF5F03]/30 px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors flex items-center gap-2"
             >
               <Sparkles size={18} />
-              Demo Hesap Oluştur
+              {t('landing.cta_demo')}
             </button>
             <a
               href="https://demo.logisol.app"
