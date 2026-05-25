@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+
+	"unysol/internal/validator"
 )
 
 type AuthHandler struct {
@@ -47,6 +50,11 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	if req.TenantName == "" || req.Email == "" || req.Password == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "tenant_name, email, and password are required"})
+		return
+	}
+
+	if err := validator.ValidatePassword(req.Password); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -112,6 +120,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if isLockedOut(req.Email) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many login attempts, try again later"})
+		return
+	}
+
 	var userID, tenantID int
 	var passwordHash, role string
 	err := h.DB.QueryRow(r.Context(),
@@ -119,14 +132,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		req.Email,
 	).Scan(&userID, &tenantID, &passwordHash, &role)
 	if err != nil {
+		recordFailedAttempt(req.Email)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
+		recordFailedAttempt(req.Email)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
 		return
 	}
+
+	resetLockout(req.Email)
 
 	token, err := h.generateToken(userID, tenantID, req.Email, role)
 	if err != nil {
@@ -164,6 +181,46 @@ func cleanSlug(s string) string {
 		}
 		return -1
 	}, s)
+}
+
+var (
+	loginAttempts   = sync.Map{}
+	lockoutDuration = 15 * time.Minute
+	maxAttempts     = 5
+)
+
+type lockoutEntry struct {
+	count     int
+	lockedAt  time.Time
+}
+
+func recordFailedAttempt(email string) {
+	v, _ := loginAttempts.LoadOrStore(email, &lockoutEntry{})
+	entry := v.(*lockoutEntry)
+	entry.count++
+	if entry.count >= maxAttempts {
+		entry.lockedAt = time.Now()
+	}
+	loginAttempts.Store(email, entry)
+}
+
+func resetLockout(email string) {
+	loginAttempts.Delete(email)
+}
+
+func isLockedOut(email string) bool {
+	v, ok := loginAttempts.Load(email)
+	if !ok {
+		return false
+	}
+	entry := v.(*lockoutEntry)
+	if entry.count >= maxAttempts && time.Since(entry.lockedAt) < lockoutDuration {
+		return true
+	}
+	if entry.count >= maxAttempts && time.Since(entry.lockedAt) >= lockoutDuration {
+		loginAttempts.Delete(email)
+	}
+	return false
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

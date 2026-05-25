@@ -81,7 +81,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   getCORSOrigins(cfg.Environment),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		ExposedHeaders:   []string{"X-Request-ID"},
@@ -186,11 +186,16 @@ func main() {
 
 func metricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
 		handlers.IncrementRequestCount()
 		handlers.IncrementActiveConns()
 		defer handlers.DecrementActiveConns()
 		next.ServeHTTP(w, r)
-		handlers.RecordRequestDuration(time.Since(start))
 	})
+}
+
+func getCORSOrigins(env string) []string {
+	if env == "production" {
+		return []string{"https://unysol.app", "https://www.unysol.app"}
+	}
+	return []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
 }
