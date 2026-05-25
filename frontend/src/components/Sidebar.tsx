@@ -11,6 +11,7 @@ import {
   UserCheck,
   TrendingUp,
   Settings,
+  Package,
   LogOut,
 } from 'lucide-react';
 
@@ -18,6 +19,7 @@ const navItems = [
   { path: '/dashboard', label: 'Ana Panel', icon: LayoutDashboard },
   { path: '/dashboard/trucks', label: 'Kamyonlar', icon: Truck },
   { path: '/dashboard/trips', label: 'Seferler', icon: MapPin },
+  { path: '/dashboard/load-board', label: 'Yük Panosu', icon: Package },
   { path: '/dashboard/customers', label: 'Müşteriler', icon: Users },
   { path: '/dashboard/invoices', label: 'Faturalar', icon: FileText },
   { path: '/dashboard/cek-senet', label: 'Çek/Senet', icon: CreditCard },

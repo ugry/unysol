@@ -17,6 +17,8 @@ import AdminLoginPage from '@/pages/AdminLoginPage';
 import AdminDashboard from '@/pages/AdminDashboard';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
 import { Loader2 } from 'lucide-react';
+import ActionsPage from '@/pages/ActionsPage';
+import LoadBoardPage from '@/pages/LoadBoardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -83,6 +85,7 @@ export default function App() {
         <Route path="/dashboard/customers" element={<CustomersPage />} />
         <Route path="/dashboard/invoices" element={<InvoicesPage />} />
         <Route path="/dashboard/cek-senet" element={<CekSenetPage />} />
+        <Route path="/dashboard/load-board" element={<LoadBoardPage />} />
         <Route path="/dashboard/expenses" element={<ExpensesPage />} />
         <Route path="/dashboard/employees" element={<EmployeesPage />} />
         <Route path="/dashboard/predictions" element={<PredictionsPage />} />

@@ -74,6 +74,7 @@ func main() {
 	settingsHandler := &handlers.SettingsHandler{DB: pool}
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
 	demoHandler := &handlers.DemoHandler{DB: pool}
+	loadBoardHandler := &handlers.LoadBoardHandler{DB: pool}
 
 	_ = repo
 	_ = redisClient
@@ -130,6 +131,7 @@ func main() {
 			r.Mount("/billing", billingHandler.Routes())
 			r.Mount("/settings", settingsHandler.Routes())
 			r.Mount("/notifications", notificationsHandler.Routes())
+			r.Mount("/load-board", loadBoardHandler.Routes())
 		})
 
 		r.Route("/api/admin", func(r chi.Router) {

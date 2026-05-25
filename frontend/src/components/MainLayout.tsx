@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/customers': 'Müşteriler',
   '/dashboard/invoices': 'Faturalar',
   '/dashboard/cek-senet': 'Çek/Senet',
+  '/dashboard/load-board': 'Yük Panosu',
   '/dashboard/expenses': 'Giderler',
   '/dashboard/employees': 'Personel',
   '/dashboard/predictions': 'Tahminler',
