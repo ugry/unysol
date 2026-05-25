@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +22,8 @@ func (h *EmployeesHandler) Routes() chi.Router {
 	r.Use(middleware.RequireTenant)
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
+	r.Put("/{id}", h.Update)
+	r.Delete("/{id}", h.Delete)
 	return r
 }
 
@@ -92,4 +95,69 @@ func (h *EmployeesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, e)
+}
+
+func (h *EmployeesHandler) Update(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var req struct {
+		AdSoyad      string `json:"ad_soyad"`
+		Rol          string `json:"rol"`
+		Telefon      string `json:"telefon"`
+		EhliyetBitis string `json:"ehliyet_bitis"`
+		SrcBitis     string `json:"src_bitis"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.EhliyetBitis == "" {
+		req.EhliyetBitis = "NULL"
+	}
+	if req.SrcBitis == "" {
+		req.SrcBitis = "NULL"
+	}
+	var e models.Employee
+	err = h.DB.QueryRow(r.Context(),
+		`UPDATE employees SET
+		 ad_soyad = COALESCE(NULLIF($1, ''), ad_soyad),
+		 rol = COALESCE(NULLIF($2, ''), rol),
+		 telefon = COALESCE(NULLIF($3, ''), telefon),
+		 ehliyet_bitis = COALESCE(NULLIF($4, 'NULL')::date, ehliyet_bitis),
+		 src_bitis = COALESCE(NULLIF($5, 'NULL')::date, src_bitis)
+		 WHERE id = $6 AND tenant_id = $7
+		 RETURNING id, tenant_id, ad_soyad, COALESCE(rol,''), COALESCE(telefon,''), COALESCE(ehliyet_bitis::text,''), COALESCE(src_bitis::text,''), created_at`,
+		req.AdSoyad, req.Rol, req.Telefon, req.EhliyetBitis, req.SrcBitis, id, tenantID,
+	).Scan(&e.ID, &e.TenantID, &e.AdSoyad, &e.Rol, &e.Telefon, &e.EhliyetBitis, &e.SrcBitis, &e.CreatedAt)
+	if err != nil {
+		slog.Error("failed to update employee", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to update employee")
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
+func (h *EmployeesHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	result, err := h.DB.Exec(r.Context(),
+		`DELETE FROM employees WHERE id = $1 AND tenant_id = $2`, id, tenantID)
+	if err != nil {
+		slog.Error("failed to delete employee", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete employee")
+		return
+	}
+	if result.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "employee not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

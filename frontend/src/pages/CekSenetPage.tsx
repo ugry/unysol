@@ -423,16 +423,16 @@ export default function CekSenetPage() {
     setSubmitting(true);
     try {
       const payload = {
-        tip: formData.tip,
-        no: formData.no.trim(),
+        tur: formData.tip,
+        seri_no: formData.no.trim(),
         banka: formData.banka.trim(),
         sube: formData.sube.trim(),
-        taraf: formData.taraf.trim(),
+        kesideci: formData.taraf.trim(),
         tutar: parseFloat(formData.tutar),
         vade_tarihi: formData.vade_tarihi,
-        tanzim_tarihi: formData.tanzim_tarihi || undefined,
-        musteri: formData.musteri,
-        notlar: formData.notlar.trim(),
+        customer_id: 0,
+        aciklama: formData.notlar.trim(),
+        hesap_no: '',
       };
 
       if (editingId) {

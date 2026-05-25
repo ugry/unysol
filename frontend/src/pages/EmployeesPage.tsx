@@ -245,6 +245,7 @@ export default function EmployeesPage() {
   const [formData, setFormData] = useState<EmployeeFormData>(emptyForm);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -268,11 +269,24 @@ export default function EmployeesPage() {
     setFormError('');
     setSubmitting(true);
     try {
-      await api.post('/api/tenant/employees', formData);
+      if (editingId) {
+        await api.put(`/api/tenant/employees/${editingId}`, formData);
+        setEmployees((prev) =>
+          prev.map((emp) =>
+            emp.id === editingId ? { ...emp, ...formData } : emp
+          )
+        );
+      } else {
+        const res = await api.post<Employee>('/api/tenant/employees', formData);
+        if (res.data) {
+          setEmployees((prev) => [...prev, res.data]);
+        }
+      }
       setShowModal(false);
+      setEditingId(null);
       setFormData(emptyForm);
     } catch {
-      setFormError('Personel eklenirken bir hata oluştu.');
+      setFormError('Personel kaydedilirken bir hata oluştu.');
     } finally {
       setSubmitting(false);
     }
@@ -285,11 +299,24 @@ export default function EmployeesPage() {
   );
 
   const handleEdit = (emp: Employee) => {
-    // TODO: implement edit
+    setFormData({
+      ad_soyad: emp.ad_soyad,
+      rol: emp.rol,
+      telefon: emp.telefon,
+      ehliyet_bitis: emp.ehliyet_bitis,
+      src_bitis: emp.src_bitis,
+    });
+    setEditingId(emp.id);
+    setShowModal(true);
   };
 
-  const handleDelete = (emp: Employee) => {
-    // TODO: implement delete confirmation
+  const handleDelete = async (emp: Employee) => {
+    try {
+      await api.delete(`/api/tenant/employees/${emp.id}`);
+      setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+    } catch {
+      // silently fail — DataGrid shows undo toast
+    }
   };
 
   return (
@@ -340,9 +367,9 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white border border-enterprise-border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-enterprise-text">Personel Ekle</h3>
+              <h3 className="text-lg font-semibold text-enterprise-text">{editingId ? 'Personel Düzenle' : 'Personel Ekle'}</h3>
               <button
-                onClick={() => { setShowModal(false); setFormData(emptyForm); setFormError(''); }}
+                onClick={() => { setShowModal(false); setEditingId(null); setFormData(emptyForm); setFormError(''); }}
                 className="text-enterprise-text-muted hover:text-enterprise-text transition-colors p-1 rounded-md hover:bg-gray-100"
               >
                 <X size={20} />
@@ -409,7 +436,7 @@ export default function EmployeesPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setFormData(emptyForm); setFormError(''); }}
+                  onClick={() => { setShowModal(false); setEditingId(null); setFormData(emptyForm); setFormError(''); }}
                   className="flex-1 py-2.5 rounded-lg border border-enterprise-border text-enterprise-text-muted hover:text-enterprise-text hover:border-gray-400 font-medium text-sm transition-all"
                 >
                   İptal

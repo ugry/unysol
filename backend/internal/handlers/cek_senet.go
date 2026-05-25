@@ -27,6 +27,7 @@ func (h *CekSenetHandler) Routes() chi.Router {
 	r.Get("/{id}", h.Get)
 	r.Put("/{id}", h.Update)
 	r.Put("/{id}/status", h.UpdateStatus)
+	r.Delete("/{id}", h.Delete)
 	return r
 }
 
@@ -215,6 +216,27 @@ func (h *CekSenetHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	s := vadeTarihiOut.Format("2006-01-02")
 	cs.VadeTarihi = &s
 	writeJSON(w, http.StatusOK, cs)
+}
+
+func (h *CekSenetHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	result, err := h.DB.Exec(r.Context(),
+		`DELETE FROM cek_senet WHERE id = $1 AND tenant_id = $2`, id, tenantID)
+	if err != nil {
+		slog.Error("failed to delete cek/senet", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete cek/senet")
+		return
+	}
+	if result.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "cek/senet not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 func (h *CekSenetHandler) Summary(w http.ResponseWriter, r *http.Request) {
