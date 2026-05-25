@@ -34,16 +34,43 @@ func Logging(next http.Handler) http.Handler {
 		}
 		w.Header().Set("X-Request-ID", requestID)
 
-		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+		bodySize := r.ContentLength
+		if bodySize < 0 {
+			bodySize = 0
+		}
 
+		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rw, r)
 
-		slog.Info("request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", rw.status,
-			"duration", time.Since(start).String(),
-			"request_id", requestID,
-		)
+		duration := time.Since(start)
+
+		attrs := []slog.Attr{
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Int("status", rw.status),
+			slog.String("duration", duration.String()),
+			slog.Float64("duration_ms", float64(duration.Microseconds())/1000.0),
+			slog.String("request_id", requestID),
+			slog.Int64("request_size", bodySize),
+			slog.Int("response_size", rw.size),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.String("user_agent", r.UserAgent()),
+		}
+
+		if tenantID := GetTenantID(r.Context()); tenantID != "" {
+			attrs = append(attrs, slog.String("tenant_id", tenantID))
+		}
+		if userID := GetUserID(r.Context()); userID != "" {
+			attrs = append(attrs, slog.String("user_id", userID))
+		}
+
+		lvl := slog.LevelInfo
+		if rw.status >= 500 {
+			lvl = slog.LevelError
+		} else if rw.status >= 400 {
+			lvl = slog.LevelWarn
+		}
+
+		slog.LogAttrs(r.Context(), lvl, "http request", attrs...)
 	})
 }

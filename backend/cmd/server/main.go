@@ -12,13 +12,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
+	"unysol/internal/cache"
 	"unysol/internal/config"
 	"unysol/internal/database"
 	"unysol/internal/handlers"
 	"unysol/internal/middleware"
+	"unysol/internal/repository"
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
 	ctx := context.Background()
 	cfg := config.Load()
 
@@ -33,7 +40,16 @@ func main() {
 		slog.Warn("migrations warning", "error", err)
 	}
 
-	// Initialize file-based action logger
+	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
+	if err != nil {
+		slog.Warn("failed to initialize redis", "error", err)
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
+	repo := repository.NewRepository(pool)
+
 	middleware.InitActionLog("actions.log")
 	defer middleware.CloseActionLog()
 	middleware.StartActionLogFlusher(5 * time.Second)
@@ -58,6 +74,9 @@ func main() {
 	settingsHandler := &handlers.SettingsHandler{DB: pool}
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
 
+	_ = repo
+	_ = redisClient
+
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -73,6 +92,7 @@ func main() {
 	r.Use(middleware.ActionLogger)
 
 	r.Route("/api/auth", func(r chi.Router) {
+		r.Use(middleware.RateLimit(cfg.RateLimiting.Auth))
 		r.Post("/signup", authHandler.Signup)
 		r.Post("/login", authHandler.Login)
 	})
@@ -86,6 +106,8 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg.JWTSecret))
+		r.Use(middleware.RateLimit(cfg.RateLimiting.Global))
+		r.Use(middleware.PlanLimitsMiddleware(pool))
 
 		r.Route("/api/tenant", func(r chi.Router) {
 			r.Use(middleware.RequireTenant)
@@ -134,7 +156,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("server starting", "port", cfg.Port)
+		slog.Info("server starting", "port", cfg.Port, "environment", cfg.Environment)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server failed", "error", err)
 			os.Exit(1)
@@ -159,9 +181,11 @@ func main() {
 
 func metricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		handlers.IncrementRequestCount()
 		handlers.IncrementActiveConns()
 		defer handlers.DecrementActiveConns()
 		next.ServeHTTP(w, r)
+		handlers.RecordRequestDuration(time.Since(start))
 	})
 }
