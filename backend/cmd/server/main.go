@@ -73,6 +73,7 @@ func main() {
 	billingHandler := &handlers.BillingHandler{DB: pool}
 	settingsHandler := &handlers.SettingsHandler{DB: pool}
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
+	demoHandler := &handlers.DemoHandler{DB: pool}
 
 	_ = repo
 	_ = redisClient
@@ -95,6 +96,10 @@ func main() {
 		r.Use(middleware.RateLimit(cfg.RateLimiting.Auth))
 		r.Post("/signup", authHandler.Signup)
 		r.Post("/login", authHandler.Login)
+	})
+
+	r.Route("/api/demo", func(r chi.Router) {
+		r.Post("/create", demoHandler.CreateDemo)
 	})
 
 	r.Route("/api/system", func(r chi.Router) {

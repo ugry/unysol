@@ -4,8 +4,9 @@ import {
   Truck, MapPin, FileText, Users, BarChart3, UserCheck,
   Smartphone, ArrowRight, Check, Zap, Play,
   ChevronDown, ChevronUp, Phone, Mail, MapIcon,
-  Monitor, Clock, HardDrive, Wifi, Shield,
+  Monitor, Clock, HardDrive, Wifi, Shield, Sparkles,
 } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -99,6 +100,29 @@ export default function LandingPage() {
             >
               Ücretsiz Başla
               <ArrowRight size={18} />
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await api.post('/api/demo/create');
+                  if (res.data?.email) {
+                    const loginRes = await api.post('/api/auth/login', {
+                      email: res.data.email,
+                      password: res.data.password || 'Demo1234!',
+                    });
+                    if (loginRes.data?.access_token) {
+                      localStorage.setItem('logisol_token', loginRes.data.access_token);
+                      navigate('/dashboard');
+                      return;
+                    }
+                  }
+                } catch {}
+                navigate('/login');
+              }}
+              className="bg-[#2a2a2a] hover:bg-[#333333] text-[#f7f8f8] border border-[#FF5F03]/30 px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors flex items-center gap-2"
+            >
+              <Sparkles size={18} />
+              Demo Hesap Oluştur
             </button>
             <a
               href="https://demo.logisol.app"
