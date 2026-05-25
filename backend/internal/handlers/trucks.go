@@ -131,7 +131,13 @@ func (h *TrucksHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var truck models.Truck
 	err = h.DB.QueryRow(r.Context(),
-		`UPDATE trucks SET plaka = $1, marka = $2, model = $3, yil = $4, tracking_source = $5, updated_at = $6
+		`UPDATE trucks SET
+		 plaka = COALESCE(NULLIF($1, ''), plaka),
+		 marka = COALESCE(NULLIF($2, ''), marka),
+		 model = COALESCE(NULLIF($3, ''), model),
+		 yil = COALESCE(NULLIF($4, 0), yil),
+		 tracking_source = COALESCE(NULLIF($5, ''), tracking_source),
+		 updated_at = $6
 		 WHERE id = $7 AND tenant_id = $8
 		 RETURNING id, tenant_id, plaka, marka, model, yil, tracking_source, aktif, created_at, updated_at`,
 		req.Plaka, req.Marka, req.Model, req.Yil, req.TrackingSource, time.Now(),
