@@ -35,6 +35,7 @@ interface ExpenseFormData {
   tutar: string;
   aciklama: string;
   plaka: string;
+  fatura_no: string;
 }
 
 const emptyForm: ExpenseFormData = {
@@ -43,6 +44,7 @@ const emptyForm: ExpenseFormData = {
   tutar: '',
   aciklama: '',
   plaka: '',
+  fatura_no: '',
 };
 
 const kategoriConfig: Record<string, { label: string; icon: typeof Fuel; bg: string; text: string; border: string }> = {
@@ -296,6 +298,7 @@ export default function ExpensesPage() {
             tutar: String(row.tutar),
             aciklama: row.aciklama,
             plaka: row.plaka || '',
+            fatura_no: row.fatura_no || '',
           });
           setEditingId(row.id);
           setShowModal(true);
@@ -372,6 +375,16 @@ export default function ExpensesPage() {
                   onChange={(e) => setFormData({ ...formData, aciklama: e.target.value })}
                   required
                   placeholder="Periyodik bakım (yağ, filtre)"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-gray-100 border border-enterprise-border text-enterprise-text placeholder-[#555555] text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/30 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-enterprise-text-muted mb-1.5">Fatura No</label>
+                <input
+                  type="text"
+                  value={formData.fatura_no}
+                  onChange={(e) => setFormData({ ...formData, fatura_no: e.target.value })}
+                  placeholder="FT-2026-001"
                   className="w-full px-3.5 py-2.5 rounded-lg bg-gray-100 border border-enterprise-border text-enterprise-text placeholder-[#555555] text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/30 transition-all"
                 />
               </div>
