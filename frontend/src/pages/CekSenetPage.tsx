@@ -60,7 +60,7 @@ interface CekSenet {
   tutar: number;
   vade_tarihi: string;
   tanzim_tarihi?: string;
-  durum: 'portfoyde' | 'tahsilde' | 'odendi' | 'ciro_edildi' | 'karsiliksiz';
+  durum: 'BEKLIYOR' | 'TAHSIL_EDILDI' | 'KARSILIKSIZ' | 'IADE';
   banka?: string;
   sube?: string;
   taraf?: string;
@@ -112,24 +112,22 @@ const mockData: CekSenet[] = [
     no: 'ÇEK-2024001',
     tip: 'cek',
     musteri: 'ABC Lojistik',
-    tutar: 25000,
-    vade_tarihi: dt(3),
-    tanzim_tarihi: dt(-1),
-    durum: 'portfoyde',
-    banka: 'İş Bankası',
-    sube: 'Kadıköy',
+    tutar: 125000,
+    vade_tarihi: '2026-07-15',
+    banka: 'Yapı Kredi',
+    sube: 'Maslak',
     taraf: 'borclu',
-    notlar: 'Yakında vadesi geliyor',
+    durum: 'BEKLIYOR',
   },
   {
     id: '2',
     no: 'ÇEK-2024002',
     tip: 'cek',
     musteri: 'XYZ Nakliyat',
-    tutar: 42500,
-    vade_tarihi: dt(30),
-    tanzim_tarihi: dt(-5),
-    durum: 'tahsilde',
+    tutar: 25000,
+    vade_tarihi: dt(3),
+    tanzim_tarihi: dt(-1),
+    durum: 'TAHSIL_EDILDI',
     banka: 'Garanti BBVA',
     sube: 'Beşiktaş',
     taraf: 'borclu',
@@ -143,7 +141,7 @@ const mockData: CekSenet[] = [
     tutar: 18000,
     vade_tarihi: dt(60),
     tanzim_tarihi: dt(-10),
-    durum: 'portfoyde',
+    durum: 'BEKLIYOR',
     banka: '',
     sube: '',
     taraf: 'borclu',
@@ -157,7 +155,7 @@ const mockData: CekSenet[] = [
     tutar: 55000,
     vade_tarihi: dt(-5),
     tanzim_tarihi: dt(-30),
-    durum: 'odendi',
+    durum: 'TAHSIL_EDILDI',
     banka: 'Yapı Kredi',
     sube: 'Maslak',
     taraf: 'alacakli',
@@ -171,7 +169,7 @@ const mockData: CekSenet[] = [
     tutar: 12000,
     vade_tarihi: dt(-10),
     tanzim_tarihi: dt(-40),
-    durum: 'karsiliksiz',
+    durum: 'KARSILIKSIZ',
     banka: 'Akbank',
     sube: 'Ümraniye',
     taraf: 'borclu',
@@ -191,11 +189,10 @@ const mockCustomers = [
 ];
 
 const durumConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  portfoyde: { label: 'Portföyde', bg: 'bg-[#3b82f6]/15', text: 'text-blue-600', border: 'border-[#3b82f6]/30' },
-  tahsilde: { label: 'Tahsilde', bg: 'bg-[#FF5F03]/15', text: 'text-[#FF5F03]', border: 'border-[#FF5F03]/30' },
-  odendi: { label: 'Ödendi', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
-  ciro_edildi: { label: 'Ciro Edildi', bg: 'bg-[#a855f7]/15', text: 'text-purple-600', border: 'border-[#a855f7]/30' },
-  karsiliksiz: { label: 'Karşılıksız', bg: 'bg-[#DC2626]/15', text: 'text-[#DC2626]', border: 'border-[#DC2626]/30' },
+  BEKLIYOR: { label: 'Portföyde', bg: 'bg-[#3b82f6]/15', text: 'text-blue-600', border: 'border-[#3b82f6]/30' },
+  TAHSIL_EDILDI: { label: 'Tahsil Edildi', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
+  KARSILIKSIZ: { label: 'Karşılıksız', bg: 'bg-[#DC2626]/15', text: 'text-[#DC2626]', border: 'border-[#DC2626]/30' },
+  IADE: { label: 'İade', bg: 'bg-[#a855f7]/15', text: 'text-purple-600', border: 'border-[#a855f7]/30' },
 };
 
 const tipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
@@ -203,10 +200,10 @@ const tipConfig: Record<string, { label: string; bg: string; text: string; borde
   senet: { label: 'Senet', bg: 'bg-[#a855f7]/10', text: 'text-purple-600', border: 'border-[#a855f7]/20' },
 };
 
-const durumSirasi: CekSenet['durum'][] = ['portfoyde', 'tahsilde', 'odendi', 'ciro_edildi', 'karsiliksiz'];
+const durumSirasi: CekSenet['durum'][] = ['BEKLIYOR', 'TAHSIL_EDILDI', 'KARSILIKSIZ', 'IADE'];
 
 function kalanGun(vade: string, durum: string): number | null {
-  if (durum === 'odendi') return null;
+  if (durum === 'TAHSIL_EDILDI' || durum === 'IADE') return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const vadeDate = new Date(vade);
@@ -259,7 +256,17 @@ export default function CekSenetPage() {
         if (cancelled) return;
 
         const useApi = dataResult.status === 'fulfilled' && Array.isArray(dataResult.value);
-        const tableData = useApi ? dataResult.value : mockData;
+        const tableData = useApi
+          ? dataResult.value.map((item: any) => ({
+              ...item,
+              durum: item.status || item.durum || 'BEKLIYOR',
+              tip: item.tur || item.tip || item.type || 'cek',
+              no: item.seri_no || item.no || '',
+              musteri: item.musteri || '',
+              taraf: item.kesideci || item.taraf || 'borclu',
+              notlar: item.aciklama || item.notlar || '',
+            }))
+          : mockData;
         setData(tableData);
 
         if (kpiResult.status === 'fulfilled' && kpiResult.value && useApi) {
@@ -296,7 +303,7 @@ export default function CekSenetPage() {
     const sevenDays = new Date(today);
     sevenDays.setDate(sevenDays.getDate() + 7);
 
-    const active = list.filter((i) => i.durum === 'portfoyde' || i.durum === 'tahsilde');
+    const active = list.filter((i) => i.durum === 'BEKLIYOR' || i.durum === 'TAHSIL_EDILDI');
 
     setKpi({
       toplam_portfoy: active.reduce((sum, i) => sum + i.tutar, 0),
@@ -326,7 +333,7 @@ export default function CekSenetPage() {
 
     setStatusLoading(item.id);
     try {
-      await api.put(`/api/tenant/cek-senet/${item.id}/status`, { durum: nextDurum });
+      await api.put(`/api/tenant/cek-senet/${item.id}/status`, { status: nextDurum });
     } catch {
       setData((prev) =>
         prev.map((d) => (d.id === item.id ? { ...d, durum: item.durum } : d))
@@ -388,7 +395,7 @@ export default function CekSenetPage() {
       header: 'Durum',
       align: 'center',
       render: (row) => {
-        const dc = durumConfig[row.durum] || durumConfig.portfoyde;
+        const dc = durumConfig[row.durum] || durumConfig.BEKLIYOR;
         return (
           <button
             onClick={(e) => {
@@ -446,7 +453,7 @@ export default function CekSenetPage() {
           const newItem: CekSenet = res.data ?? {
             id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
             ...payload,
-            durum: 'portfoyde',
+            durum: 'BEKLIYOR',
           };
           setData((prev) => [newItem, ...prev]);
         }
@@ -463,7 +470,7 @@ export default function CekSenetPage() {
         tutar: parseFloat(formData.tutar),
         vade_tarihi: formData.vade_tarihi,
         tanzim_tarihi: formData.tanzim_tarihi || undefined,
-        durum: 'portfoyde',
+        durum: 'BEKLIYOR',
         banka: formData.banka.trim() || undefined,
         sube: formData.sube.trim() || undefined,
         taraf: formData.taraf.trim() || undefined,

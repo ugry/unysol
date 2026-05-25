@@ -141,6 +141,7 @@ export default function ExpensesPage() {
   const [formData, setFormData] = useState<ExpenseFormData>(emptyForm);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,15 +164,22 @@ export default function ExpensesPage() {
     e.preventDefault();
     setFormError('');
     setSubmitting(true);
+    const payload = { ...formData, tutar: parseFloat(formData.tutar) };
     try {
-      await api.post('/api/tenant/expenses', {
-        ...formData,
-        tutar: parseFloat(formData.tutar),
-      });
+      if (editingId) {
+        await api.put(`/api/tenant/expenses/${editingId}`, payload);
+        setExpenses((prev) =>
+          prev.map((ex) => (ex.id === editingId ? { ...ex, ...payload, tutar: payload.tutar } : ex))
+        );
+      } else {
+        const res = await api.post<Expense>('/api/tenant/expenses', payload);
+        if (res.data) setExpenses((prev) => [...prev, res.data]);
+      }
       setShowModal(false);
+      setEditingId(null);
       setFormData(emptyForm);
     } catch {
-      setFormError('Gider eklenirken bir hata oluştu.');
+      setFormError('Gider kaydedilirken bir hata oluştu.');
     } finally {
       setSubmitting(false);
     }
@@ -289,9 +297,11 @@ export default function ExpensesPage() {
             aciklama: row.aciklama,
             plaka: row.plaka || '',
           });
+          setEditingId(row.id);
           setShowModal(true);
         }}
-        onDelete={(row) => {
+        onDelete={async (row) => {
+          try { await api.delete(`/api/tenant/expenses/${row.id}`); } catch {}
           setExpenses((prev) => prev.filter((e) => e.id !== row.id));
         }}
         onBulkDelete={(ids) => {
@@ -305,9 +315,9 @@ export default function ExpensesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white border border-enterprise-border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-enterprise-text">Yeni Gider</h3>
+              <h3 className="text-lg font-semibold text-enterprise-text">{editingId ? 'Gider Düzenle' : 'Yeni Gider'}</h3>
               <button
-                onClick={() => { setShowModal(false); setFormData(emptyForm); setFormError(''); }}
+                onClick={() => { setShowModal(false); setEditingId(null); setFormData(emptyForm); setFormError(''); }}
                 className="text-enterprise-text-muted hover:text-enterprise-text transition-colors p-1 rounded-md hover:bg-gray-100"
               >
                 <X size={20} />
@@ -381,7 +391,7 @@ export default function ExpensesPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setFormData(emptyForm); setFormError(''); }}
+                  onClick={() => { setShowModal(false); setEditingId(null); setFormData(emptyForm); setFormError(''); }}
                   className="flex-1 py-2.5 rounded-lg border border-enterprise-border text-enterprise-text-muted hover:text-enterprise-text hover:border-gray-400 font-medium text-sm transition-all"
                 >
                   İptal

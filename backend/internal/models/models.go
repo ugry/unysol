@@ -758,9 +758,9 @@ type Prediction struct {
 	TenantID  int      `json:"tenant_id"`
 	Ay        string   `json:"ay"`
 	Month     string   `json:"month"`
-	Gelir     *float64 `json:"gelir,omitempty"`
-	Gider     *float64 `json:"gider,omitempty"`
-	Kar       *float64 `json:"kar,omitempty"`
+	Gelir     *float64 `json:"tahmini_gelir,omitempty"`
+	Gider     *float64 `json:"tahmini_gider,omitempty"`
+	Kar       *float64 `json:"tahmini_kar,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
