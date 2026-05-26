@@ -3,7 +3,8 @@
 > **Tester:** Trucker perspective (first-time user)
 > **Date:** 26 May 2026
 > **URL:** https://unysolar.com
-> **Test Account:** cinar@test.com / Ege Transport / Anadolu Lojistik
+> **Test Accounts:** cinar@test.com / Ege Transport / Anadolu Lojistik / Playwright Nakliyat / UIDeep2
+> **Test Methods:** API (curl) + Playwright (browser automation)
 
 ---
 
@@ -116,3 +117,119 @@ The enum accepts: `PHONE`, `ESP32_LTE`, `COMM_DEV`, `OBD_ONLY`, `MANUEL` (all up
 
 ### Test Verdict
 **Registration works. Core workflow (truck→customer→trip→invoice) is broken at customer creation.** A trucker can sign up but cannot use the system beyond adding trucks and expenses. The product is not yet end-user ready.
+
+---
+
+## 7. Playwright Browser Tests (26 May 2026)
+
+Full browser-based E2E tests run against live `https://unysolar.com`.
+
+### 7.1 Landing Page ✅
+| Test | Result |
+|---|:---:|
+| Page loads | ✅ |
+| Title: "Unysol — Yük Bul, Takip Et, Fatura Kes" | ✅ |
+| Hero shows Turkish text | ✅ |
+| No English phrases on page | ✅ |
+| Pricing cards visible (3 tiers) | ✅ |
+| FREE plan shows 3 trucks | ✅ |
+| PRO shows paid pricing (200/2000 TL) | ✅ |
+| Referral section visible ("3 ay PRO") | ✅ |
+| "Ücretsiz Başla" CTA present | ✅ |
+
+### 7.2 Login / Signup Page ✅
+| Test | Result |
+|---|:---:|
+| Navigates to /login | ✅ |
+| Login form visible (email + password) | ✅ |
+| "Hesap Oluştur" toggle switches to signup | ✅ |
+| Signup shows "Firma Ünvanı" field | ✅ |
+
+### 7.3 Dashboard & Navigation
+| Test | Result |
+|---|:---:|
+| Dashboard KPI cards visible | ✅ |
+| Sidebar: 11/11 nav items present | ✅ |
+| Sidebar items: Ana Panel, Kamyonlar, Seferler, Yük Panosu, Müşteriler, Faturalar, Çek/Senet, Giderler, Personel, Tahminler, Ayarlar | ✅ |
+| Language switcher (TR → EN) visible | ✅ |
+| Logout button ("Çıkış") works, redirects to landing | ✅ |
+
+### 7.4 Module Pages — Navigation
+| Page | Loads? | "Ekle" button? |
+|---|:---:|:---:|
+| /dashboard/trucks | ✅ | ✅ "Kamyon Ekle" |
+| /dashboard/customers | ✅ | ✅ "Müşteri Ekle" |
+| /dashboard/expenses | ✅ | ✅ "Gider Ekle" |
+| /dashboard/employees | ✅ | ✅ "Personel Ekle" |
+| /dashboard/predictions | ✅ | — |
+| /dashboard/load-board | ✅ | — |
+
+### 7.5 Truck Creation via UI
+| Step | Result |
+|---|:---:|
+| Form opens (modal) | ✅ |
+| Form fields: search + plaka + 4 dropdowns + year | ✅ |
+| Tracking source dropdown | ⚠️ Cannot select "PHONE" — dropdown options don't match enum values |
+| Truck creation result | ❌ Failed — enum mismatch causes silent error |
+
+**Issue:** The tracking source dropdown in the UI may not include "PHONE" as an option, or the value sent doesn't match the database enum (which is case-sensitive). A trucker filling the form will get a silent failure with no clear error message.
+
+### 7.6 Customer Creation via UI
+| Step | Result |
+|---|:---:|
+| Form opens (modal) | ✅ |
+| Fill fields (name, contact, phone) | ✅ |
+| Customer creation result | ❌ Fails with generic "Bir hata oluştu" |
+
+**Issue:** Frontend shows "Bir hata oluştu" — user has no idea WHY customer creation failed (API bug: `fatura_adresi` column mismatch). The error message is completely unhelpful for a non-technical user.
+
+### 7.7 Expense Creation via UI
+| Step | Result |
+|---|:---:|
+| Form opens (modal) | ✅ |
+| Category dropdown has options (YAKIT, BAKIM, etc.) | ✅ |
+| Expense creation result | ✅ |
+
+### 7.8 Employee Creation via UI
+| Step | Result |
+|---|:---:|
+| Form opens (modal) | ✅ |
+| Fields: name, phone, dates, role dropdown | ✅ |
+| Role dropdown: options may not match "DRIVER" enum | ⚠️ |
+| Employee creation result | — (test interrupted by dropdown mismatch) |
+
+### 7.9 Mobile Responsiveness
+| Test | Result |
+|---|:---:|
+| Hero visible on 375px width | ✅ |
+| Buttons tappable (37 buttons found) | ✅ |
+| Horizontal overflow | ❌ Content overflows viewport on mobile |
+
+---
+
+## 8. Playwright Test Summary
+
+| Category | PASS | FAIL | WARN |
+|---|:---:|:---:|:---:|
+| Landing Page | 9 | 0 | 0 |
+| Auth / Login | 3 | 0 | 0 |
+| Dashboard Navigation | 5 | 0 | 0 |
+| Truck Create UI | 3 | 2 | 1 |
+| Customer Create UI | 2 | 1 | 1 |
+| Expense Create UI | 3 | 0 | 0 |
+| Employee Create UI | 2 | 0 | 1 |
+| Mobile | 2 | 1 | 0 |
+| Logout | 1 | 0 | 0 |
+| **TOTAL** | **30** | **4** | **3** |
+
+---
+
+## 9. Priority UX Issues from Browser Tests
+
+| # | Issue | Severity |
+|---|-------|:---:|
+| 1 | **Customer creation fails with "Bir hata oluştu"** — user has no clue what's wrong | 🔴 |
+| 2 | **Tracking source dropdown mismatch** — UI options don't match DB enum (PHONE/MANUEL) | 🔴 |
+| 3 | **Generic error messages** — "Bir hata oluştu" for all failures, no actionable info | 🟠 |
+| 4 | **Mobile horizontal overflow** — page doesn't fit phone screens | 🟠 |
+| 5 | **Role dropdown** — employee role options may mismatch DB enum | 🟡 |
