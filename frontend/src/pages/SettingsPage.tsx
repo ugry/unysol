@@ -27,9 +27,9 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
   const [users] = useState([
-    { id: '1', ad_soyad: 'Kemal Aras', email: 'kemal@logisol.com', rol: 'Yönetici' },
-    { id: '2', ad_soyad: 'Ayşe Demir', email: 'ayse@logisol.com', rol: 'Operasyon' },
-    { id: '3', ad_soyad: 'Can Yıldız', email: 'can@logisol.com', rol: 'Muhasebe' },
+    { id: '1', ad_soyad: 'Kemal Aras', email: 'kemal@unysolar.com', rol: 'Yönetici' },
+    { id: '2', ad_soyad: 'Ayşe Demir', email: 'ayse@unysolar.com', rol: 'Operasyon' },
+    { id: '3', ad_soyad: 'Can Yıldız', email: 'can@unysolar.com', rol: 'Muhasebe' },
   ]);
 
   const [notifications, setNotifications] = useState({

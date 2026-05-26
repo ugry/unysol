@@ -1520,7 +1520,7 @@ func (h *InvoicesHandler) buildInvoiceHTML(invoice *models.Invoice, items []mode
 		<tr class="total-row"><td style="padding:4px;">Genel Toplam:</td><td style="text-align:right;color:#FF5F03;">%.2f ₺</td></tr>
 	</table>
 	%s
-	<div class="footer">Bu fatura Logisol tarafından elektronik olarak düzenlenmiştir. | %s</div>
+	<div class="footer">Bu fatura Unysol tarafından elektronik olarak düzenlenmiştir. | %s</div>
 	</body></html>`,
 		logoHTML,
 		invoice.FaturaNo,

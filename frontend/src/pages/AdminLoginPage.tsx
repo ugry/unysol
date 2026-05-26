@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="admin@logisol.com"
+                placeholder="admin@unysolar.com"
                 className="w-full px-3.5 py-2.5 rounded-lg bg-[#08090a] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#555] text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/20 transition-all"
               />
             </div>

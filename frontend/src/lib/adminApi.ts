@@ -6,7 +6,7 @@ const adminApi = axios.create({
 });
 
 adminApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('logisol_admin_token');
+  const token = localStorage.getItem('unysol_admin_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -17,8 +17,8 @@ adminApi.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('logisol_admin_token');
-      localStorage.removeItem('logisol_admin_user');
+      localStorage.removeItem('unysol_admin_token');
+      localStorage.removeItem('unysol_admin_user');
       window.location.href = '/admin/login';
     }
     return Promise.reject(error);

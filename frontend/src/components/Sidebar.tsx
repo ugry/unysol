@@ -54,7 +54,7 @@ export default function Sidebar() {
             <span className="text-white font-[590] text-xs leading-none">L</span>
           </div>
           <span className="text-[#f7f8f8] font-[510] text-base tracking-tight">
-            Logisol
+            Unysol
           </span>
         </button>
       </div>

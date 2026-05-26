@@ -529,7 +529,7 @@ function TenantsTab() {
 
                   <button
                     onClick={() => {
-                      localStorage.setItem('logisol_impersonate_target', tenant.id);
+                      localStorage.setItem('unysol_impersonate_target', tenant.id);
                       window.location.href = '/dashboard';
                     }}
                     className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#FF5F03]/10 text-[#FF5F03] hover:bg-[#FF5F03]/20 border border-[#FF5F03]/20 transition-colors flex items-center gap-2"
@@ -1203,7 +1203,7 @@ export default function AdminDashboard() {
               <Shield size={18} className="text-white" />
             </div>
             <div>
-              <span className="text-[#f7f8f8] font-bold text-lg tracking-tight">Logisol</span>
+              <span className="text-[#f7f8f8] font-bold text-lg tracking-tight">Unysol</span>
               <span className="text-[#FF5F03] font-bold text-lg"> Admin</span>
             </div>
           </div>
@@ -1237,7 +1237,7 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm text-[#f7f8f8] font-medium truncate">
-                {adminUser.ad || 'Admin'}
+                {adminUser.ad || 'Yönetici'}
               </div>
               <div className="text-xs text-[#62666d] truncate">{adminUser.email}</div>
             </div>
@@ -1262,7 +1262,7 @@ export default function AdminDashboard() {
                 <div className="w-9 h-9 bg-[#FF5F03] rounded-lg flex items-center justify-center">
                   <Shield size={18} className="text-white" />
                 </div>
-                <span className="text-[#f7f8f8] font-bold text-lg">Logisol Admin</span>
+                <span className="text-[#f7f8f8] font-bold text-lg">Unysol Yönetici</span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="text-[#8a8f98] hover:text-[#f7f8f8]">
                 <X size={20} />
@@ -1312,14 +1312,14 @@ export default function AdminDashboard() {
               <BarChart3 size={20} />
             </button>
             <h1 className="text-lg font-semibold text-[#f7f8f8] hidden sm:block">
-              {tabs.find((t) => t.id === activeTab)?.label || 'Admin Panel'}
+              {tabs.find((t) => t.id === activeTab)?.label || 'Yönetici Paneli'}
             </h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-[#8a8f98] hidden sm:block">
               {adminUser?.ad}
               <span className="ml-1.5 px-2 py-0.5 rounded-full bg-[#FF5F03]/15 text-[#FF5F03] text-xs font-medium">
-                {adminUser?.rol === 'SUPER_ADMIN' ? 'Süper Admin' : 'Admin'}
+                {adminUser?.rol === 'SUPER_ADMIN' ? 'Süper Admin' : 'Yönetici'}
               </span>
             </span>
             <button

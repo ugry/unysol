@@ -71,7 +71,7 @@ export default function LoginPage() {
               <Truck size={20} className="text-white" />
             </div>
             <span className="text-[#f7f8f8] font-[590] text-xl tracking-tight">
-              Logisol
+              Unysol
             </span>
           </button>
         </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-[14px] text-[#8a8f98] mb-5 text-center">
             {isSignup
-              ? 'Logisol ailesine katılın'
+              ? 'Unysol ailesine katılın'
               : 'Hesabınıza giriş yaparak devam edin'}
           </p>
 
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   value={firmaUnvani}
                   onChange={(e) => setFirmaUnvani(e.target.value)}
                   required
-                  placeholder="Logisol Lojistik A.Ş."
+                  placeholder="Unysol Lojistik A.Ş."
                   className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors"
                 />
               </div>

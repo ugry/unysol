@@ -19,7 +19,7 @@ const pageTitles: Record<string, string> = {
 export default function MainLayout() {
   const location = useLocation();
   const { user } = useAuth();
-  const title = pageTitles[location.pathname] || 'Logisol';
+  const title = pageTitles[location.pathname] || 'Unysol';
 
   return (
     <div className="flex h-screen bg-[#08090a] overflow-hidden">

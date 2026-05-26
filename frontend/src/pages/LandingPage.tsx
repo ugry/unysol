@@ -125,7 +125,7 @@ export default function LandingPage() {
                       password: res.data.password || 'Demo1234!',
                     });
                     if (loginRes.data?.access_token) {
-                      localStorage.setItem('logisol_token', loginRes.data.access_token);
+                      localStorage.setItem('unysol_token', loginRes.data.access_token);
                       navigate('/dashboard');
                       return;
                     }

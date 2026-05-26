@@ -11,27 +11,27 @@ export async function adminLogin(email: string, password: string): Promise<Admin
   const user: AdminUser = {
     id: String(res.data.user_id),
     email: res.data.email,
-    ad: 'Admin',
+    ad: 'Yönetici',
     rol: 'SUPER_ADMIN',
   };
 
-  localStorage.setItem('logisol_admin_token', res.data.access_token);
-  localStorage.setItem('logisol_admin_user', JSON.stringify(user));
+  localStorage.setItem('unysol_admin_token', res.data.access_token);
+  localStorage.setItem('unysol_admin_user', JSON.stringify(user));
   return user;
 }
 
 export function adminLogout(): void {
-  localStorage.removeItem('logisol_admin_token');
-  localStorage.removeItem('logisol_admin_user');
+  localStorage.removeItem('unysol_admin_token');
+  localStorage.removeItem('unysol_admin_user');
   window.location.href = '/admin/login';
 }
 
 export function isAdminAuthenticated(): boolean {
-  return !!localStorage.getItem('logisol_admin_token');
+  return !!localStorage.getItem('unysol_admin_token');
 }
 
 export function getStoredAdminUser(): AdminUser | null {
-  const raw = localStorage.getItem('logisol_admin_user');
+  const raw = localStorage.getItem('unysol_admin_user');
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AdminUser;
