@@ -23,10 +23,11 @@
 
 | Service | Port | Container |
 |---|---|---|
-| Frontend (landing + app) | `:80` | `unysol-frontend` |
-| Backend API | `:8080` | `unysol-backend` |
-| PostgreSQL 16 | `127.0.0.1:5433` | `unysol-db` |
-| Redis 7 | `127.0.0.1:6380` | `unysol-redis` |
+| Caddy (reverse proxy + SSL) | `:80`, `:443` | `unysol-caddy` |
+| Frontend (landing + app) | internal `:5173` | `unysol-frontend` |
+| Backend API | internal `:8080` | `unysol-backend` |
+| PostgreSQL 16 | internal `:5432` | `unysol-db` |
+| Redis 7 | internal `:6379` | `unysol-redis` |
 
 ---
 
@@ -34,10 +35,21 @@
 
 | URL | Purpose |
 |---|---|
-| `http://212.224.88.47/` | Landing page + app |
-| `http://212.224.88.47/login` | Login / signup |
-| `http://212.224.88.47/admin/login` | Admin login |
-| `http://212.224.88.47:8080/api/system/health` | Backend health |
+| `https://unysolar.com/` | Landing page + app (SSL auto) |
+| `https://unysolar.com/login` | Login / signup |
+| `https://unysolar.com/admin/login` | Admin login |
+| `https://unysolar.com/api/system/health` | Backend health |
+
+---
+
+## SSL
+
+| Detail | Value |
+|---|---|
+| Provider | Let's Encrypt (via Caddy) |
+| Domain | `unysolar.com` |
+| Auto-renewal | Yes (Caddy handles automatically) |
+| HTTP → HTTPS | 308 redirect (automatic) |
 
 ---
 

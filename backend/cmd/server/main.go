@@ -206,7 +206,7 @@ func metricsMiddleware(next http.Handler) http.Handler {
 
 func getCORSOrigins(env string) []string {
 	if env == "production" {
-		return []string{"https://unysol.app", "https://www.unysol.app"}
+		return []string{"https://unysolar.com", "https://www.unysolar.com", "https://unysol.app", "https://www.unysol.app"}
 	}
 	return []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
 }
