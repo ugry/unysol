@@ -20,20 +20,33 @@ interface Prediction {
   guven_araligi: string;
 }
 
-const mockPredictions: Prediction[] = [
-  { ay: 'Haz', tahmini_gelir: 195000, tahmini_gider: 142000, tahmini_kar: 53000, guven_araligi: '±8%' },
-  { ay: 'Tem', tahmini_gelir: 210000, tahmini_gider: 148000, tahmini_kar: 62000, guven_araligi: '±9%' },
-  { ay: 'Ağu', tahmini_gelir: 225000, tahmini_gider: 155000, tahmini_kar: 70000, guven_araligi: '±10%' },
-  { ay: 'Eyl', tahmini_gelir: 240000, tahmini_gider: 160000, tahmini_kar: 80000, guven_araligi: '±11%' },
-  { ay: 'Eki', tahmini_gelir: 255000, tahmini_gider: 168000, tahmini_kar: 87000, guven_araligi: '±12%' },
-  { ay: 'Kas', tahmini_gelir: 245000, tahmini_gider: 162000, tahmini_kar: 83000, guven_araligi: '±12%' },
-  { ay: 'Ara', tahmini_gelir: 260000, tahmini_gider: 170000, tahmini_kar: 90000, guven_araligi: '±13%' },
-  { ay: 'Oca', tahmini_gelir: 220000, tahmini_gider: 150000, tahmini_kar: 70000, guven_araligi: '±14%' },
-  { ay: 'Şub', tahmini_gelir: 230000, tahmini_gider: 155000, tahmini_kar: 75000, guven_araligi: '±14%' },
-  { ay: 'Mar', tahmini_gelir: 250000, tahmini_gider: 165000, tahmini_kar: 85000, guven_araligi: '±15%' },
-  { ay: 'Nis', tahmini_gelir: 265000, tahmini_gider: 172000, tahmini_kar: 93000, guven_araligi: '±15%' },
-  { ay: 'May', tahmini_gelir: 280000, tahmini_gider: 178000, tahmini_kar: 102000, guven_araligi: '±16%' },
-];
+const monthNames: Record<string, string> = {
+  '01': 'Oca', '02': 'Şub', '03': 'Mar', '04': 'Nis', '05': 'May', '06': 'Haz',
+  '07': 'Tem', '08': 'Ağu', '09': 'Eyl', '10': 'Eki', '11': 'Kas', '12': 'Ara',
+};
+
+function formatAy(ay: string): string {
+  if (ay.length === 7) {
+    const m = ay.substring(5, 7);
+    const y = ay.substring(2, 4);
+    return `${monthNames[m] || m} '${y}`;
+  }
+  return ay;
+}
+
+const mockPredictions: Prediction[] = Array.from({ length: 12 }, (_, i) => {
+  const month = new Date(2026, 5 + i, 1);
+  const mm = String(month.getMonth() + 1).padStart(2, '0');
+  const ay = `2026-${mm}`;
+  const base = 180000 + i * 12000;
+  return {
+    ay,
+    tahmini_gelir: base + Math.round(Math.random() * 20000),
+    tahmini_gider: Math.round(base * 0.65) + Math.round(Math.random() * 10000),
+    tahmini_kar: Math.round(base * 0.35) - Math.round(Math.random() * 5000),
+    guven_araligi: `±${8 + i}%`,
+  };
+});
 
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -43,7 +56,7 @@ export default function PredictionsPage() {
     let cancelled = false;
     setLoading(true);
     api
-      .get<Prediction[]>('/api/tenant/predictions')
+      .get<Prediction[]>('/api/tenant/predictions/12-months')
       .then((res) => {
         if (!cancelled) setPredictions(res.data);
       })
@@ -187,7 +200,7 @@ export default function PredictionsPage() {
             <tbody className="divide-y divide-[rgba(255,255,255,0.05)]">
               {predictions.map((p, i) => (
                 <tr key={i} className="hover:bg-[#191a1b] transition-colors">
-                  <td className="px-5 py-3"><span className="text-sm font-medium text-[#f7f8f8]">{p.ay}</span></td>
+                  <td className="px-5 py-3"><span className="text-sm font-medium text-[#f7f8f8]">{formatAy(p.ay)}</span></td>
                   <td className="px-5 py-3 text-right"><span className="text-sm text-[#16A34A] font-medium">₺{p.tahmini_gelir.toLocaleString('tr-TR')}</span></td>
                   <td className="px-5 py-3 text-right"><span className="text-sm text-[#DC2626] font-medium">₺{p.tahmini_gider.toLocaleString('tr-TR')}</span></td>
                   <td className="px-5 py-3 text-right"><span className="text-sm text-[#FF5F03] font-medium">₺{p.tahmini_kar.toLocaleString('tr-TR')}</span></td>
@@ -204,7 +217,7 @@ export default function PredictionsPage() {
         {predictions.map((p, i) => (
           <div key={i} className="bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#f7f8f8]">{p.ay}</span>
+              <span className="text-sm font-semibold text-[#f7f8f8]">{formatAy(p.ay)}</span>
               <span className="text-xs text-[#8a8f98] bg-[#191a1b] px-2 py-0.5 rounded">Güven: {p.guven_araligi}</span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-sm">
