@@ -1160,7 +1160,7 @@ function AnalyticsTab() {
 }
 
 function EmailTab() {
-  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993' });
+  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993', google_client_id: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -1231,6 +1231,14 @@ function EmailTab() {
             <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Port</label>
             <input type="text" value={cfg.imap_port} onChange={e => update('imap_port', e.target.value)} placeholder="993" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Google Client ID</label>
+            <input type="text" value={cfg.google_client_id} onChange={e => update('google_client_id', e.target.value)} placeholder="123456789-xxxxx.apps.googleusercontent.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+          </div>
+          <div></div>
         </div>
 
         <div className="flex gap-3 pt-2">

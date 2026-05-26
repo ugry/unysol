@@ -80,6 +80,7 @@ func main() {
 	loadBoardHandler := &handlers.LoadBoardHandler{DB: pool}
 	contactHandler := &handlers.ContactHandler{}
 	emailHandler := &handlers.EmailHandler{DB: pool}
+	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
 
 	// Load email config from database on startup
 	loadEmailConfig(pool)
@@ -106,6 +107,7 @@ func main() {
 		r.Use(middleware.RateLimit(cfg.RateLimiting.Auth))
 		r.Post("/signup", authHandler.Signup)
 		r.Post("/login", authHandler.Login)
+		r.Post("/google", googleHandler.Login)
 	})
 
 	r.Route("/api/demo", func(r chi.Router) {

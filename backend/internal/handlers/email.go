@@ -17,21 +17,23 @@ type EmailHandler struct {
 }
 
 type GlobalEmailConfig struct {
-	EmailAddress string `json:"email_address"`
-	EmailPass    string `json:"email_password"`
-	SmtpAddress  string `json:"smtp_address"`
-	ImapAddress  string `json:"imap_address"`
-	SmtpPort     string `json:"smtp_port"`
-	ImapPort     string `json:"imap_port"`
+	EmailAddress   string `json:"email_address"`
+	EmailPass      string `json:"email_password"`
+	SmtpAddress    string `json:"smtp_address"`
+	ImapAddress    string `json:"imap_address"`
+	SmtpPort       string `json:"smtp_port"`
+	ImapPort       string `json:"imap_port"`
+	GoogleClientID string `json:"google_client_id"`
 }
 
 func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	cfg := GlobalEmailConfig{}
 	err := h.DB.QueryRow(r.Context(), `
 		SELECT COALESCE(email_address,''), COALESCE(password,''), COALESCE(smtp_address,''),
-		       COALESCE(imap_address,''), COALESCE(port,'465'), COALESCE(imap_port,'993')
+		       COALESCE(imap_address,''), COALESCE(port,'465'), COALESCE(imap_port,'993'),
+		       COALESCE(google_client_id,'')
 		FROM email_config WHERE id=1
-	`).Scan(&cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress, &cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort)
+	`).Scan(&cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress, &cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort, &cfg.GoogleClientID)
 	if err != nil {
 		writeJSON(w, http.StatusOK, GlobalEmailConfig{SmtpPort: "465", ImapPort: "993"})
 		return
@@ -70,12 +72,12 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
 
 	_, err := h.DB.Exec(r.Context(), `
-		INSERT INTO email_config (id, email_address, password, smtp_address, imap_address, port, imap_port, host, username, from_email)
-		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $1, $1)
+		INSERT INTO email_config (id, email_address, password, smtp_address, imap_address, port, imap_port, host, username, from_email, google_client_id)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $1, $1, $8)
 		ON CONFLICT (id) DO UPDATE SET
 			email_address=$1, password=$2, smtp_address=$3, imap_address=$4,
-			port=$5, imap_port=$6, host=$7, username=$1, from_email=$1
-	`, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress, req.SmtpPort, req.ImapPort, host)
+			port=$5, imap_port=$6, host=$7, username=$1, from_email=$1, google_client_id=$8
+	`, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress, req.SmtpPort, req.ImapPort, host, req.GoogleClientID)
 
 	if err != nil {
 		logging.Error(logging.LevelError, err, "", "", "", "", "email", "save config failed", nil)
