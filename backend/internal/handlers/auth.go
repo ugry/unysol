@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 
+	"unysol/internal/email"
 	"unysol/internal/logging"
 	"unysol/internal/validator"
 )
@@ -132,6 +135,23 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resetSignupLockout(ip)
+
+	// Generate verification token
+	verificationToken := generateVerificationToken()
+	_, _ = h.DB.Exec(r.Context(), `
+		INSERT INTO email_verification_tokens (user_id, token, expires_at)
+		VALUES ($1, $2, NOW() + INTERVAL '24 hours')
+	`, userID, verificationToken)
+
+	// Send verification email (non-blocking)
+	go func() {
+		if err := email.SendVerificationEmail(req.Email, verificationToken); err != nil {
+			logging.System(logging.LevelWarn, "verification email failed", map[string]interface{}{
+				"error": err.Error(), "email": req.Email,
+			})
+		}
+	}()
+
 	logging.Auth(logging.LevelInfo, "signup success", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
 		map[string]interface{}{"email": req.Email, "tenant_name": req.TenantName})
 
@@ -324,6 +344,12 @@ func isSignupLockedOut(ip string) bool {
 	return false
 }
 
+func generateVerificationToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
 func extractIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		parts := strings.Split(xff, ",")
@@ -337,4 +363,43 @@ func extractIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodu eksik"})
+		return
+	}
+
+	var userID int
+	var expiresAt time.Time
+	var used bool
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT user_id, expires_at, used FROM email_verification_tokens WHERE token=$1
+	`, token).Scan(&userID, &expiresAt, &used)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz doğrulama kodu"})
+		return
+	}
+
+	if used {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu doğrulama kodu zaten kullanılmış"})
+		return
+	}
+
+	if time.Now().After(expiresAt) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodunun süresi dolmuş. Lütfen tekrar kayıt olun."})
+		return
+	}
+
+	_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used=true WHERE token=$1`, token)
+	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET aktif=true WHERE id=$1 AND aktif=false`, userID)
+
+	logging.System(logging.LevelInfo, "email verified", map[string]interface{}{"user_id": userID})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "E-posta adresiniz başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.",
+	})
 }

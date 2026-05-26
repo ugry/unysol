@@ -11,10 +11,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"unysol/internal/cache"
 	"unysol/internal/config"
 	"unysol/internal/database"
+	"unysol/internal/email"
 	"unysol/internal/handlers"
 	"unysol/internal/logging"
 	"unysol/internal/middleware"
@@ -77,6 +79,10 @@ func main() {
 	demoHandler := &handlers.DemoHandler{DB: pool}
 	loadBoardHandler := &handlers.LoadBoardHandler{DB: pool}
 	contactHandler := &handlers.ContactHandler{}
+	emailHandler := &handlers.EmailHandler{DB: pool}
+
+	// Load email config from database on startup
+	loadEmailConfig(pool)
 
 	_ = repo
 	_ = redisClient
@@ -111,6 +117,8 @@ func main() {
 		r.Use(middleware.RateLimit(3))
 		r.Post("/submit", contactHandler.Submit)
 	})
+
+	r.Get("/api/verify", authHandler.VerifyEmail)
 
 	r.Route("/api/system", func(r chi.Router) {
 		r.Get("/health", systemHandler.Health)
@@ -157,6 +165,10 @@ func main() {
 
 			r.Get("/users", adminHandler.ListUsers)
 			r.Post("/users", adminHandler.CreateUser)
+
+			r.Get("/email/config", emailHandler.GetConfig)
+			r.Post("/email/config", emailHandler.SaveConfig)
+			r.Post("/email/test", emailHandler.TestConfig)
 
 			r.Mount("/modules", modulesHandler.Routes())
 			r.Mount("/countries", countriesHandler.Routes())
@@ -230,4 +242,26 @@ func maskPassword(url string) string {
 		}
 	}
 	return url
+}
+
+func loadEmailConfig(pool *pgxpool.Pool) {
+	var host, port, username, password, from string
+	err := pool.QueryRow(context.Background(), `
+		SELECT COALESCE(host,''), COALESCE(port,'465'), COALESCE(username,''), COALESCE(password,''), COALESCE(from_email,'')
+		FROM email_config WHERE id=1
+	`).Scan(&host, &port, &username, &password, &from)
+	if err != nil || host == "" {
+		return
+	}
+	email.Configure(email.Config{
+		Host:     host,
+		Port:     port,
+		Username: username,
+		Password: password,
+		From:     from,
+	})
+	logging.System(logging.LevelInfo, "email config loaded from database", map[string]interface{}{
+		"host": host,
+		"user": username,
+	})
 }
