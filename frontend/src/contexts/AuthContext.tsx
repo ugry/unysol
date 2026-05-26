@@ -2,11 +2,13 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import type { User, SignupPayload } from '@/types';
 import * as authLib from '@/lib/auth';
 
+type SignupResult = User | { requires_verification: boolean; email: string; user_id: number; tenant_id: number };
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  signup: (data: SignupPayload) => Promise<User>;
+  signup: (data: SignupPayload) => Promise<SignupResult>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -32,9 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signupFn = async (data: SignupPayload) => {
-    const u = await authLib.signup(data);
-    setUser(u);
-    return u;
+    const result = await authLib.signup(data);
+    if ('requires_verification' in result && result.requires_verification) {
+      return result;
+    }
+    if ('id' in result && 'role' in result) {
+      setUser(result as unknown as User);
+    }
+    return result;
   };
 
   const logout = () => {

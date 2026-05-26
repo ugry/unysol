@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SignupPayload } from '@/types';
-import { Loader2, Eye, EyeOff, Truck } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Truck, Mail } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,6 +27,9 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [showVerification, setShowVerification] = useState(false);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -40,7 +43,13 @@ export default function LoginPage() {
           password,
           telefon: telefon || undefined,
         };
-        await signup(payload);
+        const result = await signup(payload);
+        if ('requires_verification' in result && result.requires_verification) {
+          setVerificationEmail(result.email);
+          setShowVerification(true);
+          setLoading(false);
+          return;
+        }
       } else {
         await login(email, password);
       }
@@ -50,12 +59,15 @@ export default function LoginPage() {
       if (err instanceof Error) {
         msg = err.message;
       }
-      // Extract actual error from Axios response
-      const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
+      const axiosErr = err as { response?: { data?: { error?: string; message?: string; requires_verification?: boolean; email?: string } } };
       if (axiosErr?.response?.data?.error) {
         msg = axiosErr.response.data.error;
       } else if (axiosErr?.response?.data?.message) {
         msg = axiosErr.response.data.message;
+      }
+      // If login returns requires_verification, show the message with option to resend
+      if (axiosErr?.response?.data?.requires_verification) {
+        setVerificationEmail(axiosErr.response.data.email || email);
       }
       setError(msg);
     } finally {
@@ -85,6 +97,27 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded-lg p-6">
+          {showVerification ? (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-[#16A34A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail size={28} className="text-[#16A34A]" />
+              </div>
+              <h2 className="text-[16px] font-[590] text-[#f7f8f8] mb-2">E-postanızı Kontrol Edin</h2>
+              <p className="text-[14px] text-[#8a8f98] mb-3">
+                <strong className="text-[#d0d6e0]">{verificationEmail}</strong> adresine bir doğrulama linki gönderdik.
+              </p>
+              <p className="text-[13px] text-[#62666d] mb-6">
+                Gelen kutunuzu ve spam klasörünü kontrol edin. Linke tıklayarak hesabınızı aktifleştirebilirsiniz.
+              </p>
+              <button
+                onClick={() => { setShowVerification(false); resetForm(); }}
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#d0d6e0] px-4 py-2 rounded-md font-[510] text-[14px] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+              >
+                Giriş Sayfasına Dön
+              </button>
+            </div>
+          ) : (
+          <>
           <h2 className="text-[16px] font-[590] text-[#f7f8f8] mb-0.5 text-center">
             {isSignup ? 'Hesap Oluştur' : 'Hoş Geldiniz'}
           </h2>
@@ -179,6 +212,8 @@ export default function LoginPage() {
               {isSignup ? 'Hesap Oluştur' : 'Giriş Yap'}
             </button>
           </form>
+          </>
+          )}
         </div>
 
         <p className="text-center mt-4 text-[13px] text-[#8a8f98]">

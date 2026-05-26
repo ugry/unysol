@@ -114,8 +114,8 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	var userID int
 	err = h.DB.QueryRow(r.Context(),
-		`INSERT INTO users (tenant_id, email, password_hash, ad_soyad, rol, telefon) 
-		 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5) RETURNING id`,
+		`INSERT INTO users (tenant_id, email, password_hash, ad_soyad, rol, telefon, aktif) 
+		 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5, false) RETURNING id`,
 		tenantID, req.Email, string(passwordHash), req.TenantName, req.Telefon,
 	).Scan(&userID)
 	if err != nil {
@@ -126,13 +126,6 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, _ = h.DB.Exec(r.Context(), `INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret) VALUES ($1, 'FREE', CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', 0)`, tenantID)
-
-	token, err := h.generateToken(userID, tenantID, req.Email, "TENANT_OWNER")
-	if err != nil {
-		recordSignupFailedAttempt(ip)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
-		return
-	}
 
 	resetSignupLockout(ip)
 
@@ -152,16 +145,16 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	logging.Auth(logging.LevelInfo, "signup success", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
+	logging.Auth(logging.LevelInfo, "signup pending verification", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
 		map[string]interface{}{"email": req.Email, "tenant_name": req.TenantName})
 
-	writeJSON(w, http.StatusCreated, AuthResponse{
-		Token:     token,
-		TokenType: "bearer",
-		UserID:    userID,
-		TenantID:  tenantID,
-		Email:     req.Email,
-		Role:      "TENANT_OWNER",
+	writeJSON(w, http.StatusCreated, map[string]interface{}{
+		"success":      true,
+		"message":      "Hesabınız oluşturuldu. Giriş yapmak için e-posta adresinizi doğrulayın.",
+		"user_id":      userID,
+		"tenant_id":    tenantID,
+		"email":        req.Email,
+		"requires_verification": true,
 	})
 }
 
@@ -186,10 +179,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var userID, tenantID int
 	var passwordHash, role string
+	var aktif bool
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT id, tenant_id, password_hash, rol FROM users WHERE email = $1`,
+		`SELECT id, tenant_id, password_hash, rol, COALESCE(aktif, false) FROM users WHERE email = $1`,
 		req.Email,
-	).Scan(&userID, &tenantID, &passwordHash, &role)
+	).Scan(&userID, &tenantID, &passwordHash, &role, &aktif)
 	if err != nil {
 		recordFailedAttempt(req.Email)
 		logging.Auth(logging.LevelWarn, "login failed — invalid email", "", "", "", r.RemoteAddr,
@@ -203,6 +197,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		logging.Auth(logging.LevelWarn, "login failed — wrong password", itoa(tenantID), itoa(userID), role, r.RemoteAddr,
 			map[string]interface{}{"email": req.Email})
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
+		return
+	}
+
+	if !aktif {
+		writeJSON(w, http.StatusForbidden, map[string]interface{}{
+			"error":                  "Hesabınız henüz doğrulanmadı. Lütfen e-posta adresinize gönderilen doğrulama linkine tıklayın.",
+			"requires_verification": true,
+			"email":                  req.Email,
+		})
 		return
 	}
 
