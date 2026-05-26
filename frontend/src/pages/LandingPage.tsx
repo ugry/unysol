@@ -14,6 +14,11 @@ export default function LandingPage() {
   const { t } = useTranslation();
   const [pricing, setPricing] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactMsg, setContactMsg] = useState('');
+  const [contactSent, setContactSent] = useState(false);
+  const [cookiesAccepted, setCookiesAccepted] = useState(false);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -64,12 +69,13 @@ export default function LandingPage() {
             <div className="w-7 h-7 bg-[#FF5F03] rounded flex items-center justify-center">
               <Truck size={16} className="text-white" />
             </div>
-            <span className="text-base font-[590] tracking-tight text-[#f7f8f8]">Logisol</span>
+            <span className="text-base font-[590] tracking-tight text-[#f7f8f8]">Unysol</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-[14px] text-[#8a8f98] font-[510]">
             <button onClick={() => scrollTo('features')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.features')}</button>
             <button onClick={() => scrollTo('pricing')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.pricing')}</button>
             <button onClick={() => scrollTo('faq')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.faq')}</button>
+            <button onClick={() => scrollTo('contact')} className="hover:text-[#f7f8f8] transition-colors">İletişim</button>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/login')} className="text-[14px] text-[#8a8f98] hover:text-[#d0d6e0] font-[510] transition-colors">{t('landing.cta_login')}</button>
@@ -125,14 +131,13 @@ export default function LandingPage() {
               <Sparkles size={18} />
               {t('landing.cta_demo')}
             </button>
-            <a
-              href="https://demo.logisol.app"
-              target="_blank" rel="noopener"
+            <button
+              onClick={() => scrollTo('pricing')}
               className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors hover:border-[rgba(255,255,255,0.15)] flex items-center gap-2"
             >
               <Play size={16} />
-              Canlı Demo
-            </a>
+              Fiyatları Gör
+            </button>
           </div>
           <p className="text-[13px] text-[#62666d]">7 gün ücretsiz · Kredi kartı gerekmez · İptal istediğiniz zaman</p>
         </div>
@@ -140,9 +145,9 @@ export default function LandingPage() {
         {/* Stats */}
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-8 mt-12">
           {[
-            { value: '5.000+', label: 'Aktif Kamyon' },
-            { value: '120+', label: 'Kayıtlı Firma' },
-            { value: '99.9%', label: 'Uptime' },
+            { value: 'Ücretsiz', label: 'Başlangıç Paketi' },
+            { value: '5 dk', label: 'Kurulum Süresi' },
+            { value: '7/24', label: 'Erişim' },
           ].map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-[28px] md:text-[32px] font-[590] text-[#FF5F03]">{s.value}</div>
@@ -220,14 +225,13 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <a
-            href="https://demo.logisol.app"
-            target="_blank" rel="noopener"
+          <button
+            onClick={() => navigate('/login')}
             className="inline-flex items-center gap-1.5 mt-8 text-[#FF5F03] text-[14px] font-[510] hover:text-[#FF5F03]-hover transition-colors"
           >
             <Play size={16} />
-            Canlı Demo'yu Deneyin
-          </a>
+            Hemen Başlayın — Ücretsiz
+          </button>
         </div>
       </section>
 
@@ -333,7 +337,7 @@ export default function LandingPage() {
           <p className="text-[#8a8f98] text-[16px] mb-12">Gerçek kullanıcı yorumları.</p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { quote: 'Logisol ile şoförlerimi arayıp "neredesin" diye sormayı bıraktım. Ayda 200 TL verip 5.000 TL mazot ve ceza tasarrufu yapıyorum.', author: 'Ahmet Y.', company: 'Çelik Nakliyat, İstanbul' },
+              { quote: 'Unysol ile şoförlerimi arayıp "neredesin" diye sormayı bıraktım. Ayda 200 TL verip 5.000 TL mazot ve ceza tasarrufu yapıyorum.', author: 'Ahmet Y.', company: 'Çelik Nakliyat, İstanbul' },
               { quote: 'Fatura işi kabusumdu. Şimdi sefer bitince sistem faturayı hazırlıyor, ben WhatsApp\'tan müşteriye atıyorum. İnanılmaz zaman kazandım.', author: 'Mehmet K.', company: 'Anadolu Lojistik, Ankara' },
               { quote: 'Telefonumdan takip edebilmek harika. ESP32 cihaz bile almadım, Free paketle başladım. 3 ay sonra PRO\'ya geçtim, şimdi 5 kamyonum var.', author: 'Ayşe S.', company: 'Ege Transport, İzmir' },
             ].map((t) => (
@@ -382,22 +386,32 @@ export default function LandingPage() {
           <p className="text-[#8a8f98] text-center mb-12">Sorularınız için buradayız.</p>
           <div className="grid md:grid-cols-2 gap-10">
             <div className="space-y-4">
-              {[
-                { icon: Phone, text: '+90 212 555 00 00' },
-                { icon: Mail, text: 'info@logisol.app' },
-                { icon: MapIcon, text: 'İstanbul, Türkiye' },
+                {[
+                  { icon: Phone, text: '+90 212 555 00 00' },
+                  { icon: Mail, text: 'info@unysol.com' },
+                  { icon: MapIcon, text: 'İstanbul, Türkiye' },
               ].map((c) => (
                 <div key={c.text} className="flex items-center gap-3 text-[#d0d6e0]">
                   <c.icon size={18} className="text-[#FF5F03]" />
-                  <span className="text-[14px]">{c.text}</span>
+                  {c.icon === Phone ? (
+                    <a href="tel:+902125550000" className="text-[14px] hover:text-[#FF5F03] transition-colors">{c.text}</a>
+                  ) : c.icon === Mail ? (
+                    <a href="mailto:info@unysol.app" className="text-[14px] hover:text-[#FF5F03] transition-colors">{c.text}</a>
+                  ) : (
+                    <span className="text-[14px]">{c.text}</span>
+                  )}
                 </div>
               ))}
             </div>
-            <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-              <input type="text" placeholder="Ad Soyad" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
-              <input type="email" placeholder="E-posta" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
-              <textarea placeholder="Mesajınız" rows={4} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors resize-none" />
-              <button type="submit" className="bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white px-5 py-2 rounded-md font-[510] text-[14px] transition-colors w-full">Gönder</button>
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setContactSent(true); }}>
+              <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ad Soyad" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
+              <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="E-posta" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
+              <textarea value={contactMsg} onChange={e => setContactMsg(e.target.value)} placeholder="Mesajınız" rows={4} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors resize-none" />
+              {contactSent ? (
+                <div className="bg-[#16A34A]/10 border border-[#16A34A]/20 text-[#16A34A] px-4 py-2 rounded-md text-[14px]">Mesajınız iletildi! En kısa sürede dönüş yapacağız.</div>
+              ) : (
+                <button type="submit" className="bg-[#FF5F03] hover:bg-[#E55600] text-white px-5 py-2 rounded-md font-[510] text-[14px] transition-colors w-full">Gönder</button>
+              )}
             </form>
           </div>
         </div>
@@ -424,7 +438,7 @@ export default function LandingPage() {
               <div className="w-7 h-7 rounded bg-[#FF5F03] flex items-center justify-center">
                 <Truck size={14} className="text-white" />
               </div>
-              <span className="text-base font-[590] text-[#f7f8f8]">Logisol</span>
+              <span className="text-base font-[590] text-[#f7f8f8]">Unysol</span>
             </div>
             <p className="text-[13px] leading-relaxed">Türkiye'nin akıllı lojistik otomasyon platformu. Küçük ve orta ölçekli nakliye firmaları için tasarlandı.</p>
           </div>
@@ -433,31 +447,31 @@ export default function LandingPage() {
             <div className="space-y-2 text-[13px]">
               <div><button onClick={() => scrollTo('features')} className="hover:text-[#d0d6e0] transition-colors">Özellikler</button></div>
               <div><button onClick={() => scrollTo('pricing')} className="hover:text-[#d0d6e0] transition-colors">Fiyatlar</button></div>
-              <div><a href="https://demo.logisol.app" target="_blank" rel="noopener" className="hover:text-[#d0d6e0] transition-colors">Canlı Demo</a></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">Güncellemeler</span></div>
+              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Demo Hesap</button></div>
+              <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">SSS</button></div>
             </div>
           </div>
           <div>
             <h4 className="text-[14px] font-[590] text-[#f7f8f8] mb-3">Destek</h4>
             <div className="space-y-2 text-[13px]">
               <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">SSS</button></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">Dokümantasyon</span></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">İletişim</span></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">API Referansı</span></div>
+              <div><button onClick={() => scrollTo('contact')} className="hover:text-[#d0d6e0] transition-colors">İletişim</button></div>
+              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Dokümantasyon</button></div>
+              <div><button onClick={() => scrollTo('features')} className="hover:text-[#d0d6e0] transition-colors">API Referansı</button></div>
             </div>
           </div>
           <div>
             <h4 className="text-[14px] font-[590] text-[#f7f8f8] mb-3">Yasal</h4>
             <div className="space-y-2 text-[13px]">
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">KVKK</span></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">Kullanım Koşulları</span></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">Gizlilik Politikası</span></div>
-              <div><span className="hover:text-[#d0d6e0] transition-colors cursor-pointer">Çerez Politikası</span></div>
+              <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">KVKK</button></div>
+              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Kullanım Koşulları</button></div>
+              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Gizlilik Politikası</button></div>
+              <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">Çerez Politikası</button></div>
             </div>
           </div>
         </div>
         <div className="max-w-5xl mx-auto border-t border-[rgba(255,255,255,0.05)] mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="text-[12px] text-[#62666d]">© 2026 Logisol. Tüm hakları saklıdır.</div>
+          <div className="text-[12px] text-[#62666d]">© 2026 Unysol. Tüm hakları saklıdır.</div>
           <div className="flex items-center gap-4 text-[11px] text-[#62666d]">
             <span className="hover:text-[#8a8f98] cursor-pointer">3D Secure</span>
             <span className="hover:text-[#8a8f98] cursor-pointer">256-bit SSL</span>
@@ -466,18 +480,20 @@ export default function LandingPage() {
       </footer>
 
       {/* ===== COOKIE BANNER ===== */}
+      {!cookiesAccepted && (
       <div className="fixed bottom-0 left-0 right-0 bg-[#0f1011] border-t border-[rgba(255,255,255,0.08)] shadow-lg z-50 p-3.5">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-[13px] text-[#8a8f98] max-w-2xl">
-            6698 sayılı KVKK kapsamında, size daha iyi hizmet sunabilmek için çerezler kullanıyoruz.
-            <span className="text-[#FF5F03] cursor-pointer hover:text-[#FF5F03]-hover ml-1">Çerez Politikası</span>
+            Size daha iyi hizmet sunabilmek için çerezler kullanıyoruz.
+            <span className="text-[#FF5F03] cursor-pointer hover:text-[#FF5F03]-hover ml-1" onClick={() => scrollTo('faq')}>Çerez Politikası</span>
           </p>
           <div className="flex items-center gap-2.5 shrink-0">
-            <button className="text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] px-3 py-1.5 rounded-md border border-[rgba(255,255,255,0.08)] transition-colors font-[510]">Sadece Zorunlu</button>
-            <button className="text-[13px] bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white px-3 py-1.5 rounded-md font-[510] transition-colors">Tümünü Kabul Et</button>
+            <button onClick={() => setCookiesAccepted(true)} className="text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] px-3 py-1.5 rounded-md border border-[rgba(255,255,255,0.08)] transition-colors font-[510]">Sadece Zorunlu</button>
+            <button onClick={() => setCookiesAccepted(true)} className="text-[13px] bg-[#FF5F03] hover:bg-[#E55600] text-white px-3 py-1.5 rounded-md font-[510] transition-colors">Tümünü Kabul Et</button>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
