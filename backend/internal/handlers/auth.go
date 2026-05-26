@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 
+	"unysol/internal/logging"
 	"unysol/internal/validator"
 )
 
@@ -73,7 +73,8 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		slug, req.TenantName,
 	).Scan(&tenantID)
 	if err != nil {
-		slog.Error("failed to create tenant", "error", err)
+		logging.Auth(logging.LevelError, "signup failed — tenant create error", "", "", "", r.RemoteAddr,
+			map[string]interface{}{"email": req.Email, "error": err.Error()})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create tenant"})
 		return
 	}
@@ -85,7 +86,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		tenantID, req.Email, string(passwordHash), req.TenantName, req.Telefon,
 	).Scan(&userID)
 	if err != nil {
-		slog.Error("failed to create user", "error", err)
+		logging.Error(logging.LevelError, err, itoa(tenantID), "", "", "", "auth", "signup user create failed", nil)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
 		return
 	}
@@ -97,6 +98,9 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 		return
 	}
+
+	logging.Auth(logging.LevelInfo, "signup success", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
+		map[string]interface{}{"email": req.Email, "tenant_name": req.TenantName})
 
 	writeJSON(w, http.StatusCreated, AuthResponse{
 		Token:     token,
@@ -121,6 +125,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isLockedOut(req.Email) {
+		logging.Auth(logging.LevelWarn, "login blocked — account locked", "", "", "", r.RemoteAddr,
+			map[string]interface{}{"email": req.Email})
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many login attempts, try again later"})
 		return
 	}
@@ -133,17 +139,23 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	).Scan(&userID, &tenantID, &passwordHash, &role)
 	if err != nil {
 		recordFailedAttempt(req.Email)
+		logging.Auth(logging.LevelWarn, "login failed — invalid email", "", "", "", r.RemoteAddr,
+			map[string]interface{}{"email": req.Email})
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		recordFailedAttempt(req.Email)
+		logging.Auth(logging.LevelWarn, "login failed — wrong password", itoa(tenantID), itoa(userID), role, r.RemoteAddr,
+			map[string]interface{}{"email": req.Email})
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
 		return
 	}
 
 	resetLockout(req.Email)
+	logging.Auth(logging.LevelInfo, "login success", itoa(tenantID), itoa(userID), role, r.RemoteAddr,
+		map[string]interface{}{"email": req.Email})
 
 	token, err := h.generateToken(userID, tenantID, req.Email, role)
 	if err != nil {
@@ -227,4 +239,14 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
+}
+
+func itoa(v int) string {
+	if v == 0 { return "0" }
+	s := ""
+	for v > 0 {
+		s = string(rune('0'+v%10)) + s
+		v /= 10
+	}
+	return s
 }

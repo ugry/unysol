@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+	"unysol/internal/logging"
 )
 
 type responseWriter struct {
@@ -34,43 +34,22 @@ func Logging(next http.Handler) http.Handler {
 		}
 		w.Header().Set("X-Request-ID", requestID)
 
-		bodySize := r.ContentLength
-		if bodySize < 0 {
-			bodySize = 0
-		}
-
 		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start)
 
-		attrs := []slog.Attr{
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.Int("status", rw.status),
-			slog.String("duration", duration.String()),
-			slog.Float64("duration_ms", float64(duration.Microseconds())/1000.0),
-			slog.String("request_id", requestID),
-			slog.Int64("request_size", bodySize),
-			slog.Int("response_size", rw.size),
-			slog.String("remote_addr", r.RemoteAddr),
-			slog.String("user_agent", r.UserAgent()),
-		}
+		tenantID := GetTenantID(r.Context())
+		userID := GetUserID(r.Context())
+		role := GetRole(r.Context())
+		ip := r.RemoteAddr
 
-		if tenantID := GetTenantID(r.Context()); tenantID != "" {
-			attrs = append(attrs, slog.String("tenant_id", tenantID))
-		}
-		if userID := GetUserID(r.Context()); userID != "" {
-			attrs = append(attrs, slog.String("user_id", userID))
-		}
+		logging.Access(r.Method, r.URL.Path, ip, tenantID, userID, role, requestID, rw.status, duration)
 
-		lvl := slog.LevelInfo
 		if rw.status >= 500 {
-			lvl = slog.LevelError
-		} else if rw.status >= 400 {
-			lvl = slog.LevelWarn
+			logging.Error(logging.LevelError, nil, tenantID, userID, role, requestID,
+				"http", "HTTP "+http.StatusText(rw.status),
+				map[string]interface{}{"path": r.URL.Path, "status": rw.status, "duration_ms": float64(duration.Microseconds()) / 1000.0})
 		}
-
-		slog.LogAttrs(r.Context(), lvl, "http request", attrs...)
 	})
 }

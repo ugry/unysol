@@ -1,54 +1,11 @@
 package middleware
 
 import (
-	"fmt"
-	"log/slog"
 	"net/http"
-	"os"
 	"strings"
-	"sync"
-	"time"
+
+	"unysol/internal/logging"
 )
-
-var (
-	actionLogFile *os.File
-	actionLogMu   sync.Mutex
-)
-
-func InitActionLog(path string) error {
-	actionLogMu.Lock()
-	defer actionLogMu.Unlock()
-
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	actionLogFile = f
-	return nil
-}
-
-func CloseActionLog() {
-	actionLogMu.Lock()
-	defer actionLogMu.Unlock()
-	if actionLogFile != nil {
-		actionLogFile.Close()
-	}
-}
-
-func LogAction(userID, tenantID, role, method, path, summary string) {
-	actionLogMu.Lock()
-	defer actionLogMu.Unlock()
-
-	if actionLogFile == nil {
-		return
-	}
-
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	entry := fmt.Sprintf("%s [%s] user=%s tenant=%s role=%s %s %s | %s\n",
-		timestamp, method, userID, tenantID, role, method, path, summary)
-
-	actionLogFile.WriteString(entry)
-}
 
 func ActionLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +17,7 @@ func ActionLogger(next http.Handler) http.Handler {
 		userID := GetUserID(r.Context())
 		tenantID := GetTenantID(r.Context())
 		role := GetRole(r.Context())
+		requestID := r.Header.Get("X-Request-ID")
 
 		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(ww, r)
@@ -76,60 +34,52 @@ func ActionLogger(next http.Handler) http.Handler {
 
 		path := r.URL.Path
 		module := "system"
+		tableName := "unknown"
+		recordID := ""
+
 		parts := strings.Split(strings.Trim(path, "/"), "/")
 		if len(parts) >= 3 && parts[0] == "api" {
-			module = parts[2]
-			if len(parts) >= 4 {
-				module = parts[3]
-			}
-		}
-
-		status := "OK"
-		if ww.status >= 400 {
-			status = fmt.Sprintf("FAIL(%d)", ww.status)
-		}
-
-		summary := fmt.Sprintf("%s %s %s", action, module, status)
-		LogAction(userID, tenantID, role, r.Method, r.URL.Path, summary)
-	})
-}
-
-func StartActionLogFlusher(interval time.Duration) {
-	go func() {
-		for {
-			time.Sleep(interval)
-			actionLogMu.Lock()
-			if actionLogFile != nil {
-				actionLogFile.Sync()
-			}
-			actionLogMu.Unlock()
-		}
-	}()
-}
-
-func StartActionLogRotator(basePath string) {
-	go func() {
-		for {
-			now := time.Now()
-			next := now.Add(24 * time.Hour)
-			next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, next.Location())
-			time.Sleep(next.Sub(now))
-
-			actionLogMu.Lock()
-			if actionLogFile != nil {
-				actionLogFile.Close()
-			}
-			date := time.Now().Format("2006-01-02")
-			rotatedPath := fmt.Sprintf("%s.%s", basePath, date)
-			os.Rename(basePath, rotatedPath)
-
-			f, err := os.OpenFile(basePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				slog.Error("failed to rotate action log", "error", err)
+			if parts[1] == "admin" {
+				module = "admin/" + parts[3]
+			} else if parts[1] == "tenant" {
+				module = parts[2]
+				tableName = parts[2]
 			} else {
-				actionLogFile = f
+				module = parts[1]
+				tableName = parts[1]
 			}
-			actionLogMu.Unlock()
+			if len(parts) >= 3 {
+				tableName = parts[len(parts)-1]
+			}
+			if len(parts) >= 4 {
+				recordID = parts[len(parts)-1]
+			}
 		}
-	}()
+
+		// Resolve table name from module
+		switch module {
+		case "trucks": tableName = "trucks"
+		case "trips": tableName = "trips"
+		case "customers": tableName = "customers"
+		case "invoices": tableName = "invoices"
+		case "expenses": tableName = "expenses"
+		case "employees": tableName = "employees"
+		case "cek-senet": tableName = "cek_senet"
+		case "dashboard": tableName = "dashboard"
+		case "settings": tableName = "settings"
+		case "load-board": tableName = "load_board"
+		case "notifications": tableName = "notifications"
+		}
+
+		level := logging.LevelInfo
+		if ww.status >= 400 {
+			level = logging.LevelWarn
+		}
+		if ww.status >= 500 {
+			level = logging.LevelError
+		}
+
+		logging.Action(level, tenantID, userID, role, requestID,
+			module, action, tableName, recordID, nil, nil)
+	})
 }

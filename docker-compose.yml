@@ -38,6 +38,8 @@ services:
       REDIS_URL: "redis://redis:6379/0"
     ports:
       - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       db:
         condition: service_healthy

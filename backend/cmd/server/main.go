@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,44 +15,45 @@ import (
 	"unysol/internal/config"
 	"unysol/internal/database"
 	"unysol/internal/handlers"
+	"unysol/internal/logging"
 	"unysol/internal/middleware"
 	"unysol/internal/repository"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
+	// Init enterprise logging with category separation
+	logs := logging.Init("logs")
+	defer logs.Close()
+
+	logging.System(logging.LevelInfo, "unysol starting", map[string]interface{}{
+		"version": "1.12",
+		"go":      "1.22",
+	})
 
 	ctx := context.Background()
 	cfg := config.Load()
 
 	pool, err := database.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
-		slog.Error("failed to connect to database", "error", err)
+		logging.System(logging.LevelError, "database connection failed", map[string]interface{}{"error": err.Error()})
 		os.Exit(1)
 	}
 	defer pool.Close()
+	logging.System(logging.LevelInfo, "database connected", map[string]interface{}{"url": maskPassword(cfg.DatabaseURL)})
 
 	if err := database.RunMigrations(ctx, "internal/database/migrations"); err != nil {
-		slog.Warn("migrations warning", "error", err)
+		logging.System(logging.LevelWarn, "migration warning", map[string]interface{}{"error": err.Error()})
 	}
 
 	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
 	if err != nil {
-		slog.Warn("failed to initialize redis", "error", err)
+		logging.System(logging.LevelWarn, "redis unavailable", map[string]interface{}{"error": err.Error()})
 	}
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
 
 	repo := repository.NewRepository(pool)
-
-	middleware.InitActionLog("actions.log")
-	defer middleware.CloseActionLog()
-	middleware.StartActionLogFlusher(5 * time.Second)
-	middleware.StartActionLogRotator("actions.log")
 
 	authHandler := &handlers.AuthHandler{DB: pool, JWTSecret: cfg.JWTSecret}
 	trucksHandler := &handlers.TrucksHandler{DB: pool}
@@ -163,9 +163,9 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("server starting", "port", cfg.Port, "environment", cfg.Environment)
+		logging.System(logging.LevelInfo, "server listening", map[string]interface{}{"port": cfg.Port, "environment": cfg.Environment})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("server failed", "error", err)
+			logging.System(logging.LevelError, "server failed", map[string]interface{}{"error": err.Error()})
 			os.Exit(1)
 		}
 	}()
@@ -174,16 +174,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	slog.Info("server shutting down")
+	logging.System(logging.LevelInfo, "shutdown initiated", nil)
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		slog.Error("server forced to shutdown", "error", err)
+		logging.System(logging.LevelError, "shutdown error", map[string]interface{}{"error": err.Error()})
 	}
 
-	slog.Info("server stopped")
+	logging.System(logging.LevelInfo, "server stopped", nil)
 }
 
 func metricsMiddleware(next http.Handler) http.Handler {
@@ -200,4 +200,13 @@ func getCORSOrigins(env string) []string {
 		return []string{"https://unysol.app", "https://www.unysol.app"}
 	}
 	return []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
+}
+
+func maskPassword(url string) string {
+	for i := 0; i < len(url)-5; i++ {
+		if i+8 < len(url) && url[i:i+8] == "password" {
+			return url[:i] + "password=****"
+		}
+	}
+	return url
 }

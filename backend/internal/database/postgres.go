@@ -3,12 +3,12 @@ package database
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"unysol/internal/logging"
 )
 
 var pool *pgxpool.Pool
@@ -29,7 +29,7 @@ func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	}
 
 	pool = p
-	slog.Info("database connection pool established")
+	logging.System(logging.LevelInfo, "database connection pool established", nil)
 	return p, nil
 }
 
@@ -63,7 +63,7 @@ func RunMigrations(ctx context.Context, migrationsDir string) error {
 			return fmt.Errorf("unable to read migration file %s: %w", entry.Name(), err)
 		}
 
-		slog.Info("running migration", "file", entry.Name())
+		logging.System(logging.LevelInfo, "running migration", map[string]interface{}{"file": entry.Name()})
 		if _, err := p.Exec(ctx, string(sql)); err != nil {
 			return fmt.Errorf("migration %s failed: %w", entry.Name(), err)
 		}

@@ -183,5 +183,3 @@ func nullString(v string) interface{} {
 	}
 	return v
 }
-
-func itoa(n int) string { return strconv.Itoa(n) }
