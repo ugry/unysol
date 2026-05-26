@@ -136,7 +136,7 @@ func (h *TrucksHandler) Update(w http.ResponseWriter, r *http.Request) {
 		 marka = COALESCE(NULLIF($2, ''), marka),
 		 model = COALESCE(NULLIF($3, ''), model),
 		 yil = COALESCE(NULLIF($4, 0), yil),
-		 tracking_source = COALESCE(NULLIF($5, ''), tracking_source),
+		 tracking_source = COALESCE(NULLIF($5, '')::tracking_source_enum, tracking_source),
 		 updated_at = $6
 		 WHERE id = $7 AND tenant_id = $8
 		 RETURNING id, tenant_id, plaka, marka, model, yil, tracking_source, aktif, created_at, updated_at`,
