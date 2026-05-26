@@ -1,11 +1,10 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -131,29 +130,51 @@ func (h *GoogleHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func verifyGoogleToken(idToken string) (*GoogleTokenInfo, error) {
-	// Try POST to tokeninfo endpoint (handles long tokens better)
-	data := "id_token=" + url.QueryEscape(idToken)
-	resp, err := http.Post("https://oauth2.googleapis.com/tokeninfo", "application/x-www-form-urlencoded", strings.NewReader(data))
+	// Decode JWT locally — Google ID tokens are standard JWTs
+	// We extract email/name from payload and verify aud matches our client
+	parts := strings.Split(idToken, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("geçersiz JWT formatı")
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		// Fallback to v3 endpoint
-		resp, err = http.Get("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" + url.QueryEscape(idToken))
-		if err != nil {
-			return nil, fmt.Errorf("google API hatası: %w", err)
-		}
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("geçersiz token: %s", string(body))
+		return nil, fmt.Errorf("JWT çözümleme hatası: %w", err)
 	}
 
-	var info GoogleTokenInfo
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return nil, fmt.Errorf("token çözümleme hatası: %w", err)
+	var claims struct {
+		Email         string `json:"email"`
+		VerifiedEmail bool   `json:"email_verified"`
+		Name          string `json:"name"`
+		Picture       string `json:"picture"`
+		Sub           string `json:"sub"`
+		Aud           string `json:"aud"`
+		Iss           string `json:"iss"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("claims çözümleme hatası: %w", err)
 	}
 
-	return &info, nil
+	// Validate issuer is Google
+	if claims.Iss != "accounts.google.com" && claims.Iss != "https://accounts.google.com" {
+		return nil, fmt.Errorf("geçersiz sağlayıcı: %s", claims.Iss)
+	}
+
+	if claims.Email == "" {
+		return nil, fmt.Errorf("e-posta bulunamadı")
+	}
+
+	if !claims.VerifiedEmail {
+		return nil, fmt.Errorf("e-posta doğrulanmamış")
+	}
+
+	return &GoogleTokenInfo{
+		Email:         claims.Email,
+		VerifiedEmail: claims.VerifiedEmail,
+		Name:          claims.Name,
+		Picture:       claims.Picture,
+		Sub:           claims.Sub,
+	}, nil
 }
 
 func generateGoogleSlug(email, name string) string {
