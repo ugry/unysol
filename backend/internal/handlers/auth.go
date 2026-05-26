@@ -109,7 +109,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = h.DB.Exec(r.Context(), `INSERT INTO subscriptions (tenant_id, plan) VALUES ($1, 'FREE')`, tenantID)
+	_, _ = h.DB.Exec(r.Context(), `INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret) VALUES ($1, 'FREE', CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', 0)`, tenantID)
 
 	token, err := h.generateToken(userID, tenantID, req.Email, "TENANT_OWNER")
 	if err != nil {

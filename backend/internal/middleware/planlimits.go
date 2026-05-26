@@ -17,9 +17,9 @@ type PlanLimits struct {
 }
 
 var defaultPlanLimits = map[string]PlanLimits{
-	"FREE":    {MaxTrucks: 1, MaxUsers: 3},
-	"PRO":     {MaxTrucks: 5, MaxUsers: 10},
-	"PREMIUM": {MaxTrucks: 50, MaxUsers: 30},
+	"FREE":    {MaxTrucks: 3, MaxUsers: 5},
+	"PRO":     {MaxTrucks: 10, MaxUsers: 15},
+	"PREMIUM": {MaxTrucks: 0, MaxUsers: 0},
 }
 
 type planLimitsCacheEntry struct {
