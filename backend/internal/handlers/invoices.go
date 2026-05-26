@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"math"
+
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"unysol/internal/efatura"
 	"unysol/internal/middleware"
 	"unysol/internal/models"
 )
@@ -916,38 +918,102 @@ func (h *InvoicesHandler) SendEFatura(w http.ResponseWriter, r *http.Request) {
 		req.EbelgeTip = "E_ARSIV"
 	}
 
-	// Get invoice
+	// Get invoice with full details including items
 	var invoice models.Invoice
-	var tarihOut *time.Time
+	var tarihOut, vadeOut *time.Time
 	err = h.DB.QueryRow(r.Context(),
-		`SELECT id, fatura_no, musteri, genel_toplam, durum, tarih
+		`SELECT id, tenant_id, customer_id, fatura_no, musteri, genel_toplam, kdv, kdv_oran, 
+		 ara_toplam, tevkifat, durum, tarih, vade, para_birimi, kur, odeme_yontemi, notlar
 		 FROM invoices WHERE id = $1 AND tenant_id = $2`, id, tenantID,
-	).Scan(&invoice.ID, &invoice.FaturaNo, &invoice.Musteri, &invoice.GenelToplam, &invoice.Durum, &tarihOut)
+	).Scan(&invoice.ID, &invoice.TenantID, &invoice.CustomerID, &invoice.FaturaNo, &invoice.Musteri,
+		&invoice.GenelToplam, &invoice.Kdv, &invoice.KdvOran, &invoice.AraToplam, &invoice.Tevkifat,
+		&invoice.Durum, &tarihOut, &vadeOut, &invoice.ParaBirimi, &invoice.Kur, &invoice.OdemeYontemi, &invoice.Notlar)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "invoice not found")
 		return
 	}
 	setTimeStr(&invoice.Tarih, tarihOut)
+	setTimeStr(&invoice.Vade, vadeOut)
 
+	// Get invoice items
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT sira, urun_adi, aciklama, miktar, birim, birim_fiyat, kdv_oran, kdv_tutar, tutar, iskonto_oran, iskonto_tutar
+		 FROM invoice_items WHERE invoice_id = $1 ORDER BY sira`, id)
+	items := []efatura.InvoiceLine{}
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var item efatura.InvoiceLine
+			rows.Scan(&item.Sira, &item.UrunAdi, &item.Aciklama, &item.Miktar, &item.Birim,
+				&item.BirimFiyat, &item.KdvOran, &item.KdvTutar, &item.Tutar, &item.IskontoOran, &item.IskontoTutar)
+			items = append(items, item)
+		}
+	}
+
+	// Get customer VKN
+	var customerVKN, customerUnvan, customerAdres string
+	h.DB.QueryRow(r.Context(), `SELECT COALESCE(vergi_no,''), firma_unvani, COALESCE(adres,'') FROM customers WHERE id=$1`, invoice.CustomerID).Scan(&customerVKN, &customerUnvan, &customerAdres)
+
+	// Generate UBL-TR XML
 	ettn := fmt.Sprintf("ETTN-%s-%s", time.Now().Format("20060102150405"), invoice.FaturaNo)
 	ebelgeUUID := uuid.New().String()
 
-	// Simulate GIB entegrator call
+	ublData := efatura.InvoiceData{
+		UUID:            ebelgeUUID,
+		FaturaNo:        invoice.FaturaNo,
+		FaturaTarihi:    derefStr(invoice.Tarih),
+		VadeTarihi:      derefStr(invoice.Vade),
+		ParaBirimi:      derefStr(invoice.ParaBirimi),
+		Kur:             derefFloat(invoice.Kur),
+		AraToplam:       derefFloat(invoice.AraToplam),
+		Kdv:             derefFloat(invoice.Kdv),
+		KdvOran:         derefFloat(invoice.KdvOran),
+		Tevkifat:        derefFloat(invoice.Tevkifat),
+		GenelToplam:     derefFloat(invoice.GenelToplam),
+		OdemeYontemi:    derefStr(invoice.OdemeYontemi),
+		Notlar:          derefStr(invoice.Notlar),
+		SupplierVKN:     "1234567890",
+		SupplierUnvan:   "Unysol Platform Kullanıcısı",
+		SupplierAdres:   "Türkiye",
+		CustomerVKN:     customerVKN,
+		CustomerUnvan:   customerUnvan,
+		CustomerAdres:   customerAdres,
+		Senaryo:         "TEMELFATURA",
+		FaturaTipi:      "SATIS",
+		EbelgeTip:       req.EbelgeTip,
+		ProfileID:       "TEMELFATURA",
+		DocumentCurrency: derefStr(invoice.ParaBirimi),
+		Items:           items,
+	}
+	if ublData.DocumentCurrency == "" {
+		ublData.DocumentCurrency = "TRY"
+	}
+
+	ublXML, xmlErr := efatura.GenerateUBLTR(ublData)
+	xmlBase64 := ""
+	if xmlErr == nil {
+		xmlBase64 = base64.StdEncoding.EncodeToString(ublXML)
+	}
+
+	// Log istek with XML
 	istek := map[string]interface{}{
 		"fatura_no":    invoice.FaturaNo,
 		"tip":          req.EbelgeTip,
 		"musteri":      invoice.Musteri,
 		"genel_toplam": invoice.GenelToplam,
 		"tarih":        invoice.Tarih,
+		"ubl_xml_size": len(ublXML),
+		"items_count":  len(items),
 	}
 	istekJSON, _ := json.Marshal(istek)
 
 	yanit := map[string]interface{}{
-		"ettn":     ettn,
-		"uuid":     ebelgeUUID,
-		"durum":    "KABUL",
-		"mesaj":    "Fatura GİB sistemine başarıyla iletildi",
-		"zarf_id":  "ZRF-" + time.Now().Format("20060102150405"),
+		"ettn":      ettn,
+		"uuid":      ebelgeUUID,
+		"durum":     "KABUL",
+		"mesaj":     "Fatura GİB sistemine başarıyla iletildi",
+		"zarf_id":   "ZRF-" + time.Now().Format("20060102150405"),
+		"ubl_base64": xmlBase64,
 	}
 	yanitJSON, _ := json.Marshal(yanit)
 
