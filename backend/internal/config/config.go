@@ -57,7 +57,7 @@ func Load() *Config {
 			Auth:   getEnvInt("RATE_LIMIT_AUTH", 10),
 		},
 		PlanLimits: PlanLimitsConfig{
-			FreeMaxTrucks:    getEnvInt("PLAN_FREE_MAX_TRUCKS", 1),
+			FreeMaxTrucks:    getEnvInt("PLAN_FREE_MAX_TRUCKS", 3),
 			FreeMaxUsers:     getEnvInt("PLAN_FREE_MAX_USERS", 3),
 			ProMaxTrucks:     getEnvInt("PLAN_PRO_MAX_TRUCKS", 5),
 			ProMaxUsers:      getEnvInt("PLAN_PRO_MAX_USERS", 10),

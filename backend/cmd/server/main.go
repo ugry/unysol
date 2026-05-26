@@ -76,6 +76,7 @@ func main() {
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
 	demoHandler := &handlers.DemoHandler{DB: pool}
 	loadBoardHandler := &handlers.LoadBoardHandler{DB: pool}
+	contactHandler := &handlers.ContactHandler{}
 
 	_ = repo
 	_ = redisClient
@@ -104,6 +105,11 @@ func main() {
 	r.Route("/api/demo", func(r chi.Router) {
 		r.Use(middleware.RateLimit(5))
 		r.Post("/create", demoHandler.CreateDemo)
+	})
+
+	r.Route("/api/contact", func(r chi.Router) {
+		r.Use(middleware.RateLimit(3))
+		r.Post("/submit", contactHandler.Submit)
 	})
 
 	r.Route("/api/system", func(r chi.Router) {

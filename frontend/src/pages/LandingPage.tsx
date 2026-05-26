@@ -341,7 +341,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setContactSent(true); }}>
+            <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); try { await api.post('/api/contact/submit', { name: contactName, email: contactEmail, phone: contactPhone, plan: contactPlan, message: contactMsg }); } catch {} setContactSent(true); }}>
               <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ad Soyad" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
               <div className="grid grid-cols-2 gap-3">
                 <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="E-posta" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
