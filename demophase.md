@@ -15,7 +15,7 @@
 | Fatura | Manuel |
 | Destek | E-posta |
 
-### PRO — FREE · 12 Ay (Sonra 2.000 TL/yıl)
+### PRO — 2.000 TL/yıl
 | Feature | Limit |
 |---------|-------|
 | Kamyon | 10 kamyon |
@@ -27,8 +27,8 @@
 | Tahmin motoru | Var |
 | Destek | E-posta + Telefon |
 
-> PRO planı ilk 12 ay ücretsiz. 13. aydan itibaren 2.000 TL/yıl.
-> Abonelik iptal edilmezse otomatik devam eder, iptal halinde FREE plana düşer.
+> **Referans ile 3 ay ücretsiz PRO kazan!** Bir arkadaşını davet et, o kayıt olsun — ikinize de 3 ay PRO hediye.
+> PRO aboneliği yıllık 2.000 TL. İptal halinde FREE plana düşer.
 
 ### PREMIUM — Özel Fiyat
 | Feature | Limit |
@@ -62,10 +62,9 @@
 ## Demo Phase Rules
 
 - **FREE plan:** Hesap silinmediği sürece kalıcı ücretsiz
-- **PRO plan:** Kayıt tarihinden itibaren 12 ay ücretsiz
+- **PRO plan:** 2.000 TL/yıl — referans ile 3 ay ücretsiz kazanılabilir
 - **PREMIUM:** Sadece satış görüşmesi ile, demo fazında da ücretli
 - Demo fazı sonunda mevcut FREE kullanıcıları etkilenmez
-- Demo fazı sonunda PRO kullanıcıları 12 aylık süre dolunca ücrete geçer
 
 ---
 

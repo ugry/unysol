@@ -43,11 +43,11 @@ export default function LandingPage() {
       cta: 'Ücretsiz Başla',
     },
     {
-      name: 'PRO', monthly: 0, yearly: 0, trucks: 10,
+      name: 'PRO', monthly: 200, yearly: 2000, trucks: 10,
       features: ['10 Kamyon', 'Tüm Özellikler', 'e-Fatura / e-Arşiv', 'CRM + Personel + Gider', 'Tahmin Motoru', 'E-posta + Telefon Desteği'],
       popular: true,
-      note: 'İlk 12 ay ücretsiz · Sonra 2.000 TL/yıl',
-      cta: 'Ücretsiz Başla',
+      note: 'Referansla 3 ay ücretsiz',
+      cta: 'Hemen Başla',
     },
     {
       name: 'PREMIUM', monthly: -1, yearly: -1, trucks: 'Sınırsız',
@@ -61,7 +61,7 @@ export default function LandingPage() {
   const faqs = [
     { q: 'Cihaz taktırmak zorunlu mu?', a: 'Hayır. Şoförün telefonundaki GPS ile ücretsiz takip yapabilirsiniz. İsterseniz ESP32 LTE cihaz (600 TL) veya profesyonel cihaz (1.500 TL) ile OBD verilerini de alabilirsiniz.' },
     { q: 'Verilerim güvende mi?', a: 'Evet. Tüm verileriniz SSL şifreli olarak iletilir. PostgreSQL Row-Level Security ile her firma sadece kendi verisini görür. KVKK uyumluyuz. İsteyen firmalar için On-Premise kurulum da mevcut.' },
-    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 3 kamyon için süresiz ücretsizdir. PRO paket ilk 12 ay ücretsizdir. Hiçbir ödeme bilgisi istenmez.' },
+    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 3 kamyon için süresiz ücretsizdir. PRO pakete geçmek isterseniz yıllık 2.000 TL. Hiçbir ödeme bilgisi istenmez.' },
     { q: 'Mevcut verilerimi aktarabilir miyim?', a: 'Evet. CSV dosyası ile toplu olarak müşteri, kamyon ve şoför verilerinizi içe aktarabilirsiniz. Ayrıca FiloMetrik, Lojisoft gibi sistemlerden geçiş için özel import araçlarımız var.' },
     { q: 'e-Fatura kesebilir miyim?', a: 'Evet. PRO ve PREMIUM paketlerde e-Fatura ve e-Arşiv entegrasyonu mevcuttur. Gelir İdaresi Başkanlığı (GİB) onaylı entegratörler üzerinden faturalarınızı yasal olarak iletebilirsiniz.' },
     { q: 'Kaç kullanıcı giriş yapabilir?', a: 'Sınırsız. Firma sahibi, operasyon sorumlusu, muhasebeci ve şoför olmak üzere 4 farklı rol tanımlayabilir, her role farklı yetkiler verebilirsiniz.' },
@@ -158,7 +158,7 @@ export default function LandingPage() {
               WhatsApp'ta Paylaş
             </button>
           </div>
-          <p className="text-[13px] text-[#62666d]">FREE süresiz · PRO 12 ay ücretsiz · Kredi kartı gerekmez</p>
+          <p className="text-[13px] text-[#62666d]">FREE süresiz · PRO referansla 3 ay ücretsiz · Kredi kartı gerekmez</p>
         </div>
 
         {/* Stats */}
@@ -231,7 +231,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Basit Fiyatlandırma</h2>
-            <p className="text-[#8a8f98] text-[16px]">FREE süresiz · PRO ilk 12 ay ücretsiz · Sonra 2.000 TL/yıl</p>
+            <p className="text-[#8a8f98] text-[16px]">FREE süresiz · PRO 2.000 TL/yıl · Referansla 3 ay ücretsiz</p>
           </div>
           <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {plans.map((p) => {
@@ -368,11 +368,11 @@ export default function LandingPage() {
       <section className="py-20 px-6 bg-[#0f1011]">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Arkadaşına Öner, İkiniz de Kazanın</h2>
-          <p className="text-[#8a8f98] text-[16px] mb-7">Tanıdığın bir kamyoncu Unysol'e kayıt olursa ikinize de 1 yıl PRO hediyemiz var.</p>
+          <p className="text-[#8a8f98] text-[16px] mb-7">Tanıdığın bir kamyoncu Unysol'e kayıt olursa ikinize de 3 ay PRO hediyemiz var.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => {
-                const shareText = 'Kamyoncular için yük bulma, takip ve fatura platformu Unysol\'e ücretsiz kayıt ol. Bu linkle gelene 1 yıl PRO bedava: https://unysol.app';
+                const shareText = 'Kamyoncular için yük bulma, takip ve fatura platformu Unysol\'e ücretsiz kayıt ol. Bu linkle gelene 3 ay PRO bedava: https://unysol.app';
                 window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
               }}
               className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors inline-flex items-center gap-2"
