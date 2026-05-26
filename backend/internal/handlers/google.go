@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -130,9 +131,15 @@ func (h *GoogleHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func verifyGoogleToken(idToken string) (*GoogleTokenInfo, error) {
-	resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken)
+	// Try POST to tokeninfo endpoint (handles long tokens better)
+	data := "id_token=" + url.QueryEscape(idToken)
+	resp, err := http.Post("https://oauth2.googleapis.com/tokeninfo", "application/x-www-form-urlencoded", strings.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("google API hatası: %w", err)
+		// Fallback to v3 endpoint
+		resp, err = http.Get("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" + url.QueryEscape(idToken))
+		if err != nil {
+			return nil, fmt.Errorf("google API hatası: %w", err)
+		}
 	}
 	defer resp.Body.Close()
 
