@@ -76,12 +76,25 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		recordSignupFailedAttempt(ip)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Şifre oluşturulamadı"})
 		return
 	}
 
 	slug := strings.ToLower(strings.ReplaceAll(req.TenantName, " ", "-"))
 	slug = cleanSlug(slug)
+
+	// Check for duplicate tenant or email
+	var existing int
+	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE slug=$1`, slug).Scan(&existing)
+	if err == nil && existing > 0 {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu firma adı zaten kayıtlı. Lütfen giriş yapın veya farklı bir firma adı kullanın."})
+		return
+	}
+	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM users WHERE email=$1`, req.Email).Scan(&existing)
+	if err == nil && existing > 0 {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın."})
+		return
+	}
 
 	var tenantID int
 	err = h.DB.QueryRow(r.Context(),
@@ -92,7 +105,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		recordSignupFailedAttempt(ip)
 		logging.Auth(logging.LevelError, "signup failed — tenant create error", "", "", "", r.RemoteAddr,
 			map[string]interface{}{"email": req.Email, "error": err.Error()})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create tenant"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Firma oluşturulamadı. Lütfen tekrar deneyin."})
 		return
 	}
 
