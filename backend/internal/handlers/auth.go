@@ -45,17 +45,17 @@ type AuthResponse struct {
 func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz istek"})
 		return
 	}
 
 	if req.TenantName == "" || req.Email == "" || req.Password == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "tenant_name, email, and password are required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Firma adı, e-posta ve şifre zorunludur"})
 		return
 	}
 
 	if !validator.IsValidEmail(req.Email) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid email address"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz e-posta adresi"})
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	if isSignupLockedOut(ip) {
 		logging.Auth(logging.LevelWarn, "signup blocked — IP locked", "", "", "", ip,
 			map[string]interface{}{"email": req.Email})
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many signup attempts, try again in 15 minutes"})
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "Çok fazla kayıt denemesi. 15 dakika sonra tekrar deneyin."})
 		return
 	}
 	recordSignupFailedAttempt(ip)
@@ -147,7 +147,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if isLockedOut(req.Email) {
 		logging.Auth(logging.LevelWarn, "login blocked — account locked", "", "", "", r.RemoteAddr,
 			map[string]interface{}{"email": req.Email})
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many login attempts, try again later"})
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "Çok fazla giriş denemesi. Lütfen daha sonra tekrar deneyin."})
 		return
 	}
 

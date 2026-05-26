@@ -130,7 +130,7 @@ func IsValidTurkishPlate(plaka string) bool {
 
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
-		return fmt.Errorf("password must be at least 8 characters")
+		return fmt.Errorf("Şifre en az 8 karakter olmalıdır")
 	}
 
 	var hasUpper, hasLower, hasDigit, hasSpecial bool
@@ -148,16 +148,16 @@ func ValidatePassword(password string) error {
 	}
 
 	if !hasUpper {
-		return fmt.Errorf("password must contain at least one uppercase letter")
+		return fmt.Errorf("Şifre en az bir büyük harf içermelidir")
 	}
 	if !hasLower {
-		return fmt.Errorf("password must contain at least one lowercase letter")
+		return fmt.Errorf("Şifre en az bir küçük harf içermelidir")
 	}
 	if !hasDigit {
-		return fmt.Errorf("password must contain at least one digit")
+		return fmt.Errorf("Şifre en az bir rakam içermelidir")
 	}
 	if !hasSpecial {
-		return fmt.Errorf("password must contain at least one special character")
+		return fmt.Errorf("Şifre en az bir özel karakter içermelidir (!@#$ vb.)")
 	}
 
 	return nil

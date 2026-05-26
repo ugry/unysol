@@ -46,10 +46,17 @@ export default function LoginPage() {
       }
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      let msg = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      if (err instanceof Error) {
+        msg = err.message;
+      }
+      // Extract actual error from Axios response
+      const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
+      if (axiosErr?.response?.data?.error) {
+        msg = axiosErr.response.data.error;
+      } else if (axiosErr?.response?.data?.message) {
+        msg = axiosErr.response.data.message;
+      }
       setError(msg);
     } finally {
       setLoading(false);
