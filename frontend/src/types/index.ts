@@ -26,7 +26,10 @@ export interface AdminUser {
 export interface AdminLoginResponse {
   access_token: string;
   token_type: string;
-  user: AdminUser;
+  user_id: number;
+  tenant_id: number;
+  email: string;
+  role: string;
 }
 
 export interface AdminDashboardSummary {

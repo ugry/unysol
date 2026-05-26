@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
               <Shield size={22} className="text-white" />
             </div>
             <span className="text-[#f7f8f8] font-bold text-2xl tracking-tight">
-              Logisol <span className="text-[#FF5F03]">Admin</span>
+              Unysol <span className="text-[#FF5F03]">Admin</span>
             </span>
           </div>
         </div>
