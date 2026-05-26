@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -203,9 +204,21 @@ func getCORSOrigins(env string) []string {
 }
 
 func maskPassword(url string) string {
-	for i := 0; i < len(url)-5; i++ {
-		if i+8 < len(url) && url[i:i+8] == "password" {
-			return url[:i] + "password=****"
+	// Handle postgres://user:password@host format
+	// Find the second colon (after ://) which separates user:password
+	schemeEnd := strings.Index(url, "://")
+	if schemeEnd < 0 {
+		schemeEnd = -3
+	}
+	for i := schemeEnd + 3; i < len(url); i++ {
+		if url[i] == ':' {
+			end := i + 1
+			for end < len(url) && url[end] != '@' {
+				end++
+			}
+			if end < len(url) && url[end] == '@' {
+				return url[:i+1] + "****" + url[end:]
+			}
 		}
 	}
 	return url
