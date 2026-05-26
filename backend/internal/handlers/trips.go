@@ -102,9 +102,8 @@ func (h *TripsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "truck_id is required")
 		return
 	}
-	if req.CustomerID == 0 {
-		writeError(w, http.StatusBadRequest, "customer_id is required")
-		return
+	if req.Durum == "" {
+		req.Durum = "AKTIF"
 	}
 
 	var trip models.Trip

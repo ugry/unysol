@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -74,6 +75,7 @@ func (h *TrucksHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if req.TrackingSource == "" {
 		req.TrackingSource = "MANUEL"
 	}
+	req.TrackingSource = strings.ToUpper(req.TrackingSource)
 
 	var truck models.Truck
 	err := h.DB.QueryRow(r.Context(),
@@ -127,6 +129,9 @@ func (h *TrucksHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if req.TrackingSource != "" {
+		req.TrackingSource = strings.ToUpper(req.TrackingSource)
 	}
 
 	var truck models.Truck
