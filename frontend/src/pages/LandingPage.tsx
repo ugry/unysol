@@ -2,20 +2,22 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Truck, MapPin, FileText, Users, BarChart3, UserCheck,
+  Truck, MapPin, FileText, BarChart3, UserCheck,
   Smartphone, ArrowRight, Check, Zap, Play,
   ChevronDown, ChevronUp, Phone, Mail, MapIcon,
-  Monitor, Clock, HardDrive, Wifi, Shield, Sparkles,
+  Sparkles,
 } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [pricing, setPricing] = useState<'monthly' | 'yearly'>('monthly');
+  const [pricing] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactPlan, setContactPlan] = useState('PREMIUM');
   const [contactMsg, setContactMsg] = useState('');
   const [contactSent, setContactSent] = useState(false);
   const [cookiesAccepted, setCookiesAccepted] = useState(false);
@@ -25,36 +27,41 @@ export default function LandingPage() {
   };
 
   const features = [
-    { icon: MapPin, title: 'Canlı GPS Takip', desc: 'Hangi kamyon nerede, kaç km/h hızla gidiyor, ne kadar yakıt var — hepsi canlı haritada. Şoförü aramanıza gerek kalmaz.' },
-    { icon: FileText, title: 'Otomatik Fatura', desc: 'Sefer bittiğinde fatura kendiliğinden hazırlanır. e-Fatura ve e-Arşiv uyumlu. WhatsApp ile tek tıkta müşteriye gönderin.' },
-    { icon: Users, title: 'Müşteri Yönetimi', desc: 'Tüm müşterileriniz, geçmiş seferleri, ödeme risk skoru ve iletişim günlüğü tek ekranda. Kim ne zaman ödemiş, hemen görün.' },
-    { icon: BarChart3, title: 'Tahmin Motoru', desc: 'Geçmiş verilerinizden 12 aylık gelir, gider ve kâr tahmini yapar. Bayram ve sezon etkilerini otomatik hesaba katar.' },
-    { icon: UserCheck, title: 'Personel Takibi', desc: 'Şoför performansı, izin takvimi, maaş bordrosu, ehliyet ve SRC belgesi bitiş tarihleri — hepsi otomatik uyarı sistemiyle.' },
-    { icon: Smartphone, title: 'Mobil Uyumlu', desc: 'Telefondan sefer başlat/bitir, fatura kes, WhatsApp\'ta paylaş. Şoförleriniz için özel basit panel — sadece 2 buton.' },
+    { icon: MapPin, title: 'Canlı Takip', desc: 'Hangi kamyon nerede, kaç km hızla gidiyor — canlı haritada. Şoförü aramana gerek yok.' },
+    { icon: FileText, title: 'Otomatik Fatura', desc: 'Sefer bitince fatura hazır. WhatsApp\'la müşterine 1 tıkta gönder.' },
+    { icon: Truck, title: 'Yük Panosu', desc: 'Yük ara, yük ver. Nakliyeciler arası yük paylaşım platformu.' },
+    { icon: BarChart3, title: 'Kazanç Tahmini', desc: 'Gelecek 12 ay ne kadar kazanacaksın? Geçmişinden hesaplar, bayram/sezon etkisini bilir.' },
+    { icon: UserCheck, title: 'Şoför Takibi', desc: 'Ehliyet, SRC, izin tarihleri — otomatik uyarı gelir, cezaya girme.' },
+    { icon: Smartphone, title: 'Telefonda Çalışır', desc: 'Sefer başlat/bitir, fatura kes. Şoförün için 2 butonlu basit panel.' },
   ];
 
   const plans = [
     {
-      name: 'FREE', monthly: 0, yearly: 0, trucks: 1, storage: '3 Ay',
-      features: ['1 Kamyon', 'GPS Takip', 'Temel Dashboard', 'Manuel Fatura', 'Topluluk Desteği'],
+      name: 'FREE', monthly: 0, yearly: 0, trucks: 3,
+      features: ['3 Kamyon', 'GPS Takip', 'Yük Panosu', 'Temel Dashboard', 'Manuel Fatura'],
       popular: false,
+      cta: 'Ücretsiz Başla',
     },
     {
-      name: 'PRO', monthly: 200, yearly: 2000, trucks: 5, storage: '1 Yıl',
-      features: ['5 Kamyon', 'Tüm Özellikler', 'e-Fatura / e-Arşiv', 'CRM + Personel + Gider', 'Tahmin Motoru', 'E-posta Desteği'],
+      name: 'PRO', monthly: 0, yearly: 0, trucks: 10,
+      features: ['10 Kamyon', 'Tüm Özellikler', 'e-Fatura / e-Arşiv', 'CRM + Personel + Gider', 'Tahmin Motoru', 'E-posta + Telefon Desteği'],
       popular: true,
+      note: 'İlk 12 ay ücretsiz · Sonra 2.000 TL/yıl',
+      cta: 'Ücretsiz Başla',
     },
     {
-      name: 'PREMIUM', monthly: 500, yearly: 5000, trucks: 'Sınırsız', storage: 'Sınırsız',
+      name: 'PREMIUM', monthly: -1, yearly: -1, trucks: 'Sınırsız',
       features: ['Sınırsız Kamyon', 'Tüm Özellikler', 'API Erişimi', 'Beyaz Etiket', 'Öncelikli Destek', 'Veri Dışa Aktarım'],
       popular: false,
+      note: 'Özel fiyatlandırma için',
+      cta: 'Satış ile İletişime Geç',
     },
   ];
 
   const faqs = [
     { q: 'Cihaz taktırmak zorunlu mu?', a: 'Hayır. Şoförün telefonundaki GPS ile ücretsiz takip yapabilirsiniz. İsterseniz ESP32 LTE cihaz (600 TL) veya profesyonel cihaz (1.500 TL) ile OBD verilerini de alabilirsiniz.' },
     { q: 'Verilerim güvende mi?', a: 'Evet. Tüm verileriniz SSL şifreli olarak iletilir. PostgreSQL Row-Level Security ile her firma sadece kendi verisini görür. KVKK uyumluyuz. İsteyen firmalar için On-Premise kurulum da mevcut.' },
-    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 1 kamyon için süresiz ücretsizdir. Hiçbir ödeme bilgisi istenmez. İhtiyacınız büyüdükçe PRO veya PREMIUM pakete geçebilirsiniz.' },
+    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 3 kamyon için süresiz ücretsizdir. PRO paket ilk 12 ay ücretsizdir. Hiçbir ödeme bilgisi istenmez.' },
     { q: 'Mevcut verilerimi aktarabilir miyim?', a: 'Evet. CSV dosyası ile toplu olarak müşteri, kamyon ve şoför verilerinizi içe aktarabilirsiniz. Ayrıca FiloMetrik, Lojisoft gibi sistemlerden geçiş için özel import araçlarımız var.' },
     { q: 'e-Fatura kesebilir miyim?', a: 'Evet. PRO ve PREMIUM paketlerde e-Fatura ve e-Arşiv entegrasyonu mevcuttur. Gelir İdaresi Başkanlığı (GİB) onaylı entegratörler üzerinden faturalarınızı yasal olarak iletebilirsiniz.' },
     { q: 'Kaç kullanıcı giriş yapabilir?', a: 'Sınırsız. Firma sahibi, operasyon sorumlusu, muhasebeci ve şoför olmak üzere 4 farklı rol tanımlayabilir, her role farklı yetkiler verebilirsiniz.' },
@@ -91,7 +98,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-[#FF5F03]-bg border border-[#FF5F03]/20 rounded-full px-3.5 py-1 text-[13px] text-[#FF5F03] font-[510] mb-6">
             <Zap size={13} />
-            Türkiye'nin Yeni Lojistik Otomasyonu
+            Türkiye'nin Kamyoncu Platformu
           </div>
           <h1 className="text-[40px] md:text-[56px] font-[590] leading-[1.05] tracking-[-0.96px] text-[#f7f8f8] mb-5">
             {t('landing.hero_title_1')}<br />
@@ -139,15 +146,27 @@ export default function LandingPage() {
               Fiyatları Gör
             </button>
           </div>
-          <p className="text-[13px] text-[#62666d]">7 gün ücretsiz · Kredi kartı gerekmez · İptal istediğiniz zaman</p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <button
+              onClick={() => {
+                const shareText = 'Unysol — Kamyoncular için yük bulma, takip ve fatura platformu. Ücretsiz başla: https://unysol.app';
+                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+              }}
+              className="text-[13px] text-[#25D366] hover:text-[#20bd5a] font-[510] flex items-center gap-1 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp'ta Paylaş
+            </button>
+          </div>
+          <p className="text-[13px] text-[#62666d]">FREE süresiz · PRO 12 ay ücretsiz · Kredi kartı gerekmez</p>
         </div>
 
         {/* Stats */}
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-8 mt-12">
           {[
-            { value: 'Ücretsiz', label: 'Başlangıç Paketi' },
-            { value: '5 dk', label: 'Kurulum Süresi' },
-            { value: '7/24', label: 'Erişim' },
+            { value: '3 Kamyon', label: 'Ücretsiz Paket' },
+            { value: '1 dk', label: 'Kayıt Süresi' },
+            { value: 'Telefondan', label: 'Her Yerden Erişim' },
           ].map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-[28px] md:text-[32px] font-[590] text-[#FF5F03]">{s.value}</div>
@@ -162,10 +181,10 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-[#FF5F03]-bg border border-[#FF5F03]/20 rounded-full px-3.5 py-1 text-[13px] text-[#FF5F03] font-[510] mb-4">
-              <Shield size={13} /> Her Şey Dahil
+              <Truck size={13} /> Her Şey Dahil
             </div>
             <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">İhtiyacınız Olan Her Şey</h2>
-            <p className="text-[#8a8f98] text-[16px] max-w-lg mx-auto">GPS'ten bordroya, faturadan tahmine — tek platformda.</p>
+            <p className="text-[#8a8f98] text-[16px] max-w-lg mx-auto">Yük bul, takip et, fatura kes — tek platformda.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map((f) => (
@@ -207,54 +226,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== SCREENSHOTS ===== */}
-      <section className="py-20 px-6 bg-[#08090a]">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Profesyonel Arayüz</h2>
-          <p className="text-[#8a8f98] text-[16px] mb-12">Gerçek ekran görüntüleri — görmek inanmaktır.</p>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { title: 'Dashboard', desc: 'Tüm operasyonunuz tek ekranda: KPI\'lar, canlı harita, yaklaşan uyarılar.', icon: Monitor },
-              { title: 'Sefer Yönetimi', desc: 'Sefer oluşturma, durum takibi, rota görüntüleme, otomatik fatura.', icon: MapPin },
-              { title: 'Filo Takip', desc: 'Canlı GPS, yakıt seviyesi, RPM, arıza kodları — hepsi gerçek zamanlı.', icon: Truck },
-            ].map((s) => (
-              <div key={s.title} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-6">
-                <s.icon size={28} className="text-[#FF5F03] mb-3 mx-auto" />
-                <h3 className="text-[16px] font-[590] text-[#f7f8f8] mb-1.5">{s.title}</h3>
-                <p className="text-[14px] text-[#8a8f98]">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => navigate('/login')}
-            className="inline-flex items-center gap-1.5 mt-8 text-[#FF5F03] text-[14px] font-[510] hover:text-[#FF5F03]-hover transition-colors"
-          >
-            <Play size={16} />
-            Hemen Başlayın — Ücretsiz
-          </button>
-        </div>
-      </section>
-
       {/* ===== PRICING ===== */}
       <section id="pricing" className="py-20 px-6 bg-[#0f1011]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Basit Fiyatlandırma</h2>
-            <p className="text-[#8a8f98] text-[16px] mb-5">Tüm özellikler tüm paketlerde açık. Büyüdükçe yükseltin.</p>
-            <div className="inline-flex bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md p-0.5">
-              <button
-                onClick={() => setPricing('monthly')}
-                className={`px-4 py-1.5 rounded text-[14px] font-[510] transition-colors ${pricing === 'monthly' ? 'bg-[#FF5F03] text-white' : 'text-[#8a8f98] hover:text-[#d0d6e0]'}`}
-              >
-                Aylık
-              </button>
-              <button
-                onClick={() => setPricing('yearly')}
-                className={`px-4 py-1.5 rounded text-[14px] font-[510] transition-colors ${pricing === 'yearly' ? 'bg-[#FF5F03] text-white' : 'text-[#8a8f98] hover:text-[#d0d6e0]'}`}
-              >
-                Yıllık <span className="text-[11px] ml-1 bg-[#FF5F03]-bg text-[#FF5F03] px-1.5 py-0.5 rounded-full">%17 tasarruf</span>
-              </button>
-            </div>
+            <p className="text-[#8a8f98] text-[16px]">FREE süresiz · PRO ilk 12 ay ücretsiz · Sonra 2.000 TL/yıl</p>
           </div>
           <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {plans.map((p) => {
@@ -277,22 +254,27 @@ export default function LandingPage() {
                   <div className="text-[13px] text-[#8a8f98] font-[510] mb-1.5">{p.name}</div>
                   <div className="mb-3">
                     <span className="text-[32px] font-[590] text-[#f7f8f8]">
-                      {price === 0 ? 'Ücretsiz' : `₺${price.toLocaleString('tr')}`}
+                      {price === -1 ? 'Özel Fiyat' : price === 0 ? 'Ücretsiz' : `₺${price.toLocaleString('tr')}`}
                     </span>
                     {price > 0 && <span className="text-[#8a8f98] text-[14px]">/{period}</span>}
                   </div>
-                  <div className="text-[13px] text-[#8a8f98] mb-5">
-                    {typeof p.trucks === 'number' ? `${p.trucks} kamyon` : p.trucks} · {p.storage} veri
+                  <div className="text-[13px] text-[#8a8f98] mb-3">
+                    {typeof p.trucks === 'number' ? `${p.trucks} kamyon` : p.trucks}
                   </div>
+                  {p.note && (
+                    <div className="text-[12px] text-[#FF5F03] font-[510] mb-4">{p.note}</div>
+                  )}
                   <button
-                    onClick={() => navigate('/login')}
+                    onClick={() => { scrollTo('contact'); }}
                     className={`w-full py-2 rounded-md font-[510] text-[14px] transition-colors ${
-                      p.popular
+                      p.name === 'PREMIUM'
+                        ? 'bg-[rgba(255,255,255,0.04)] text-[#d0d6e0] hover:bg-[rgba(255,255,255,0.06)]'
+                        : p.popular
                         ? 'bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white'
                         : 'bg-[rgba(255,255,255,0.04)] text-[#d0d6e0] hover:bg-[rgba(255,255,255,0.06)]'
                     }`}
                   >
-                    {price === 0 ? 'Ücretsiz Başla' : 'Hemen Başla'}
+                    {p.cta || (price === 0 ? 'Ücretsiz Başla' : 'Hemen Başla')}
                   </button>
                   <ul className="mt-5 space-y-2.5">
                     {p.features.map((f, i) => (
@@ -305,50 +287,6 @@ export default function LandingPage() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== TECH SPECS ===== */}
-      <section className="py-16 px-6 bg-[#08090a] border-y border-[rgba(255,255,255,0.05)]">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-[24px] font-[590] text-[#f7f8f8] text-center mb-8">Sistem Gereksinimleri</h2>
-          <div className="grid md:grid-cols-4 gap-5">
-            {[
-              { icon: Monitor, title: 'Web Tarayıcı', desc: 'Chrome, Firefox, Safari, Edge — son 2 sürüm' },
-              { icon: Smartphone, title: 'Mobil', desc: 'iOS 15+ ve Android 10+ cihazlarda tam uyumlu' },
-              { icon: Wifi, title: 'İnternet', desc: '2 Mbps bağlantı yeterli. Çevrimdışı modda veri SD karta yazılır.' },
-              { icon: HardDrive, title: 'Cihaz', desc: 'ESP32 LTE Cat-1 (600 TL) veya mevcut telefon GPS\'i (ücretsiz)' },
-            ].map((s) => (
-              <div key={s.title} className="text-center">
-                <s.icon size={24} className="text-[#FF5F03] mb-2.5 mx-auto" />
-                <h3 className="text-[14px] font-[590] text-[#f7f8f8] mb-1">{s.title}</h3>
-                <p className="text-[13px] text-[#8a8f98]">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== TESTIMONIALS ===== */}
-      <section className="py-20 px-6 bg-[#0f1011]">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Nakliyeciler Ne Diyor?</h2>
-          <p className="text-[#8a8f98] text-[16px] mb-12">Gerçek kullanıcı yorumları.</p>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { quote: 'Unysol ile şoförlerimi arayıp "neredesin" diye sormayı bıraktım. Ayda 200 TL verip 5.000 TL mazot ve ceza tasarrufu yapıyorum.', author: 'Ahmet Y.', company: 'Çelik Nakliyat, İstanbul' },
-              { quote: 'Fatura işi kabusumdu. Şimdi sefer bitince sistem faturayı hazırlıyor, ben WhatsApp\'tan müşteriye atıyorum. İnanılmaz zaman kazandım.', author: 'Mehmet K.', company: 'Anadolu Lojistik, Ankara' },
-              { quote: 'Telefonumdan takip edebilmek harika. ESP32 cihaz bile almadım, Free paketle başladım. 3 ay sonra PRO\'ya geçtim, şimdi 5 kamyonum var.', author: 'Ayşe S.', company: 'Ege Transport, İzmir' },
-            ].map((t) => (
-              <div key={t.author} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded-lg p-5 text-left">
-                <p className="text-[14px] text-[#d0d6e0] leading-relaxed mb-4">"{t.quote}"</p>
-                <div className="border-t border-[rgba(255,255,255,0.05)] pt-3.5">
-                  <div className="text-[14px] font-[590] text-[#f7f8f8]">{t.author}</div>
-                  <div className="text-[12px] text-[#62666d] mt-0.5">{t.company}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -388,7 +326,7 @@ export default function LandingPage() {
             <div className="space-y-4">
                 {[
                   { icon: Phone, text: '+90 212 555 00 00' },
-                  { icon: Mail, text: 'info@unysol.com' },
+                  { icon: Mail, text: 'info@unysol.app' },
                   { icon: MapIcon, text: 'İstanbul, Türkiye' },
               ].map((c) => (
                 <div key={c.text} className="flex items-center gap-3 text-[#d0d6e0]">
@@ -405,14 +343,49 @@ export default function LandingPage() {
             </div>
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setContactSent(true); }}>
               <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ad Soyad" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
-              <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="E-posta" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
-              <textarea value={contactMsg} onChange={e => setContactMsg(e.target.value)} placeholder="Mesajınız" rows={4} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors resize-none" />
+              <div className="grid grid-cols-2 gap-3">
+                <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="E-posta" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
+                <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Telefon" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors" />
+              </div>
+              <select value={contactPlan} onChange={e => setContactPlan(e.target.value)} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors appearance-none cursor-pointer">
+                <option value="PREMIUM">PREMIUM — Sınırsız Kamyon</option>
+                <option value="PRO">PRO — 10 Kamyon</option>
+                <option value="FREE">FREE — 3 Kamyon</option>
+                <option value="DIGER">Diğer / Genel Soru</option>
+              </select>
+              <textarea value={contactMsg} onChange={e => setContactMsg(e.target.value)} placeholder="Filo büyüklüğünüz ve ihtiyaçlarınız..." rows={3} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-colors resize-none" />
               {contactSent ? (
-                <div className="bg-[#16A34A]/10 border border-[#16A34A]/20 text-[#16A34A] px-4 py-2 rounded-md text-[14px]">Mesajınız iletildi! En kısa sürede dönüş yapacağız.</div>
+                <div className="bg-[#16A34A]/10 border border-[#16A34A]/20 text-[#16A34A] px-4 py-2 rounded-md text-[14px]">Mesajınız iletildi! 24 saat içinde dönüş yapacağız.</div>
               ) : (
                 <button type="submit" className="bg-[#FF5F03] hover:bg-[#E55600] text-white px-5 py-2 rounded-md font-[510] text-[14px] transition-colors w-full">Gönder</button>
               )}
             </form>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== REFERRAL ===== */}
+      <section className="py-20 px-6 bg-[#0f1011]">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-[28px] md:text-[36px] font-[590] tracking-[-0.64px] text-[#f7f8f8] mb-3">Arkadaşına Öner, İkiniz de Kazanın</h2>
+          <p className="text-[#8a8f98] text-[16px] mb-7">Tanıdığın bir kamyoncu Unysol'e kayıt olursa ikinize de 1 yıl PRO hediyemiz var.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                const shareText = 'Kamyoncular için yük bulma, takip ve fatura platformu Unysol\'e ücretsiz kayıt ol. Bu linkle gelene 1 yıl PRO bedava: https://unysol.app';
+                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+              }}
+              className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-6 py-2.5 rounded-md text-[16px] font-[510] transition-colors inline-flex items-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp'tan Davet Et
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] px-6 py-2.5 rounded-md text-[16px] font-[510] hover:border-[rgba(255,255,255,0.15)] transition-colors"
+            >
+              Kayıt Ol, Davet Kodunu Al
+            </button>
           </div>
         </div>
       </section>

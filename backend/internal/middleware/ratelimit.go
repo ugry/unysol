@@ -75,10 +75,11 @@ func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 			}
 
 			ip := extractIP(r)
+			key := ip + ":" + formatInt(requestsPerMinute)
 			window := 1 * time.Minute
 
 			var entry *rateLimitEntry
-			if v, ok := rateLimitStore.Load(ip); ok {
+			if v, ok := rateLimitStore.Load(key); ok {
 				entry = v.(*rateLimitEntry)
 			} else {
 				entry = &rateLimitEntry{
@@ -86,7 +87,7 @@ func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 					limit:   requestsPerMinute,
 					window:  window,
 				}
-				rateLimitStore.Store(ip, entry)
+				rateLimitStore.Store(key, entry)
 			}
 
 			entry.mu.Lock()
@@ -98,7 +99,7 @@ func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 			}
 
 			entry.count++
-			exceeded := entry.count > entry.limit
+			exceeded := entry.count > requestsPerMinute
 			entry.mu.Unlock()
 
 			if exceeded {

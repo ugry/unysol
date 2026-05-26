@@ -90,6 +90,7 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.Logging)
 	r.Use(metricsMiddleware)
 	r.Use(middleware.ActionLogger)
@@ -101,6 +102,7 @@ func main() {
 	})
 
 	r.Route("/api/demo", func(r chi.Router) {
+		r.Use(middleware.RateLimit(5))
 		r.Post("/create", demoHandler.CreateDemo)
 	})
 

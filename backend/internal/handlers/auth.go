@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -53,13 +54,28 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !validator.IsValidEmail(req.Email) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid email address"})
+		return
+	}
+
 	if err := validator.ValidatePassword(req.Password); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
+	ip := extractIP(r)
+	if isSignupLockedOut(ip) {
+		logging.Auth(logging.LevelWarn, "signup blocked — IP locked", "", "", "", ip,
+			map[string]interface{}{"email": req.Email})
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many signup attempts, try again in 15 minutes"})
+		return
+	}
+	recordSignupFailedAttempt(ip)
+
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		recordSignupFailedAttempt(ip)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
 		return
 	}
@@ -73,6 +89,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		slug, req.TenantName,
 	).Scan(&tenantID)
 	if err != nil {
+		recordSignupFailedAttempt(ip)
 		logging.Auth(logging.LevelError, "signup failed — tenant create error", "", "", "", r.RemoteAddr,
 			map[string]interface{}{"email": req.Email, "error": err.Error()})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create tenant"})
@@ -86,6 +103,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		tenantID, req.Email, string(passwordHash), req.TenantName, req.Telefon,
 	).Scan(&userID)
 	if err != nil {
+		recordSignupFailedAttempt(ip)
 		logging.Error(logging.LevelError, err, itoa(tenantID), "", "", "", "auth", "signup user create failed", nil)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
 		return
@@ -95,10 +113,12 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.generateToken(userID, tenantID, req.Email, "TENANT_OWNER")
 	if err != nil {
+		recordSignupFailedAttempt(ip)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 		return
 	}
 
+	resetSignupLockout(ip)
 	logging.Auth(logging.LevelInfo, "signup success", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
 		map[string]interface{}{"email": req.Email, "tenant_name": req.TenantName})
 
@@ -249,4 +269,59 @@ func itoa(v int) string {
 		v /= 10
 	}
 	return s
+}
+
+var (
+	signupAttempts   = sync.Map{}
+	signupLockoutDur = 15 * time.Minute
+	maxSignupAttempts = 5
+)
+
+type signupLockoutEntry struct {
+	count    int
+	lockedAt time.Time
+}
+
+func recordSignupFailedAttempt(ip string) {
+	v, _ := signupAttempts.LoadOrStore(ip, &signupLockoutEntry{})
+	entry := v.(*signupLockoutEntry)
+	entry.count++
+	if entry.count >= maxSignupAttempts {
+		entry.lockedAt = time.Now()
+	}
+	signupAttempts.Store(ip, entry)
+}
+
+func resetSignupLockout(ip string) {
+	signupAttempts.Delete(ip)
+}
+
+func isSignupLockedOut(ip string) bool {
+	v, ok := signupAttempts.Load(ip)
+	if !ok {
+		return false
+	}
+	entry := v.(*signupLockoutEntry)
+	if entry.count >= maxSignupAttempts && time.Since(entry.lockedAt) < signupLockoutDur {
+		return true
+	}
+	if entry.count >= maxSignupAttempts && time.Since(entry.lockedAt) >= signupLockoutDur {
+		signupAttempts.Delete(ip)
+	}
+	return false
+}
+
+func extractIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
