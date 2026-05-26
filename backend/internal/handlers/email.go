@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -15,52 +16,66 @@ type EmailHandler struct {
 	DB *pgxpool.Pool
 }
 
-type SMTPConfig struct {
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	From     string `json:"from"`
+type GlobalEmailConfig struct {
+	EmailAddress string `json:"email_address"`
+	EmailPass    string `json:"email_password"`
+	SmtpAddress  string `json:"smtp_address"`
+	ImapAddress  string `json:"imap_address"`
+	SmtpPort     string `json:"smtp_port"`
+	ImapPort     string `json:"imap_port"`
 }
 
 func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	cfg := SMTPConfig{}
+	cfg := GlobalEmailConfig{}
 	err := h.DB.QueryRow(r.Context(), `
-		SELECT COALESCE(host,''), COALESCE(port,''), COALESCE(username,''), COALESCE(password,''), COALESCE(from_email,'')
+		SELECT COALESCE(email_address,''), COALESCE(password,''), COALESCE(smtp_address,''),
+		       COALESCE(imap_address,''), COALESCE(port,'465'), COALESCE(imap_port,'993')
 		FROM email_config WHERE id=1
-	`).Scan(&cfg.Host, &cfg.Port, &cfg.Username, &cfg.Password, &cfg.From)
+	`).Scan(&cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress, &cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort)
 	if err != nil {
-		writeJSON(w, http.StatusOK, SMTPConfig{})
+		writeJSON(w, http.StatusOK, GlobalEmailConfig{SmtpPort: "465", ImapPort: "993"})
 		return
 	}
-	// Mask password in response
-	if cfg.Password != "" {
-		cfg.Password = "********"
+	if cfg.EmailPass != "" {
+		cfg.EmailPass = "********"
 	}
 	writeJSON(w, http.StatusOK, cfg)
 }
 
 func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
-	var req SMTPConfig
+	var req GlobalEmailConfig
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz istek"})
 		return
 	}
 
-	if req.Host == "" || req.Username == "" || req.Password == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Sunucu, kullanıcı adı ve şifre zorunludur"})
+	if req.EmailAddress == "" || req.SmtpAddress == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "E-posta adresi ve SMTP adresi zorunludur"})
 		return
 	}
 
-	if req.Port == "" {
-		req.Port = "465"
+	if req.SmtpPort == "" {
+		req.SmtpPort = "465"
+	}
+	if req.ImapPort == "" {
+		req.ImapPort = "993"
 	}
 
+	// If password is masked, keep existing
+	passwordVal := req.EmailPass
+	if passwordVal == "********" {
+		_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(password,'') FROM email_config WHERE id=1`).Scan(&passwordVal)
+	}
+
+	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
+
 	_, err := h.DB.Exec(r.Context(), `
-		INSERT INTO email_config (id, host, port, username, password, from_email)
-		VALUES (1, $1, $2, $3, $4, $5)
-		ON CONFLICT (id) DO UPDATE SET host=$1, port=$2, username=$3, password=$4, from_email=$5
-	`, req.Host, req.Port, req.Username, req.Password, req.From)
+		INSERT INTO email_config (id, email_address, password, smtp_address, imap_address, port, imap_port, host, username, from_email)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $1, $1)
+		ON CONFLICT (id) DO UPDATE SET
+			email_address=$1, password=$2, smtp_address=$3, imap_address=$4,
+			port=$5, imap_port=$6, host=$7, username=$1, from_email=$1
+	`, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress, req.SmtpPort, req.ImapPort, host)
 
 	if err != nil {
 		logging.Error(logging.LevelError, err, "", "", "", "", "email", "save config failed", nil)
@@ -68,41 +83,45 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update runtime config
 	email.Configure(email.Config{
-		Host:     req.Host,
-		Port:     req.Port,
-		Username: req.Username,
-		Password: req.Password,
-		From:     req.From,
+		Host:     host,
+		Port:     req.SmtpPort,
+		Username: req.EmailAddress,
+		Password: passwordVal,
+		From:     req.EmailAddress,
 	})
 
-	logging.System(logging.LevelInfo, "email config updated", map[string]interface{}{
-		"host": req.Host,
-		"user": req.Username,
+	logging.System(logging.LevelInfo, "global email config updated", map[string]interface{}{
+		"smtp": req.SmtpAddress,
+		"user": req.EmailAddress,
 		"by":   middleware.GetUserID(r.Context()),
 	})
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "E-posta ayarları kaydedildi"})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Sistem ayarları kaydedildi"})
 }
 
 func (h *EmailHandler) TestConfig(w http.ResponseWriter, r *http.Request) {
-	var req SMTPConfig
+	var req GlobalEmailConfig
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz istek"})
 		return
 	}
 
-	// Temporarily configure for test
+	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
+	pass := req.EmailPass
+	if pass == "********" {
+		_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(password,'') FROM email_config WHERE id=1`).Scan(&pass)
+	}
+
 	email.Configure(email.Config{
-		Host:     req.Host,
-		Port:     req.Port,
-		Username: req.Username,
-		Password: req.Password,
-		From:     req.From,
+		Host:     host,
+		Port:     req.SmtpPort,
+		Username: req.EmailAddress,
+		Password: pass,
+		From:     req.EmailAddress,
 	})
 
-	err := email.Send(req.From, "Unysol — Test E-postası", "<h3>E-posta ayarlarınız başarıyla yapılandırıldı!</h3><p>Bu bir test e-postasıdır.</p>")
+	err := email.Send(req.EmailAddress, "Unysol — Sistem Testi", "<h3>E-posta ayarlarınız başarıyla yapılandırıldı!</h3><p>Bu bir test e-postasıdır.</p>")
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": err.Error()})
 		return

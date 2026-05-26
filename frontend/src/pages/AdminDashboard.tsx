@@ -22,7 +22,7 @@ const tabs = [
   { id: 'modules' as const, label: 'Modüller', icon: Settings },
   { id: 'countries' as const, label: 'Ülkeler', icon: Globe },
   { id: 'analytics' as const, label: 'Analitik', icon: BarChart3 },
-  { id: 'email' as const, label: 'E-posta', icon: Mail },
+  { id: 'email' as const, label: 'Sistem Ayarları', icon: Mail },
 ];
 
 type TabId = typeof tabs[number]['id'];
@@ -1160,89 +1160,85 @@ function AnalyticsTab() {
 }
 
 function EmailTab() {
-  const [config, setConfig] = useState({ host: '', port: '465', username: '', password: '', from: '' });
+  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     adminApi.get('/api/admin/email/config').then(res => {
-      setConfig(prev => ({ ...prev, ...res.data }));
+      setCfg(prev => ({ ...prev, ...res.data }));
     }).finally(() => setLoading(false));
   }, []);
 
+  const update = (field: string, value: string) => setCfg(prev => ({ ...prev, [field]: value }));
+
   const handleSave = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    try {
-      const res = await adminApi.post('/api/admin/email/config', config);
-      setMessage({ type: 'success', text: res.data.message || 'Ayarlar kaydedildi' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Kaydetme hatası' });
-    } finally {
-      setSaving(false);
-    }
+    e.preventDefault(); setSaving(true); setMsg(null);
+    try { const res = await adminApi.post('/api/admin/email/config', cfg); setMsg({ type: 'success', text: res.data.message }); }
+    catch (err: any) { setMsg({ type: 'error', text: err?.response?.data?.error || 'Kaydetme hatası' }); }
+    finally { setSaving(false); }
   };
 
   const handleTest = async () => {
-    setTesting(true);
-    setMessage(null);
-    try {
-      const res = await adminApi.post('/api/admin/email/test', config);
-      setMessage({ type: res.data.success ? 'success' : 'error', text: res.data.message || res.data.error || 'Test sonucu' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Test hatası' });
-    } finally {
-      setTesting(false);
-    }
+    setTesting(true); setMsg(null);
+    try { const res = await adminApi.post('/api/admin/email/test', cfg); setMsg({ type: res.data.success ? 'success' : 'error', text: res.data.message || res.data.error }); }
+    catch (err: any) { setMsg({ type: 'error', text: err?.response?.data?.error || 'Test hatası' }); }
+    finally { setTesting(false); }
   };
 
   if (loading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-[#FF5F03]" size={32} /></div>;
 
   return (
     <div>
-      <h3 className="text-[16px] font-[590] text-[#f7f8f8] mb-1">E-posta (SMTP) Ayarları</h3>
-      <p className="text-[13px] text-[#8a8f98] mb-6">Kayıt onayı ve bildirim e-postaları için SMTP sunucu ayarları.</p>
+      <h3 className="text-[16px] font-[590] text-[#f7f8f8] mb-1">Sistem E-posta Ayarları</h3>
+      <p className="text-[13px] text-[#8a8f98] mb-6">Kayıt onayı, şifre sıfırlama ve sistem bildirimleri için genel e-posta yapılandırması.</p>
 
-      {message && (
-        <div className={`mb-4 p-3 rounded-md text-[14px] ${message.type === 'success' ? 'bg-[#16A34A]/10 border border-[#16A34A]/20 text-[#16A34A]' : 'bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626]'}`}>
-          {message.text}
-        </div>
+      {msg && (
+        <div className={`mb-4 p-3 rounded-md text-[14px] ${msg.type === 'success' ? 'bg-[#16A34A]/10 border border-[#16A34A]/20 text-[#16A34A]' : 'bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626]'}`}>{msg.text}</div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-4 max-w-lg">
-        <div>
-          <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Sunucu</label>
-          <input type="text" value={config.host} onChange={e => setConfig(prev => ({ ...prev, host: e.target.value }))} placeholder="smtp.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={handleSave} className="space-y-4 max-w-2xl">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Port</label>
-            <input type="text" value={config.port} onChange={e => setConfig(prev => ({ ...prev, port: e.target.value }))} placeholder="465" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Adresi</label>
+            <input type="text" value={cfg.email_address} onChange={e => update('email_address', e.target.value)} placeholder="info@unysolar.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
           </div>
           <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Gönderen E-posta</label>
-            <input type="text" value={config.from} onChange={e => setConfig(prev => ({ ...prev, from: e.target.value }))} placeholder="info@unysolar.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Şifresi</label>
+            <input type="password" value={cfg.email_password} onChange={e => update('email_password', e.target.value)} placeholder="E-posta hesap şifresi" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
           </div>
         </div>
-        <div>
-          <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Kullanıcı Adı</label>
-          <input type="text" value={config.username} onChange={e => setConfig(prev => ({ ...prev, username: e.target.value }))} placeholder="ugur.yardimci@unygms.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Adresi</label>
+            <input type="text" value={cfg.smtp_address} onChange={e => update('smtp_address', e.target.value)} placeholder="smtp.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+          </div>
+          <div>
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Adresi</label>
+            <input type="text" value={cfg.imap_address} onChange={e => update('imap_address', e.target.value)} placeholder="imap.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+          </div>
         </div>
-        <div>
-          <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Şifre</label>
-          <input type="password" value={config.password} onChange={e => setConfig(prev => ({ ...prev, password: e.target.value }))} placeholder="SMTP şifresi" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Port</label>
+            <input type="text" value={cfg.smtp_port} onChange={e => update('smtp_port', e.target.value)} placeholder="465" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+          </div>
+          <div>
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Port</label>
+            <input type="text" value={cfg.imap_port} onChange={e => update('imap_port', e.target.value)} placeholder="993" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+          </div>
         </div>
-        <div className="flex gap-3">
+
+        <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving} className="bg-[#FF5F03] hover:bg-[#E55600] text-white px-5 py-2 rounded-md font-[510] text-[14px] transition-colors inline-flex items-center gap-2 disabled:opacity-50">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Kaydet
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Kaydet
           </button>
           <button type="button" disabled={testing} onClick={handleTest} className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#d0d6e0] px-5 py-2 rounded-md font-[510] text-[14px] transition-colors hover:bg-[rgba(255,255,255,0.06)] inline-flex items-center gap-2 disabled:opacity-50">
-            {testing ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-            Test E-postası Gönder
+            {testing ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />} Test E-postası Gönder
           </button>
         </div>
       </form>
