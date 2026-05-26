@@ -643,8 +643,9 @@ export default function CekSenetPage() {
           setShowModal(true);
         }}
         onDelete={(row) => {
-          api.delete(`/api/tenant/cek-senet/${row.id}`).catch(() => {});
-          setData((prev) => prev.filter((d) => d.id !== row.id));
+          api.delete(`/api/tenant/cek-senet/${row.id}`).then(() => {
+            setData((prev) => prev.filter((d) => d.id !== row.id));
+          }).catch(() => {});
         }}
         onBulkDelete={(ids) => {
           ids.forEach((id) => api.delete(`/api/tenant/cek-senet/${id}`).catch(() => {}));

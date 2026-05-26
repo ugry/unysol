@@ -304,8 +304,7 @@ export default function ExpensesPage() {
           setShowModal(true);
         }}
         onDelete={async (row) => {
-          try { await api.delete(`/api/tenant/expenses/${row.id}`); } catch {}
-          setExpenses((prev) => prev.filter((e) => e.id !== row.id));
+          try { await api.delete(`/api/tenant/expenses/${row.id}`); setExpenses((prev) => prev.filter((e) => e.id !== row.id)); } catch {}
         }}
         onBulkDelete={(ids) => {
           setExpenses((prev) => prev.filter((e) => !ids.includes(String(e.id))));

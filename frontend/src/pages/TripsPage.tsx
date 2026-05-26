@@ -245,8 +245,9 @@ export default function TripsPage() {
           setShowModal(true);
         }}
         onDelete={(row) => {
-          api.delete(`/api/tenant/trips/${row.id}`).catch(() => {});
-          setTrips((prev) => prev.filter((t) => t.id !== row.id));
+          api.delete(`/api/tenant/trips/${row.id}`).then(() => {
+            setTrips((prev) => prev.filter((t) => t.id !== row.id));
+          }).catch(() => {});
         }}
         onBulkDelete={(ids) => {
           ids.forEach((id) => api.delete(`/api/tenant/trips/${String(id)}`).catch(() => {}));

@@ -188,7 +188,7 @@ export default function CustomersPage() {
 
       <DataGrid columns={columns} data={filtered} loading={loading} title="Müşteriler"
         onEdit={c => { setEditingId(c.id); setFormData({ firma_unvani: c.firma_unvani, yetkili: c.yetkili || '', telefon: c.telefon || '', email: c.email || '', adres: c.adres || '', fatura_adresi: c.fatura_adresi || '', vergi_dairesi: c.vergi_dairesi || '', vergi_no: c.vergi_no || '', kategori: c.kategori || 'GENEL', acik_hesap_limiti: c.acik_hesap_limiti || 0, risk_skoru: c.risk_skoru || 'DUSUK', vade_gun: c.vade_gun || 30, notlar: c.notlar || '' }); setShowModal(true); }}
-        onDelete={c => { api.delete(`/api/tenant/customers/${c.id}`).catch(() => {}); setCustomers(prev => prev.filter(x => x.id !== c.id)); }}
+        onDelete={c => { api.delete(`/api/tenant/customers/${c.id}`).then(() => { setCustomers(prev => prev.filter(x => x.id !== c.id)); }).catch(() => {}); }}
         onBulkDelete={ids => { ids.forEach(id => api.delete(`/api/tenant/customers/${id}`).catch(() => {})); setCustomers(prev => prev.filter(x => !ids.includes(String(x.id)))); }}
         emptyIcon={<Users size={48} className="text-gray-300" />}
         emptyText={search || kategoriFilter ? 'Aramanızla eşleşen müşteri bulunamadı' : 'Henüz müşteri kaydı yok'} />

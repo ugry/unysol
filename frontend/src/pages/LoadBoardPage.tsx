@@ -159,8 +159,7 @@ export default function LoadBoardPage() {
           setEditingId(row.id); setShowModal(true);
         }}
         onDelete={async (row) => {
-          try { await api.delete(`/api/tenant/load-board/${row.id}`); } catch {}
-          setData(prev => prev.filter(d => d.id !== row.id));
+          try { await api.delete(`/api/tenant/load-board/${row.id}`); setData(prev => prev.filter(d => d.id !== row.id)); } catch {}
         }}
         onBulkDelete={(ids) => {
           ids.forEach(id => { api.delete(`/api/tenant/load-board/${id}`).catch(() => {}); });
