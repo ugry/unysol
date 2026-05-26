@@ -67,6 +67,13 @@ func extractIP(r *http.Request) string {
 func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Only rate-limit mutations (POST/PUT/DELETE/PATCH)
+			// GET requests are read-only and should not be throttled
+			if r.Method == "GET" || r.Method == "HEAD" || r.Method == "OPTIONS" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			ip := extractIP(r)
 			window := 1 * time.Minute
 

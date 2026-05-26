@@ -53,7 +53,7 @@ func Load() *Config {
 		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379/0"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		RateLimiting: RateLimitingConfig{
-			Global: getEnvInt("RATE_LIMIT_GLOBAL", 200),
+			Global: getEnvInt("RATE_LIMIT_GLOBAL", 500),
 			Auth:   getEnvInt("RATE_LIMIT_AUTH", 10),
 		},
 		PlanLimits: PlanLimitsConfig{
