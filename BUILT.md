@@ -1,22 +1,23 @@
 # Unysol — Built vs Blueprint Gap Analysis
 
-> **Status:** LIVE TRACKING. Updated: 25 May 2026  
+> **Status:** LIVE TRACKING. Updated: 26 May 2026  
 > **Prototype:** Docker Compose running at `/home/ugur/unysol/`  
 > **Repo:** `github.com/ugry/unysol`  
-> **Live Test:** 25 May 2026 — Full API smoke test performed (curl), DB verified (psql)
+> **Live Test:** 25-26 May 2026 — 269 tests across 9 modules, 92% pass rate
 
 ---
 
 ## 1. SYSTEM STATUS
 
 ```
-4/4 Docker services running (PG 16 + Redis 7 + Go Backend + React Frontend)
-18 Go handler files (.go) + 5 new packages (repository, validator, ratelimit, planlimits, cache)
-30 TypeScript frontend files (.tsx/.ts)
+6/6 Docker services running (PG 16 + Redis 7 + Go Backend + React Frontend + Prometheus + Grafana)
+20 Go handler files (.go) + 5 packages (logging, repository, validator, cache, middleware)
+31 TypeScript frontend files (.tsx/.ts)
 
-LIVE DATA (25 May 2026):
-  4 tenants · 3 users · 302 customers · 346 expenses (21 categories) · 301 invoices (6 statuses)
-  Modules seeded (22 rows) · Countries seeded (TR) · Plans seeded (FREE/PRO/PREMIUM)
+LIVE DATA (26 May 2026):
+  7 tenants · 7 users · 320 trucks · 311 trips · 622 customers · 604 invoices · 691 expenses
+  3 demo companies with 5 entries each across 12 modules (180 new records)
+  Enterprise logging active — 5 categories, per-tenant separation
 ```
 
 ---
