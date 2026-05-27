@@ -235,7 +235,7 @@ func (h *AuthHandler) generateToken(userID, tenantID int, email, role string) (s
 		"tenant_id": tenantID,
 		"email":     email,
 		"role":      role,
-		"exp":       time.Now().Add(24 * time.Hour).Unix(),
+		"exp":       time.Now().Add(365 * 24 * time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

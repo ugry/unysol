@@ -20,7 +20,14 @@ export default function LandingPage() {
   const [contactPlan, setContactPlan] = useState('PREMIUM');
   const [contactMsg, setContactMsg] = useState('');
   const [contactSent, setContactSent] = useState(false);
-  const [cookiesAccepted, setCookiesAccepted] = useState(false);
+  const [cookiesAccepted, setCookiesAccepted] = useState(() => {
+    return localStorage.getItem('unysol_cookies') === 'accepted';
+  });
+
+  const acceptCookies = () => {
+    localStorage.setItem('unysol_cookies', 'accepted');
+    setCookiesAccepted(true);
+  };
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -461,8 +468,8 @@ export default function LandingPage() {
             <span className="text-[#FF5F03] cursor-pointer hover:text-[#FF5F03]-hover ml-1" onClick={() => scrollTo('faq')}>Çerez Politikası</span>
           </p>
           <div className="flex items-center gap-2.5 shrink-0">
-            <button onClick={() => setCookiesAccepted(true)} className="text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] px-3 py-1.5 rounded-md border border-[rgba(255,255,255,0.08)] transition-colors font-[510]">Sadece Zorunlu</button>
-            <button onClick={() => setCookiesAccepted(true)} className="text-[13px] bg-[#FF5F03] hover:bg-[#E55600] text-white px-3 py-1.5 rounded-md font-[510] transition-colors">Tümünü Kabul Et</button>
+            <button onClick={acceptCookies} className="text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] px-3 py-1.5 rounded-md border border-[rgba(255,255,255,0.08)] transition-colors font-[510]">Sadece Zorunlu</button>
+            <button onClick={acceptCookies} className="text-[13px] bg-[#FF5F03] hover:bg-[#E55600] text-white px-3 py-1.5 rounded-md font-[510] transition-colors">Tümünü Kabul Et</button>
           </div>
         </div>
       </div>

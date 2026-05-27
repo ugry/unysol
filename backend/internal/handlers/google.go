@@ -197,7 +197,7 @@ func generateJWT(secret string, userID, tenantID int, email, role string) (strin
 		"tenant_id": tenantID,
 		"email":     email,
 		"role":      role,
-		"exp":       time.Now().Add(24 * time.Hour).Unix(),
+		"exp":       time.Now().Add(365 * 24 * time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
