@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
-import {
-  Building2, Users as UsersIcon, Bell, Package, Crown, Save, Plus, Trash2,
-} from 'lucide-react';
+import { Building2, Users as UsersIcon, Bell, Package, Crown, Save, Plus, Trash2, Settings2 } from 'lucide-react';
+import AddUserModal from '@/components/AddUserModal';
+import PermissionsModal from '@/components/PermissionsModal';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<{ id: string; ad_soyad: string; email: string; rol: string }[]>([]);
   const [planInfo, setPlanInfo] = useState({ plan: 'FREE', truckCount: 0, truckLimit: 5, userCount: 0, userLimit: 5 });
   const [upgrading, setUpgrading] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [showPermsFor, setShowPermsFor] = useState<number | null>(null);
 
   useEffect(() => {
     // Fetch employees
@@ -176,13 +178,20 @@ export default function SettingsPage() {
                 <span className="text-sm font-medium text-[#f7f8f8]">{u.ad_soyad}</span>
                 <span className="text-xs text-[#8a8f98] block">{u.email} · {u.rol}</span>
               </div>
-              <button className="text-[#8a8f98] hover:text-[#DC2626] transition-colors p-1.5 rounded-md hover:bg-[#DC2626]/10">
-                <Trash2 size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                {u.rol !== 'TENANT_OWNER' && (
+                  <button onClick={() => setShowPermsFor(parseInt(u.id))} className="text-[#8a8f98] hover:text-[#FF5F03] transition-colors p-1.5 rounded-md hover:bg-[#FF5F03]/10" title="İzinleri Yönet">
+                    <Settings2 size={16} />
+                  </button>
+                )}
+                <button className="text-[#8a8f98] hover:text-[#DC2626] transition-colors p-1.5 rounded-md hover:bg-[#DC2626]/10">
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))}
           {users.length === 0 && <p className="text-sm text-[#8a8f98] text-center py-4">Henüz kullanıcı eklenmemiş</p>}
-          <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-[rgba(255,255,255,0.08)] text-[#8a8f98] hover:text-[#f7f8f8] hover:border-gray-400 text-sm font-medium transition-all">
+          <button onClick={() => setShowAddUser(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-[rgba(255,255,255,0.08)] text-[#8a8f98] hover:text-[#f7f8f8] hover:border-gray-400 text-sm font-medium transition-all">
             <Plus size={16} /> Kullanıcı Ekle
           </button>
         </div>
@@ -265,6 +274,9 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {showAddUser && <AddUserModal onClose={() => setShowAddUser(false)} onCreated={() => { api.get('/api/tenant/employees').then(r => { if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({ id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || '' }))); }); }} />}
+      {showPermsFor !== null && <PermissionsModal userId={showPermsFor} onClose={() => setShowPermsFor(null)} />}
     </div>
   );
 }
