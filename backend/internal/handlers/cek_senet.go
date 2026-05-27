@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -66,15 +67,16 @@ func (h *CekSenetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	tenantID := middleware.GetTenantID(r.Context())
 	var req models.CekSenetCreate
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, http.StatusBadRequest, "Geçersiz istek")
 		return
 	}
+	req.Tur = strings.ToUpper(req.Tur)
 	if req.Tur == "" {
-		writeError(w, http.StatusBadRequest, "type is required")
+		writeError(w, http.StatusBadRequest, "Tür zorunludur (CEK veya SENET)")
 		return
 	}
 	if req.Tutar <= 0 {
-		writeError(w, http.StatusBadRequest, "tutar must be positive")
+		writeError(w, http.StatusBadRequest, "Tutar sıfırdan büyük olmalıdır")
 		return
 	}
 	vadeTarihi, err := time.Parse("2006-01-02", req.VadeTarihi)
