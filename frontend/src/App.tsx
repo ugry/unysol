@@ -20,6 +20,8 @@ import { Loader2 } from 'lucide-react';
 import ActionsPage from '@/pages/ActionsPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import HelpPage from '@/pages/HelpPage';
+import FuelLogPage from '@/pages/FuelLogPage';
+import MaintenancePage from '@/pages/MaintenancePage';
 import LoadBoardPage from '@/pages/LoadBoardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -92,6 +94,8 @@ export default function App() {
         <Route path="/dashboard/load-board" element={<LoadBoardPage />} />
         <Route path="/dashboard/expenses" element={<ExpensesPage />} />
         <Route path="/dashboard/employees" element={<EmployeesPage />} />
+        <Route path="/dashboard/fuel-logs" element={<FuelLogPage />} />
+        <Route path="/dashboard/maintenance" element={<MaintenancePage />} />
         <Route path="/dashboard/predictions" element={<PredictionsPage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
       </Route>

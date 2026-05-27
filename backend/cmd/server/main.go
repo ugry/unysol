@@ -82,6 +82,8 @@ func main() {
 	emailHandler := &handlers.EmailHandler{DB: pool}
 	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
 	stripeHandler := &handlers.StripeHandler{DB: pool}
+	fuelLogHandler := &handlers.FuelLogHandler{DB: pool}
+	maintenanceHandler := &handlers.MaintenanceHandler{DB: pool}
 
 	// Load email config from database on startup
 	loadEmailConfig(pool)
@@ -168,6 +170,8 @@ func main() {
 			r.Mount("/settings", settingsHandler.Routes())
 			r.Mount("/notifications", notificationsHandler.Routes())
 			r.Mount("/load-board", loadBoardHandler.Routes())
+			r.Mount("/fuel-logs", fuelLogHandler.Routes())
+			r.Mount("/maintenance", maintenanceHandler.Routes())
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
 		})
 

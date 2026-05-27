@@ -15,6 +15,8 @@ import {
   Package,
   Globe,
   LogOut,
+  Fuel,
+  Wrench,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +28,8 @@ const navItems = [
   { path: '/dashboard/invoices', label: 'Faturalar', icon: FileText },
   { path: '/dashboard/cek-senet', label: 'Çek/Senet', icon: CreditCard },
   { path: '/dashboard/expenses', label: 'Giderler', icon: DollarSign },
+  { path: '/dashboard/fuel-logs', label: 'Yakıt Takip', icon: Fuel },
+  { path: '/dashboard/maintenance', label: 'Bakım', icon: Wrench },
   { path: '/dashboard/employees', label: 'Personel', icon: UserCheck },
   { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp },
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings },
