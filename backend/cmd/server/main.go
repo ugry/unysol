@@ -85,6 +85,16 @@ func main() {
 	// Load email config from database on startup
 	loadEmailConfig(pool)
 
+	// Cleanup expired load board listings on startup + daily
+	go func() {
+		cleanupExpiredLoads(pool)
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			cleanupExpiredLoads(pool)
+		}
+	}()
+
 	_ = repo
 	_ = redisClient
 
@@ -227,6 +237,18 @@ func getCORSOrigins(env string) []string {
 		return []string{"https://unysolar.com", "https://www.unysolar.com", "https://unysol.app", "https://www.unysol.app"}
 	}
 	return []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
+}
+
+func cleanupExpiredLoads(pool *pgxpool.Pool) {
+	result, err := pool.Exec(context.Background(),
+		`UPDATE load_board SET status='SURESI_DOLDU' WHERE status='AKTIF' AND load_date::date + INTERVAL '7 days' < CURRENT_DATE`)
+	if err != nil {
+		logging.System(logging.LevelWarn, "load board cleanup failed", map[string]interface{}{"error": err.Error()})
+		return
+	}
+	if result.RowsAffected() > 0 {
+		logging.System(logging.LevelInfo, "load board cleanup completed", map[string]interface{}{"expired": result.RowsAffected()})
+	}
 }
 
 func maskPassword(url string) string {

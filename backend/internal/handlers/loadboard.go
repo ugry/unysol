@@ -60,7 +60,7 @@ func (h *LoadBoardHandler) List(w http.ResponseWriter, r *http.Request) {
 		FROM load_board lb
 		JOIN users u ON u.id = lb.user_id
 		JOIN tenants t ON t.id = lb.tenant_id
-		WHERE lb.status = 'AKTIF'`
+		WHERE lb.status = 'AKTIF' AND (lb.load_date::date + INTERVAL '7 days' >= CURRENT_DATE)`
 	args := []interface{}{}
 	argN := 1
 

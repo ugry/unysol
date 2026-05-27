@@ -19,6 +19,13 @@ interface LoadBoardItem {
   contact_phone?: string;
   contact_email: string;
   company_name: string;
+  created_at: string;
+}
+
+function daysLeft(loadDate: string): number {
+  const d = new Date(loadDate);
+  d.setDate(d.getDate() + 7);
+  return Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
 interface CityData { name: string; districts: string[] }
@@ -143,6 +150,12 @@ export default function LoadBoardPage() {
     { key: 'from_city', header: 'Nereden', render: (row) => `${row.from_city}${row.from_district ? ', ' + row.from_district : ''}` },
     { key: 'to_city', header: 'Nereye', render: (row) => `${row.to_city}${row.to_district ? ', ' + row.to_district : ''}` },
     { key: 'load_date', header: 'Tarih' },
+    { key: '_expiry', header: 'Kalan', render: (row) => {
+      const d = daysLeft(row.load_date);
+      if (d <= 0) return <span className="text-[#DC2626] text-xs font-medium">Süresi doldu</span>;
+      if (d <= 2) return <span className="text-[#DC2626] text-xs font-medium">{d} gün</span>;
+      return <span className="text-[#8a8f98] text-xs">{d} gün</span>;
+    }},
     { key: 'weight_kg', header: 'Ağırlık (kg)' },
     { key: 'vehicle_type', header: 'Araç' },
     { key: 'price', header: 'Fiyat', render: (row) => row.price ? `₺${row.price.toLocaleString('tr')}` : '-' },
