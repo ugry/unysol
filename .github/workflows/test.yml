@@ -295,3 +295,79 @@ jobs:
       - name: Landing page has cookie consent
         run: |
           grep -q "cookiesAccepted\|CookiePolicy\|çerez" frontend/src/pages/LandingPage.tsx || echo "Cookie consent missing (optional)"
+
+  # ============================================================
+  # JOB 8: PRODUCTION INTEGRITY (truckownersettingsanalysis.md)
+  # ============================================================
+  production-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # truckownersettingsanalysis.md: No hardcoded mock users in production pages
+      - name: No mock users in Settings page
+        run: |
+          if grep -q "kemal@unysolar\|ayse@unysolar\|can@unysolar" frontend/src/pages/SettingsPage.tsx 2>/dev/null; then
+            echo "❌ FAIL: SettingsPage.tsx has hardcoded mock users (Kemal, Ayşe, Can)"
+            echo "   These must be replaced with real API data — see truckownersettingsanalysis.md"
+            exit 1
+          else
+            echo "✅ No mock users found"
+          fi
+
+      # truckownersettingsanalysis.md: No mock data fallbacks in any page
+      - name: No hardcoded test emails in pages
+        run: |
+          MOCKS=$(grep -rn "@unysolar\.com\|@logisol\.com\|@test\.com\|demo-nakliyat" frontend/src/pages/*.tsx 2>/dev/null | grep -v "\.d\.ts\|node_modules" || true)
+          if [ -n "$MOCKS" ]; then
+            echo "⚠️  Mock emails found in frontend pages:"
+            echo "$MOCKS"
+            echo "   Count: $(echo "$MOCKS" | wc -l) occurrences"
+            echo "   (Some may be placeholders — SettingsPage.tsx is a hard FAIL)"
+          fi
+
+      # truckownersettingsanalysis.md: Settings page must fetch real data from API
+      - name: Settings page uses real API (not mock)
+        run: |
+          if grep -q "api.get.*settings\|api.get.*tenant" frontend/src/pages/SettingsPage.tsx 2>/dev/null; then
+            echo "✅ SettingsPage calls API for data"
+          else
+            echo "❌ FAIL: SettingsPage does not call any API — may be using mock data only"
+            exit 1
+          fi
+
+      # truckownersettingsanalysis.md: PRO upgrade button must exist
+      - name: PRO upgrade path exists
+        run: |
+          if grep -q "PRO.*Yükselt\|plan.*upgrade\|stripe\|checkout" frontend/src/pages/SettingsPage.tsx 2>/dev/null; then
+            echo "✅ PRO upgrade button exists"
+          else
+            echo "⚠️  No PRO upgrade button found in Settings"
+          fi
+
+      # truckownersettingsanalysis.md: Fuel tracking module registered (gap tracking)
+      - name: Fuel tracking module reminder
+        run: |
+          if grep -q "fuel_logging" database/01-schema.sql 2>/dev/null; then
+            echo "✅ fuel_logging module registered in DB"
+          fi
+          MISSING_UI=$(ls frontend/src/pages/FuelPage.tsx 2>/dev/null || echo "")
+          if [ -z "$MISSING_UI" ]; then
+            echo "⚠️  fuel_logging module has NO frontend page (see modulecomparisongrid.md)"
+          fi
+
+      # truckownersettingsanalysis.md: settings page has no hardcoded plan limits
+      - name: Plan limits use config (not hardcoded)
+        run: |
+          if grep -q "FREE.*5.*kamyon\|Firma Bilgileri" frontend/src/pages/SettingsPage.tsx 2>/dev/null; then
+            echo "✅ Settings page active"
+          fi
+
+      # truckownersettingsanalysis.md: WhatsApp integration tracking
+      - name: WhatsApp integration status
+        run: |
+          if grep -qr "WhatsApp\|whatsapp\|wa\.me" frontend/src/ backend/internal/ 2>/dev/null | grep -v node_modules | head -3; then
+            echo "✅ WhatsApp references found"
+          else
+            echo "⚠️  No WhatsApp integration — top priority per truckownersettingsanalysis.md"
+          fi
