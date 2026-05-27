@@ -17,7 +17,7 @@ type PlanLimits struct {
 }
 
 var defaultPlanLimits = map[string]PlanLimits{
-	"FREE":    {MaxTrucks: 3, MaxUsers: 5},
+	"FREE":    {MaxTrucks: 5, MaxUsers: 5},
 	"PRO":     {MaxTrucks: 10, MaxUsers: 15},
 	"PREMIUM": {MaxTrucks: 0, MaxUsers: 0},
 }
@@ -145,8 +145,9 @@ func checkUserLimit(ctx context.Context, pool *pgxpool.Pool, tenantID string) (b
 func writePlanLimitError(w http.ResponseWriter, resource string, limit int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
+	msg := "Mevcut planınızda en fazla " + formatInt(limit) + " " + resource + " ekleyebilirsiniz."
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error":   "plan limit reached",
-		"message": "Your current plan does not allow creating more " + resource + "s. Plan limit: " + formatInt(limit),
+		"error":   "plan limiti aşıldı",
+		"message": msg,
 	})
 }

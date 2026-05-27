@@ -110,8 +110,9 @@ export default function TrucksPage() {
       setEditingId(null);
       setFormData(emptyForm);
       await fetchTrucks();
-    } catch {
-      setFormError(editingId ? 'Kamyon güncellenirken bir hata oluştu.' : 'Kamyon eklenirken bir hata oluştu.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || '';
+      setFormError(msg || (editingId ? 'Kamyon güncellenirken bir hata oluştu.' : 'Kamyon eklenirken bir hata oluştu.'));
     } finally {
       setSubmitting(false);
     }
