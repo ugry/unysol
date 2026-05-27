@@ -318,12 +318,13 @@ jobs:
       # truckownersettingsanalysis.md: No mock data fallbacks in any page
       - name: No hardcoded test emails in pages
         run: |
-          MOCKS=$(grep -rn "@unysolar\.com\|@logisol\.com\|@test\.com\|demo-nakliyat" frontend/src/pages/*.tsx 2>/dev/null | grep -v "\.d\.ts\|node_modules" || true)
+          MOCKS=$(grep -rn "kemal@\|ayse@\|can@" frontend/src/pages/*.tsx 2>/dev/null || true)
           if [ -n "$MOCKS" ]; then
-            echo "⚠️  Mock emails found in frontend pages:"
+            echo "❌ FAIL: Mock email addresses found in frontend pages:"
             echo "$MOCKS"
-            echo "   Count: $(echo "$MOCKS" | wc -l) occurrences"
-            echo "   (Some may be placeholders — SettingsPage.tsx is a hard FAIL)"
+            exit 1
+          else
+            echo "✅ No mock user emails found"
           fi
 
       # truckownersettingsanalysis.md: Settings page must fetch real data from API
