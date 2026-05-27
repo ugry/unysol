@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
+    branches: ['**']
   pull_request:
     branches: [main]
-  workflow_call:
   workflow_dispatch:
 
 jobs:
@@ -194,7 +194,7 @@ jobs:
           curl -s --retry 5 --retry-delay 1 http://localhost:8080/api/system/health
 
       # UI_Test_Directives Step 1: Create records
-      - name: CRUD: Signup + Login
+      - name: "CRUD: Signup + Login"
         run: |
           TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/signup \
             -H "Content-Type: application/json" \
