@@ -88,6 +88,11 @@ export default function TripsPage() {
   const [quickCustomer, setQuickCustomer] = useState({ firma_unvani: '', telefon: '' });
   const [quickSubmitting, setQuickSubmitting] = useState(false);
 
+  useEffect(() => {
+    fetchTrips();
+    fetchDropdownData();
+  }, []);
+
   const createQuickTruck = async () => {
     if (!quickTruck.plaka) return;
     setQuickSubmitting(true);
