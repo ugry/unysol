@@ -66,7 +66,7 @@ func (h *MaintenanceHandler) List(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT m.id, m.tenant_id, m.truck_id, COALESCE(t.plaka,''), m.tarih, COALESCE(m.km,0),
 		 m.turu, COALESCE(m.yapilan_islemler,''), COALESCE(m.toplam_tutar,0), COALESCE(m.fatura_no,''),
-		 COALESCE(m.servis_adi,''), COALESCE(m.sonraki_bakim_km,0), COALESCE(m.sonraki_bakim_tarih,''), m.created_at
+		 COALESCE(m.servis_adi,''), COALESCE(m.sonraki_bakim_km,0), NULLIF(m.sonraki_bakim_tarih::text,'')::date, m.created_at
 		 FROM maintenance_records m LEFT JOIN trucks t ON t.id = m.truck_id
 		 WHERE m.tenant_id = $1 ORDER BY m.tarih DESC LIMIT 500`, tenantID)
 	if err != nil {
