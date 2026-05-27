@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="100" fill="#0f1011"/>
+  <g transform="translate(80, 120)">
+    <rect x="0" y="80" width="320" height="50" rx="8" fill="#FF5F03"/>
+    <rect x="0" y="135" width="260" height="50" rx="8" fill="#FF5F03"/>
+    <circle cx="50" cy="50" r="40" fill="#333"/>
+    <circle cx="270" cy="50" r="40" fill="#333"/>
+    <rect x="30" y="10" width="280" height="80" rx="12" fill="#1a1a1a" stroke="#FF5F03" stroke-width="4"/>
+    <text x="170" y="60" text-anchor="middle" fill="white" font-family="Arial" font-size="32" font-weight="bold">UNYSOL</text>
+  </g>
+  <text x="256" y="430" text-anchor="middle" fill="#FF5F03" font-family="Arial" font-size="28" font-weight="bold">🚛</text>
+</svg>
