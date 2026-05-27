@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import adminApi from '@/lib/adminApi';
 import { adminLogout, getStoredAdminUser } from '@/lib/adminAuth';
+import DataGrid, { type Column } from '@/components/DataGrid';
 import type {
   AdminDashboardSummary, AdminTenant, AdminModule, AdminCountry,
   AdminAnalyticsMmr, AdminAnalyticsChurn, AdminAnalyticsGrowth,
@@ -344,206 +345,101 @@ function OverviewTab() {
 function TenantsTab() {
   const [tenants, setTenants] = useState<AdminTenant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [planFilter, setPlanFilter] = useState('');
   const [planLoading, setPlanLoading] = useState<string | null>(null);
-  const [suspendLoading, setSuspendLoading] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     adminApi
       .get<AdminTenant[]>('/api/admin/tenants')
       .then((res) => { if (!cancelled) setTenants(res.data); })
-      .catch(() => { if (!cancelled) setTenants(getMockTenants()); })
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
-  const filtered = tenants.filter((t) =>
-    t.firma_unvani.toLowerCase().includes(search.toLowerCase()) ||
-    t.yetkili.toLowerCase().includes(search.toLowerCase()) ||
-    t.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = planFilter ? tenants.filter(t => t.plan === planFilter) : tenants;
 
   const handlePlanChange = async (id: string, newPlan: AdminTenant['plan']) => {
     setPlanLoading(id);
     try {
       await adminApi.put(`/api/admin/tenants/${id}/plan`, { plan: newPlan });
-      setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, plan: newPlan } : t)));
-    } catch { /* API not available — optimistic update */ }
+      setTenants(prev => prev.map(t => (t.id === id ? { ...t, plan: newPlan } : t)));
+    } catch {}
     setPlanLoading(null);
   };
 
-  const handleSuspend = async (id: string) => {
-    setSuspendLoading(id);
-    const tenant = tenants.find((t) => t.id === id);
-    if (!tenant) return;
+  const handleSuspend = async (id: string, tenant: AdminTenant) => {
+    const newStatus = tenant.durum === 'AKTIF' ? 'PASIF' as const : 'AKTIF' as const;
     try {
-      await adminApi.post(`/api/admin/tenants/${id}/suspend`);
-      const newStatus = tenant.durum === 'AKTIF' ? 'PASIF' as const : 'AKTIF' as const;
-      setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, durum: newStatus } : t)));
-    } catch { /* API not available — optimistic update */
-      const newStatus = tenant.durum === 'AKTIF' ? 'PASIF' as const : 'AKTIF' as const;
-      setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, durum: newStatus } : t)));
-    }
-    setSuspendLoading(null);
+      await adminApi.post(`/api/admin/tenants/${id}/suspend`, { durum: newStatus });
+      setTenants(prev => prev.map(t => (t.id === id ? { ...t, durum: newStatus } : t)));
+    } catch {}
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-[#FF5F03]" size={36} />
-          <span className="text-sm text-[#8a8f98]">Firmalar yükleniyor...</span>
-        </div>
+  const columns: Column<AdminTenant>[] = [
+    { key: 'firma_unvani', header: 'Firma', render: (row) => (
+      <div className="space-y-1">
+        <div className="text-enterprise-text font-medium text-sm">{row.firma_unvani}</div>
+        <div className="text-xs text-enterprise-text-muted">{row.email}</div>
       </div>
-    );
-  }
+    )},
+    { key: 'yetkili', header: 'Yetkili' },
+    { key: 'plan', header: 'Plan', render: (row) => (
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+          style={{ backgroundColor: `${planColors[row.plan]}20`, color: planColors[row.plan] }}>
+          {row.plan}
+        </span>
+        <select
+          value={row.plan}
+          disabled={planLoading === row.id}
+          onChange={(e) => { e.stopPropagation(); handlePlanChange(row.id, e.target.value as AdminTenant['plan']); }}
+          className="px-1.5 py-0.5 rounded text-xs bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#8a8f98] outline-none cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {plans.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+    )},
+    { key: 'kayit_tarihi', header: 'Kayıt', render: (row) => formatDate(row.kayit_tarihi) },
+    { key: 'durum', header: 'Durum', render: (row) => (
+      <div className="flex items-center gap-2">
+        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+          row.durum === 'AKTIF' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+        }`}>{row.durum === 'AKTIF' ? 'Aktif' : 'Pasif'}</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); handleSuspend(row.id, row); }}
+          className={`text-xs px-2 py-0.5 rounded border font-medium transition-colors ${
+            row.durum === 'AKTIF'
+              ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
+              : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+          }`}
+        >{row.durum === 'AKTIF' ? 'Pasif Yap' : 'Aktifleştir'}</button>
+      </div>
+    )},
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4">
-      <div className="relative">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#62666d]" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Firma adı, yetkili veya e-posta ile ara..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#666] text-sm outline-none focus:border-[#FF5F03]/40 focus:ring-1 focus:ring-[#FF5F03]/20 transition-all"
-        />
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <select value={planFilter} onChange={e => setPlanFilter(e.target.value)}
+          className="px-3.5 py-2 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] text-[#d0d6e0] text-sm outline-none focus:border-[#FF5F03]/40 cursor-pointer">
+          <option value="">Tüm Planlar</option>
+          {plans.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <span className="text-xs text-[#8a8f98]">{filtered.length} firma</span>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-[#8a8f98] text-sm">
-          {search ? 'Aramanızla eşleşen firma bulunamadı.' : 'Henüz kayıtlı firma bulunmuyor.'}
-        </div>
-      ) : (
-        <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[#8a8f98] border-b border-[rgba(255,255,255,0.08)]">
-                  <th className="text-left py-3 px-4 font-medium">Firma Adı</th>
-                  <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Yetkili</th>
-                  <th className="text-left py-3 px-4 font-medium">Plan</th>
-                  <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Kayıt Tarihi</th>
-                  <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Son Giriş</th>
-                  <th className="text-left py-3 px-4 font-medium">Durum</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((tenant) => (
-                  <tr key={tenant.id} className="border-b border-[rgba(255,255,255,0.08)] last:border-0">
-                    <td className="py-3 px-4">
-                      <span className="text-[#f7f8f8] font-medium">{tenant.firma_unvani}</span>
-                      <div className="text-xs text-[#8a8f98] md:hidden">{tenant.yetkili}</div>
-                    </td>
-                    <td className="py-3 px-4 text-[#8a8f98] hidden md:table-cell">{tenant.yetkili}</td>
-                    <td className="py-3 px-4">
-                      <span
-                        className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: `${planColors[tenant.plan]}20`, color: planColors[tenant.plan] }}
-                      >
-                        {tenant.plan}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-[#8a8f98] hidden lg:table-cell">{formatDate(tenant.kayit_tarihi)}</td>
-                    <td className="py-3 px-4 text-[#8a8f98] hidden lg:table-cell">{formatDateTime(tenant.son_giris)}</td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                          tenant.durum === 'AKTIF'
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : 'bg-red-500/15 text-red-400'
-                        }`}
-                      >
-                        {tenant.durum === 'AKTIF' ? 'Aktif' : 'Pasif'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2">
-                      <button
-                        onClick={() => setExpandedId(expandedId === tenant.id ? null : tenant.id)}
-                        className="p-1 rounded-md text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        {expandedId === tenant.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {expandedId && (() => {
-            const tenant = tenants.find((t) => t.id === expandedId);
-            if (!tenant) return null;
-            return (
-              <div className="border-t border-[rgba(255,255,255,0.08)] od-panel/50 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs text-[#8a8f98] mb-0.5">E-posta</p>
-                    <p className="text-sm text-[#f7f8f8]">{tenant.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#8a8f98] mb-0.5">Telefon</p>
-                    <p className="text-sm text-[#f7f8f8]">{tenant.telefon || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#8a8f98] mb-0.5">Kayıt Tarihi</p>
-                    <p className="text-sm text-[#f7f8f8]">{formatDate(tenant.kayit_tarihi)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#8a8f98] mb-0.5">Son Giriş</p>
-                    <p className="text-sm text-[#f7f8f8]">{formatDateTime(tenant.son_giris)}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#8a8f98]">Plan:</span>
-                    <select
-                      value={tenant.plan}
-                      disabled={planLoading === tenant.id}
-                      onChange={(e) => handlePlanChange(tenant.id, e.target.value as AdminTenant['plan'])}
-                      className="px-3 py-1.5 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-sm outline-none focus:border-[#FF5F03]/40 cursor-pointer"
-                    >
-                      {plans.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                    {planLoading === tenant.id && <Loader2 size={14} className="animate-spin text-[#FF5F03]" />}
-                  </div>
-
-                  <button
-                    onClick={() => handleSuspend(tenant.id)}
-                    disabled={suspendLoading === tenant.id}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 ${
-                      tenant.durum === 'AKTIF'
-                        ? 'bg-red-50 text-red-400 hover:bg-red-100 border border-red-500/20'
-                        : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-                    }`}
-                  >
-                    {suspendLoading === tenant.id && <Loader2 size={14} className="animate-spin" />}
-                    {tenant.durum === 'AKTIF' ? 'Pasif Yap' : 'Aktifleştir'}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('unysol_impersonate_target', tenant.id);
-                      window.location.href = '/dashboard';
-                    }}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#FF5F03]/10 text-[#FF5F03] hover:bg-[#FF5F03]/20 border border-[#FF5F03]/20 transition-colors flex items-center gap-2"
-                  >
-                    <Shield size={14} />
-                    Firma Görünümüne Geç
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      <DataGrid
+        columns={columns}
+        data={filtered}
+        keyField="id"
+        loading={loading}
+        title="Firmalar"
+        emptyText={planFilter ? 'Bu planda firma bulunamadı' : 'Henüz kayıtlı firma bulunmuyor'}
+        pageSizeOptions={[50, 100, 200]}
+      />
     </div>
   );
 }
