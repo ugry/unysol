@@ -219,9 +219,9 @@ function OverviewTab() {
   useEffect(() => {
     let cancelled = false;
     adminApi
-      .get<AdminDashboardSummary>('/api/admin/dashboard/summary')
+      .get('/api/admin/dashboard/summary')
       .then((res) => { if (!cancelled) setData(res.data); })
-      .catch(() => { if (!cancelled) { setData(getMockDashboardSummary()); } })
+      .catch((err) => { if (!cancelled) setError('Veriler yüklenemedi: ' + (err?.response?.data?.error || 'bağlantı hatası')); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);

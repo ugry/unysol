@@ -179,6 +179,8 @@ func main() {
 			r.Put("/tenants/{id}/plan", adminHandler.ChangePlan)
 			r.Post("/tenants/{id}/suspend", adminHandler.SuspendTenant)
 
+			r.Get("/dashboard/summary", adminHandler.DashboardSummary)
+
 			r.Get("/analytics/mrr", adminHandler.GetMRR)
 			r.Get("/analytics/churn", adminHandler.GetChurn)
 			r.Get("/analytics/growth", adminHandler.GetGrowth)

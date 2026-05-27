@@ -16,6 +16,25 @@ type AdminHandler struct {
 	DB *pgxpool.Pool
 }
 
+func (h *AdminHandler) DashboardSummary(w http.ResponseWriter, r *http.Request) {
+	var total, active int
+	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants`).Scan(&total)
+	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE durum='AKTIF'`).Scan(&active)
+
+	var mrr float64
+	_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(SUM(ucret),0) FROM subscriptions WHERE plan!='FREE' AND status='AKTIF'`).Scan(&mrr)
+
+	var newThisMonth int
+	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE created_at >= date_trunc('month', CURRENT_DATE)`).Scan(&newThisMonth)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"toplam_firma":      total,
+		"aktif_firma":       active,
+		"mrr":               mrr,
+		"bu_ay_yeni_kayit":  newThisMonth,
+	})
+}
+
 func (h *AdminHandler) ListTenants(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT id, slug, firma_unvani, plan, locale, country_code, durum, created_at
@@ -130,13 +149,13 @@ func (h *AdminHandler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) GetMRR(w http.ResponseWriter, r *http.Request) {
 	var data models.MRRData
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT COALESCE(SUM(tutar), 0), 'USD', 'current_month'
-		 FROM billings
-		 WHERE durum = 'PAID' AND tarih >= date_trunc('month', CURRENT_DATE)::text`).
+		`SELECT COALESCE(SUM(ucret), 0), 'TRY', 'monthly'
+		 FROM subscriptions
+		 WHERE plan != 'FREE' AND status = 'AKTIF'`).
 		Scan(&data.MRR, &data.Currency, &data.Period)
 	if err != nil {
 		slog.Error("failed to calculate MRR", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to calculate MRR")
+		writeJSON(w, http.StatusInternalServerError, "failed to calculate MRR")
 		return
 	}
 
@@ -145,19 +164,16 @@ func (h *AdminHandler) GetMRR(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) GetChurn(w http.ResponseWriter, r *http.Request) {
 	var data models.ChurnData
-	err := h.DB.QueryRow(r.Context(),
-		`SELECT
-			CASE WHEN COUNT(*) > 0 THEN
-				(COUNT(*) FILTER (WHERE durum = 'SUSPENDED'))::float / COUNT(*)::float * 100
-			ELSE 0 END,
-			COUNT(*),
-			COUNT(*) FILTER (WHERE durum = 'SUSPENDED')
-		 FROM tenants`).
-		Scan(&data.ChurnRate, &data.Total, &data.Suspended)
-	if err != nil {
-		slog.Error("failed to calculate churn", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to calculate churn")
-		return
+	var total, active int
+	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants`).Scan(&total)
+	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE durum != 'AKTIF'`).Scan(&active)
+	
+	data.Total = total
+	data.Suspended = active
+	if total > 0 {
+		data.ChurnRate = float64(active) / float64(total) * 100
+	} else {
+		data.ChurnRate = 0
 	}
 
 	writeJSON(w, http.StatusOK, data)
@@ -167,7 +183,7 @@ func (h *AdminHandler) GetGrowth(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT to_char(created_at, 'YYYY-MM') AS period, COUNT(*) AS signups
 		 FROM tenants
-		 WHERE created_at >= (CURRENT_DATE - INTERVAL '12 months')::text
+		 WHERE created_at >= (CURRENT_DATE - INTERVAL '12 months')
 		 GROUP BY period ORDER BY period`)
 	if err != nil {
 		slog.Error("failed to query growth", "error", err)
