@@ -122,6 +122,10 @@ func main() {
 
 	r.Get("/api/verify", authHandler.VerifyEmail)
 
+	r.Get("/api/cities", func(w http.ResponseWriter, r *http.Request) {
+		loadBoardHandler.GetCities(w, r)
+	})
+
 	r.Route("/api/system", func(r chi.Router) {
 		r.Get("/health", systemHandler.Health)
 		r.Get("/health/ready", systemHandler.Ready)
