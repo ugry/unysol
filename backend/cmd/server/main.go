@@ -81,6 +81,7 @@ func main() {
 	contactHandler := &handlers.ContactHandler{}
 	emailHandler := &handlers.EmailHandler{DB: pool}
 	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
+	stripeHandler := &handlers.StripeHandler{DB: pool}
 
 	// Load email config from database on startup
 	loadEmailConfig(pool)
@@ -132,6 +133,8 @@ func main() {
 
 	r.Get("/api/verify", authHandler.VerifyEmail)
 
+	r.Post("/api/stripe/webhook", stripeHandler.Webhook)
+
 	r.Get("/api/cities", func(w http.ResponseWriter, r *http.Request) {
 		loadBoardHandler.GetCities(w, r)
 	})
@@ -165,6 +168,7 @@ func main() {
 			r.Mount("/settings", settingsHandler.Routes())
 			r.Mount("/notifications", notificationsHandler.Routes())
 			r.Mount("/load-board", loadBoardHandler.Routes())
+			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
 		})
 
 		r.Route("/api/admin", func(r chi.Router) {
@@ -185,6 +189,8 @@ func main() {
 			r.Get("/email/config", emailHandler.GetConfig)
 			r.Post("/email/config", emailHandler.SaveConfig)
 			r.Post("/email/test", emailHandler.TestConfig)
+
+			r.Get("/stripe/config", stripeHandler.GetConfig)
 
 			r.Mount("/modules", modulesHandler.Routes())
 			r.Mount("/countries", countriesHandler.Routes())

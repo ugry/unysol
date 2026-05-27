@@ -17,13 +17,16 @@ type EmailHandler struct {
 }
 
 type GlobalEmailConfig struct {
-	EmailAddress   string `json:"email_address"`
-	EmailPass      string `json:"email_password"`
-	SmtpAddress    string `json:"smtp_address"`
-	ImapAddress    string `json:"imap_address"`
-	SmtpPort       string `json:"smtp_port"`
-	ImapPort       string `json:"imap_port"`
-	GoogleClientID string `json:"google_client_id"`
+	EmailAddress      string `json:"email_address"`
+	EmailPass         string `json:"email_password"`
+	SmtpAddress       string `json:"smtp_address"`
+	ImapAddress       string `json:"imap_address"`
+	SmtpPort          string `json:"smtp_port"`
+	ImapPort          string `json:"imap_port"`
+	GoogleClientID    string `json:"google_client_id"`
+	StripePubKey      string `json:"stripe_pub_key"`
+	StripePriceMonthly string `json:"stripe_price_monthly"`
+	StripePriceYearly string `json:"stripe_price_yearly"`
 }
 
 func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
@@ -31,9 +34,11 @@ func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	err := h.DB.QueryRow(r.Context(), `
 		SELECT COALESCE(email_address,''), COALESCE(password,''), COALESCE(smtp_address,''),
 		       COALESCE(imap_address,''), COALESCE(port,'465'), COALESCE(imap_port,'993'),
-		       COALESCE(google_client_id,'')
+		       COALESCE(google_client_id,''), COALESCE(stripe_pub_key,''),
+		       COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'')
 		FROM email_config WHERE id=1
-	`).Scan(&cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress, &cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort, &cfg.GoogleClientID)
+	`).Scan(&cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress, &cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort,
+		&cfg.GoogleClientID, &cfg.StripePubKey, &cfg.StripePriceMonthly, &cfg.StripePriceYearly)
 	if err != nil {
 		writeJSON(w, http.StatusOK, GlobalEmailConfig{SmtpPort: "465", ImapPort: "993"})
 		return
@@ -72,12 +77,14 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
 
 	_, err := h.DB.Exec(r.Context(), `
-		INSERT INTO email_config (id, email_address, password, smtp_address, imap_address, port, imap_port, host, username, from_email, google_client_id)
-		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $1, $1, $8)
+		INSERT INTO email_config (id, email_address, password, smtp_address, imap_address, port, imap_port, host, username, from_email, google_client_id, stripe_pub_key, stripe_price_monthly, stripe_price_yearly)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $1, $1, $8, $9, $10, $11)
 		ON CONFLICT (id) DO UPDATE SET
 			email_address=$1, password=$2, smtp_address=$3, imap_address=$4,
-			port=$5, imap_port=$6, host=$7, username=$1, from_email=$1, google_client_id=$8
-	`, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress, req.SmtpPort, req.ImapPort, host, req.GoogleClientID)
+			port=$5, imap_port=$6, host=$7, username=$1, from_email=$1,
+			google_client_id=$8, stripe_pub_key=$9, stripe_price_monthly=$10, stripe_price_yearly=$11
+	`, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress, req.SmtpPort, req.ImapPort, host,
+		req.GoogleClientID, req.StripePubKey, req.StripePriceMonthly, req.StripePriceYearly)
 
 	if err != nil {
 		logging.Error(logging.LevelError, err, "", "", "", "", "email", "save config failed", nil)

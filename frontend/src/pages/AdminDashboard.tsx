@@ -1160,7 +1160,7 @@ function AnalyticsTab() {
 }
 
 function EmailTab() {
-  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993', google_client_id: '' });
+  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993', google_client_id: '', stripe_pub_key: '', stripe_price_monthly: '', stripe_price_yearly: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -1239,6 +1239,26 @@ function EmailTab() {
             <input type="text" value={cfg.google_client_id} onChange={e => update('google_client_id', e.target.value)} placeholder="123456789-xxxxx.apps.googleusercontent.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
           </div>
           <div></div>
+        </div>
+
+        <div className="border-t border-[rgba(255,255,255,0.06)] pt-4 mt-2">
+          <h4 className="text-[14px] font-[510] text-[#d0d6e0] mb-3">Stripe Ödeme Ayarları</h4>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Publishable Key</label>
+              <input type="text" value={cfg.stripe_pub_key} onChange={e => update('stripe_pub_key', e.target.value)} placeholder="pk_test_..." className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Price ID (Aylık)</label>
+                <input type="text" value={cfg.stripe_price_monthly} onChange={e => update('stripe_price_monthly', e.target.value)} placeholder="price_xxxxx" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Price ID (Yıllık)</label>
+                <input type="text" value={cfg.stripe_price_yearly} onChange={e => update('stripe_price_yearly', e.target.value)} placeholder="price_xxxxx" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

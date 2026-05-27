@@ -1,0 +1,186 @@
+package handlers
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"unysol/internal/logging"
+	"unysol/internal/middleware"
+)
+
+type StripeHandler struct {
+	DB *pgxpool.Pool
+}
+
+type CheckoutRequest struct {
+	PriceID string `json:"price_id"`
+	Plan    string `json:"plan"`
+}
+
+func getStripeSecretKey() string {
+	return os.Getenv("STRIPE_SECRET_KEY")
+}
+
+func getStripePublishableKey() string {
+	return os.Getenv("STRIPE_PUBLISHABLE_KEY")
+}
+
+func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	userID := middleware.GetUserID(r.Context())
+
+	var req CheckoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz istek"})
+		return
+	}
+
+	sk := getStripeSecretKey()
+	if sk == "" {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Stripe yapılandırılmamış"})
+		return
+	}
+
+	var userEmail string
+	_ = h.DB.QueryRow(r.Context(), `SELECT email FROM users WHERE id=$1`, userID).Scan(&userEmail)
+
+	if req.PriceID == "" {
+		// Look up price from DB config
+		var monthlyPrice, yearlyPrice string
+		_ = h.DB.QueryRow(r.Context(),
+			`SELECT COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'') FROM email_config WHERE id=1`,
+		).Scan(&monthlyPrice, &yearlyPrice)
+		if req.Plan == "PRO" {
+			req.PriceID = yearlyPrice
+		}
+		if req.PriceID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Fiyat ID bulunamadı. Lütfen admin panelinden Stripe ayarlarını yapın."})
+			return
+		}
+	}
+
+	// Create Stripe checkout session
+	payload := map[string]interface{}{
+		"mode":                "subscription",
+		"customer_email":      userEmail,
+		"line_items": []map[string]interface{}{
+			{"price": req.PriceID, "quantity": 1},
+		},
+		"success_url": "https://unysolar.com/dashboard/settings?session_id={CHECKOUT_SESSION_ID}",
+		"cancel_url":  "https://unysolar.com/dashboard/settings?canceled=true",
+		"metadata": map[string]string{
+			"tenant_id": tenantID,
+			"user_id":   userID,
+			"plan":      req.Plan,
+		},
+	}
+
+	body, _ := json.Marshal(payload)
+	stripeReq, _ := http.NewRequest("POST", "https://api.stripe.com/v1/checkout/sessions", bytes.NewReader(body))
+	stripeReq.SetBasicAuth(sk, "")
+	stripeReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(stripeReq)
+	if err != nil {
+		logging.System(logging.LevelError, "stripe checkout failed", map[string]interface{}{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Ödeme oturumu oluşturulamadı"})
+		return
+	}
+	defer resp.Body.Close()
+
+	var session map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&session)
+
+	if resp.StatusCode != 200 {
+		errMsg := fmt.Sprintf("Stripe error: HTTP %d", resp.StatusCode)
+		if session != nil {
+			errMsg = fmt.Sprintf("%v", session["error"])
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": errMsg})
+		return
+	}
+
+	sessionURL, _ := session["url"].(string)
+	writeJSON(w, http.StatusOK, map[string]string{"url": sessionURL})
+}
+
+func (h *StripeHandler) Webhook(w http.ResponseWriter, r *http.Request) {
+	payload, _ := io.ReadAll(r.Body)
+
+	var event map[string]interface{}
+	json.Unmarshal(payload, &event)
+
+	eventType, _ := event["type"].(string)
+	data, _ := event["data"].(map[string]interface{})
+	obj, _ := data["object"].(map[string]interface{})
+	metadata, _ := obj["metadata"].(map[string]interface{})
+
+	tenantID := ""
+	plan := ""
+	if metadata != nil {
+		tenantID, _ = metadata["tenant_id"].(string)
+		plan, _ = metadata["plan"].(string)
+	}
+
+	logging.System(logging.LevelInfo, "stripe webhook received", map[string]interface{}{
+		"type":      eventType,
+		"tenant_id": tenantID,
+		"plan":      plan,
+	})
+
+	switch eventType {
+	case "checkout.session.completed":
+		customer, _ := obj["customer"].(string)
+		subscription, _ := obj["subscription"].(string)
+		amountTotal, _ := obj["amount_total"].(float64)
+
+		if tenantID != "" && plan != "" {
+			tid, _ := strconv.Atoi(tenantID)
+			// Update subscription
+			_, _ = h.DB.Exec(r.Context(),
+				`INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret)
+				 VALUES ($1, $2, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', $3)
+				 ON CONFLICT DO NOTHING`,
+				tid, plan, amountTotal/100)
+
+			// Store Stripe IDs
+			_, _ = h.DB.Exec(r.Context(),
+				`UPDATE tenants SET stripe_customer_id=$1, stripe_subscription_id=$2 WHERE id=$3`,
+				customer, subscription, tid)
+
+			logging.System(logging.LevelInfo, "subscription updated via stripe", map[string]interface{}{
+				"tenant_id": tid, "plan": plan, "customer": customer,
+			})
+		}
+
+	case "customer.subscription.deleted":
+		subscription, _ := obj["id"].(string)
+		if subscription != "" {
+			_, _ = h.DB.Exec(r.Context(),
+				`UPDATE subscriptions SET plan='FREE', ucret=0 WHERE tenant_id=(SELECT id FROM tenants WHERE stripe_subscription_id=$1)`,
+				subscription)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *StripeHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
+	var pubKey, priceMonthly, priceYearly string
+	_ = h.DB.QueryRow(r.Context(),
+		`SELECT COALESCE(stripe_pub_key,''), COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'') FROM email_config WHERE id=1`,
+	).Scan(&pubKey, &priceMonthly, &priceYearly)
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"publishable_key":    pubKey,
+		"price_monthly":      priceMonthly,
+		"price_yearly":       priceYearly,
+	})
+}
