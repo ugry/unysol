@@ -77,6 +77,7 @@ export default function LoadBoardPage() {
   const [interestMsg, setInterestMsg] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ price_min: '', price_max: '', weight_min: '', weight_max: '', vehicle: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const [cities, setCities] = useState<CityData[]>([]);
   const [fromDistricts, setFromDistricts] = useState<string[]>([]);
@@ -135,7 +136,12 @@ export default function LoadBoardPage() {
     try {
       await api.delete(`/api/tenant/load-board/${id}`);
       setData(prev => prev.filter(i => i.id !== id));
+      setConfirmDeleteId(null);
     } catch {}
+  };
+
+  const confirmDelete = (id: number) => {
+    setConfirmDeleteId(id);
   };
 
   const handleInterest = async (listing: LoadBoardItem) => {
@@ -212,7 +218,7 @@ export default function LoadBoardPage() {
               </>
             )}
             {row.user_id === currentUserId && (
-              <button onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
+              <button onClick={(e) => { e.stopPropagation(); confirmDelete(row.id); }}
                 className="text-[#8a8f98] hover:text-[#DC2626] p-0.5 transition-colors" title="İlanı sil">
                 <Trash2 size={14} />
               </button>
@@ -298,6 +304,22 @@ export default function LoadBoardPage() {
       <DataGrid columns={columns} data={filtered} loading={loading} title="Yük Panosu"
         emptyIcon={<Package size={48} className="text-gray-300" />}
         emptyText={search || typeFilter || cityFilter ? 'Aramanızla eşleşen ilan bulunamadı' : 'Henüz ilan yok'} />
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white border border-enterprise-border rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-enterprise-text mb-2">İlanı Sil</h3>
+            <p className="text-sm text-enterprise-text-secondary mb-6">Bu ilan kalıcı olarak silinecek. Emin misiniz?</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-gray-50">İptal</button>
+              <button onClick={() => handleDelete(confirmDeleteId)}
+                className="px-4 py-2 rounded-lg bg-[#DC2626] hover:bg-[#b91c1c] text-white text-sm font-medium">Sil</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
