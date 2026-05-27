@@ -19,6 +19,7 @@ import { isAdminAuthenticated } from '@/lib/adminAuth';
 import { Loader2 } from 'lucide-react';
 import ActionsPage from '@/pages/ActionsPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import HelpPage from '@/pages/HelpPage';
 import LoadBoardPage from '@/pages/LoadBoardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/verify" element={<VerifyEmailPage />} />
+      <Route path="/yardim" element={<HelpPage />} />
 
       {/* Admin Routes — separate from tenant layout */}
       <Route path="/admin/login" element={<AdminLoginPage />} />

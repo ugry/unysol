@@ -90,6 +90,7 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('pricing')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.pricing')}</button>
             <button onClick={() => scrollTo('faq')} className="hover:text-[#f7f8f8] transition-colors">{t('landing.faq')}</button>
             <button onClick={() => scrollTo('contact')} className="hover:text-[#f7f8f8] transition-colors">İletişim</button>
+            <button onClick={() => navigate('/yardim')} className="hover:text-[#f7f8f8] transition-colors">Yardım</button>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/login')} className="text-[14px] text-[#8a8f98] hover:text-[#d0d6e0] font-[510] transition-colors">{t('landing.cta_login')}</button>
