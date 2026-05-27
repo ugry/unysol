@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"unysol/internal/middleware"
 	"unysol/internal/models"
 )
 
@@ -125,6 +126,10 @@ func (h *AdminHandler) ChangePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log
+	h.DB.Exec(r.Context(), `INSERT INTO actions (tenant_id, user_id, action_type, table_name, record_id, summary) VALUES (0, $1, 'UPDATE', 'tenants', $2, $3)`,
+		middleware.GetUserID(r.Context()), itoa(id), "Plan değiştirildi: "+input.Plan)
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Plan güncellendi",
@@ -161,11 +166,37 @@ func (h *AdminHandler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Audit log
+	h.DB.Exec(r.Context(), `INSERT INTO actions (tenant_id, user_id, action_type, table_name, record_id, summary) VALUES (0, $1, 'UPDATE', 'tenants', $2, $3)`,
+		middleware.GetUserID(r.Context()), itoa(id), "Durum değiştirildi: "+newDurum)
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Firma durumu güncellendi",
 		"durum":   newDurum,
 	})
+}
+
+func (h *AdminHandler) ListAuditLog(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT a.id, a.tenant_id, a.user_id, COALESCE(u.ad_soyad,''), a.action_type, a.table_name, a.record_id, a.summary, a.created_at
+		 FROM actions a LEFT JOIN users u ON u.id=a.user_id
+		 WHERE a.tenant_id=0 ORDER BY a.created_at DESC LIMIT 200`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Denetim kayıtları yüklenemedi")
+		return
+	}
+	defer rows.Close()
+	result := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var id, tid, uid int; var adSoyad, actionType, tableName, recordID, summary string; var createdAt interface{}
+		rows.Scan(&id, &tid, &uid, &adSoyad, &actionType, &tableName, &recordID, &summary, &createdAt)
+		result = append(result, map[string]interface{}{
+			"id": id, "admin": adSoyad, "action": actionType,
+			"table": tableName, "record_id": recordID, "summary": summary,
+		})
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *AdminHandler) GetMRR(w http.ResponseWriter, r *http.Request) {

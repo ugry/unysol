@@ -193,6 +193,30 @@ func (h *LoadBoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Fetch user info for response
 	_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(email,''), COALESCE(firma_unvani,'') FROM users u JOIN tenants t ON t.id=u.tenant_id WHERE u.id=$1`, uid).Scan(&lb.ContactEmail, &lb.CompanyName)
 
+	// Match notification: find opposite type listings with similar routes
+	oppositeType := "YUK_ARA"
+	if req.Type == "YUK_ARA" {
+		oppositeType = "YUK_VAR"
+	}
+	matches, _ := h.DB.Query(r.Context(),
+		`SELECT lb.user_id, lb.tenant_id, lb.from_city, lb.to_city, t.firma_unvani
+		 FROM load_board lb JOIN tenants t ON t.id=lb.tenant_id
+		 WHERE lb.status='AKTIF' AND lb.type=$1 AND lb.user_id!=$2
+		 AND (lb.from_city=$3 OR lb.to_city=$4 OR lb.from_city=$5 OR lb.to_city=$6)
+		 LIMIT 3`, oppositeType, uid, req.FromCity, req.ToCity, req.ToCity, req.FromCity)
+	if matches != nil {
+		defer matches.Close()
+		for matches.Next() {
+			var matchUID, matchTID int; var mFrom, mTo, mFirma string
+			matches.Scan(&matchUID, &matchTID, &mFrom, &mTo, &mFirma)
+			h.DB.Exec(r.Context(),
+				`INSERT INTO notifications (tenant_id, user_id, type, title, message)
+				 VALUES ($1, $2, 'LOAD_MATCH', 'Yük Panosu — Eşleşme', $3)`,
+				matchTID, matchUID,
+				fmt.Sprintf("%s firmasının %s → %s rotasındaki %s ilanı sizin ilanınızla eşleşti!", lb.CompanyName, req.FromCity, req.ToCity, req.Type))
+		}
+	}
+
 	writeJSON(w, http.StatusCreated, lb)
 }
 

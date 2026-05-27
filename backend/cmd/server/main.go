@@ -193,6 +193,7 @@ func main() {
 			r.Post("/tenants/{id}/suspend", adminHandler.SuspendTenant)
 
 			r.Get("/dashboard/summary", adminHandler.DashboardSummary)
+			r.Get("/audit-log", adminHandler.ListAuditLog)
 
 			r.Get("/analytics/mrr", adminHandler.GetMRR)
 			r.Get("/analytics/churn", adminHandler.GetChurn)
