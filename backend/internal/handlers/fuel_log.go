@@ -18,17 +18,20 @@ type FuelLogHandler struct {
 }
 
 	type FuelLogEntry struct {
-		ID           int       `json:"id"`
-		TenantID     int       `json:"tenant_id"`
-		TruckID      int       `json:"truck_id"`
-		TruckPlaka   string    `json:"truck_plaka"`
-		Tarih        string    `json:"tarih"`
-		MiktarLitre  float64   `json:"miktar_litre"`
-		BirimFiyat   float64   `json:"birim_fiyat"`
-		ToplamTutar  float64   `json:"toplam_tutar"`
-		AlinanYer    string    `json:"alinan_yer"`
-		KmOkuma      int       `json:"km_okuma"`
-		CreatedAt    time.Time `json:"created_at"`
+		ID              int       `json:"id"`
+		TenantID        int       `json:"tenant_id"`
+		TruckID         int       `json:"truck_id"`
+		TruckPlaka      string    `json:"truck_plaka"`
+		Tarih           string    `json:"tarih"`
+		MiktarLitre     float64   `json:"miktar_litre"`
+		BirimFiyat      float64   `json:"birim_fiyat"`
+		ToplamTutar     float64   `json:"toplam_tutar"`
+		AlinanYer       string    `json:"alinan_yer"`
+		KmOkuma         int       `json:"km_okuma"`
+		DeltaKm         int       `json:"delta_km"`
+		LitrePer100Km   float64   `json:"litre_per_100km"`
+		ExpenseID       int       `json:"expense_id"`
+		CreatedAt       time.Time `json:"created_at"`
 	}
 
 	type fuelLogRow struct {
@@ -137,11 +140,36 @@ func (h *FuelLogHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Yakıt kaydı oluşturulamadı")
 		return
 	}
+
+	// Calculate consumption: find previous km reading for this truck
+	deltaKm := 0
+	litrePer100km := 0.0
+	var prevKm int
+	errPrev := h.DB.QueryRow(r.Context(),
+		`SELECT COALESCE(km_okuma,0) FROM fuel_logs WHERE tenant_id=$1 AND truck_id=$2 AND id < $3 ORDER BY id DESC LIMIT 1`,
+		tenantID, req.TruckID, row.ID).Scan(&prevKm)
+	if errPrev == nil && prevKm > 0 && row.KmOkuma > prevKm {
+		deltaKm = row.KmOkuma - prevKm
+		litrePer100km = (row.MiktarLitre / float64(deltaKm)) * 100
+	}
+
+	// Auto-create expense (YAKIT category)
+	var expenseID int
+	_ = h.DB.QueryRow(r.Context(),
+		`INSERT INTO expenses (tenant_id, kategori, tutar, aciklama, tarih)
+		 VALUES ($1, 'YAKIT', $2, $3, $4) RETURNING id`,
+		tenantID, row.ToplamTutar,
+		"Yakıt: "+row.TruckPlaka+" | "+strconv.Itoa(row.KmOkuma)+"km | "+formatFloat(row.MiktarLitre)+"L",
+		row.Tarih.Format("2006-01-02"),
+	).Scan(&expenseID)
+
 	fl := FuelLogEntry{
 		ID: row.ID, TenantID: row.TenantID, TruckID: row.TruckID, TruckPlaka: row.TruckPlaka,
 		Tarih: row.Tarih.Format("2006-01-02"), MiktarLitre: row.MiktarLitre,
 		BirimFiyat: row.BirimFiyat, ToplamTutar: row.ToplamTutar,
-		AlinanYer: row.AlinanYer, KmOkuma: row.KmOkuma, CreatedAt: row.CreatedAt,
+		AlinanYer: row.AlinanYer, KmOkuma: row.KmOkuma,
+		DeltaKm: deltaKm, LitrePer100Km: litrePer100km, ExpenseID: expenseID,
+		CreatedAt: row.CreatedAt,
 	}
 	writeJSON(w, http.StatusCreated, fl)
 }
@@ -186,4 +214,8 @@ func (h *FuelLogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+func formatFloat(f float64) string {
+	return strconv.FormatFloat(f, 'f', 2, 64)
 }

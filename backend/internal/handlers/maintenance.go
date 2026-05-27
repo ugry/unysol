@@ -146,6 +146,15 @@ func (h *MaintenanceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Bakım kaydı oluşturulamadı")
 		return
 	}
+
+	// Auto-create expense (BAKIM category)
+	_, _ = h.DB.Exec(r.Context(),
+		`INSERT INTO expenses (tenant_id, kategori, tutar, aciklama, tarih)
+		 VALUES ($1, 'BAKIM', $2, $3, $4)`,
+		tenantID, row.ToplamTutar,
+		"Bakım: "+row.TruckPlaka+" | "+row.Turu+" | "+row.YapilanIslemler,
+		row.Tarih.Format("2006-01-02"))
+
 	nbt := ""
 	if row.SonrakiBakimTarih != nil {
 		nbt = row.SonrakiBakimTarih.Format("2006-01-02")

@@ -3,7 +3,7 @@ import api from '@/lib/api';
 import DataGrid, { type Column } from '@/components/DataGrid';
 import { Plus, X, Loader2, Fuel } from 'lucide-react';
 
-interface FuelLog { id: number; truck_id: number; truck_plaka: string; tarih: string; miktar_litre: number; birim_fiyat: number; toplam_tutar: number; alinan_yer: string; km_okuma: number }
+interface FuelLog { id: number; truck_id: number; truck_plaka: string; tarih: string; miktar_litre: number; birim_fiyat: number; toplam_tutar: number; alinan_yer: string; km_okuma: number; delta_km: number; litre_per_100km: number; expense_id: number }
 interface TruckOption { id: number; plaka: string }
 
 export default function FuelLogPage() {
@@ -39,6 +39,8 @@ export default function FuelLogPage() {
     { key: 'birim_fiyat', header: 'Birim Fiyat', render: r => r.birim_fiyat ? `₺${r.birim_fiyat.toFixed(2)}` : '-' },
     { key: 'toplam_tutar', header: 'Toplam', render: r => `₺${r.toplam_tutar.toFixed(2)}` },
     { key: 'km_okuma', header: 'KM', render: r => r.km_okuma > 0 ? r.km_okuma.toLocaleString('tr') : '-' },
+    { key: 'delta_km', header: 'Δ KM', render: r => r.delta_km > 0 ? r.delta_km.toLocaleString('tr') : '-' },
+    { key: 'litre_per_100km', header: 'L/100km', render: r => r.litre_per_100km > 0 ? r.litre_per_100km.toFixed(1) : '-' },
     { key: 'alinan_yer', header: 'Alınan Yer' },
   ];
 
