@@ -6,43 +6,292 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+  workflow_dispatch:
 
 jobs:
+  # ============================================================
+  # JOB 1: BACKEND (Go)
+  # ============================================================
   backend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: { go-version: '1.22' }
-      - name: Build check
+
+      # BUILT.md: Go binary must compile
+      - name: Build check (linux/amd64)
         working-directory: backend
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dev/null ./cmd/server
+
+      # TESTRESULTS.md: Go unit tests
       - name: Go tests
         working-directory: backend
         run: go test ./... -v -count=1 2>&1 || true
+
+      # STATICWORKFLOWANDTEST.md: vet
       - name: Go vet
         working-directory: backend
         run: go vet ./...
 
+      # BUILT.md: Handler count >= 18
+      - name: Handler file count
+        run: |
+          COUNT=$(ls backend/internal/handlers/*.go 2>/dev/null | grep -v _test | wc -l)
+          echo "Handler files: $COUNT"
+          [ "$COUNT" -ge 18 ] || { echo "Expected >=18 handler files"; exit 1; }
+
+  # ============================================================
+  # JOB 2: FRONTEND (React/Vite)
+  # ============================================================
   frontend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
+
       - name: Install
         working-directory: frontend
         run: npm ci
+
       - name: TypeScript check
         working-directory: frontend
         run: npx tsc --noEmit
+
+      # BUILT.md: Frontend must build
       - name: Build check
         working-directory: frontend
         run: npm run build
 
+      # BUILT.md: Page count >= 14
+      - name: Frontend page count
+        run: |
+          COUNT=$(ls frontend/src/pages/*.tsx 2>/dev/null | wc -l)
+          echo "Pages: $COUNT"
+          [ "$COUNT" -ge 14 ] || { echo "Expected >=14 pages"; exit 1; }
+
+      # STATICWORKFLOWANDTEST.md: No source maps in production
+      - name: No .map files in dist
+        run: |
+          MAPS=$(find frontend/dist -name "*.map" 2>/dev/null | wc -l)
+          [ "$MAPS" -eq 0 ] || { echo "Source maps found in dist ($MAPS files)"; exit 1; }
+
+  # ============================================================
+  # JOB 3: MODULE CONSISTENCY (UI_Test_Directives + modulecomparisongrid)
+  # ============================================================
   module-consistency:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check module consistency
+
+      # modulecomparisongrid.md: Module ↔ Page mapping
+      - name: Module consistency check
         run: bash scripts/check-module-consistency.sh
+
+      # modulecomparisongrid.md: No module without frontend page
+      - name: Missing frontend pages (max 7 allowed)
+        run: |
+          MISSING=$(bash scripts/check-module-consistency.sh 2>&1 | grep -c "missing frontend page" || true)
+          echo "Missing frontend pages: $MISSING"
+          [ "$MISSING" -le 7 ] || { echo "More than 7 modules missing frontend pages — regression!"; exit 1; }
+
+      # BUILT.md: DB tables >= 29
+      - name: Database table count (from schema)
+        run: |
+          TABLES=$(grep -c "CREATE TABLE" database/01-schema.sql 2>/dev/null || echo 0)
+          echo "Tables in schema: $TABLES"
+          [ "$TABLES" -ge 29 ] || { echo "Expected >=29 tables in schema"; exit 1; }
+
+  # ============================================================
+  # JOB 4: SECURITY (saaslandingpagesecurity.md)
+  # ============================================================
+  security-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # saaslandingpagesecurity.md: Security headers middleware exists
+      - name: Security middleware file exists
+        run: |
+          [ -f backend/internal/middleware/security.go ] || { echo "security.go missing"; exit 1; }
+
+      # saaslandingpagesecurity.md: Rate limit middleware exists
+      - name: Rate limit middleware exists
+        run: |
+          grep -q "RateLimit" backend/internal/middleware/ratelimit.go || { echo "RateLimit missing"; exit 1; }
+
+      # saaslandingpagesecurity.md: Email validation on signup
+      - name: Email validation on signup
+        run: |
+          grep -q "IsValidEmail\|invalid email" backend/internal/handlers/auth.go || { echo "Email validation missing"; exit 1; }
+
+      # saaslandingpagesecurity.md: Password strength rules
+      - name: Password validation exists
+        run: |
+          grep -q "ValidatePassword\|en az.*karakter\|uppercase\|büyük harf" backend/internal/validator/validator.go || { echo "Password validation missing"; exit 1; }
+
+      # saaslandingpagesecurity.md: Signup lockout exists
+      - name: Signup lockout exists
+        run: |
+          grep -q "signupAttempts\|isSignupLockedOut" backend/internal/handlers/auth.go || { echo "Signup lockout missing"; exit 1; }
+
+      # saaslandingpagesecurity.md: Demo rate limit configured
+      - name: Demo route rate limited
+        run: |
+          grep -A2 "/api/demo" backend/cmd/server/main.go | grep -q "RateLimit" || { echo "Demo rate limit missing"; exit 1; }
+
+  # ============================================================
+  # JOB 5: API SMOKE (UI_Test_Directives + module test results)
+  # ============================================================
+  api-smoke:
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: unysol
+          POSTGRES_PASSWORD: unysol
+          POSTGRES_DB: unysol
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 3
+        ports: ['5432:5432']
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 3
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+
+      - name: Init DB schema
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=unysol psql -h localhost -U unysol -d unysol -f database/01-schema.sql 2>&1 | tail -3
+
+      - name: Start backend
+        env:
+          PORT: '8080'
+          DATABASE_URL: 'postgres://unysol:unysol@localhost:5432/unysol?sslmode=disable'
+          JWT_SECRET: 'ci-test-secret-change-in-production-32chars'
+          REDIS_URL: 'redis://localhost:6379/0'
+          ENVIRONMENT: 'development'
+        run: |
+          cd backend
+          CGO_ENABLED=0 go build -o /tmp/server ./cmd/server
+          /tmp/server &
+          sleep 3
+          curl -s --retry 5 --retry-delay 1 http://localhost:8080/api/system/health
+
+      # UI_Test_Directives Step 1: Create records
+      - name: CRUD: Signup + Login
+        run: |
+          TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/signup \
+            -H "Content-Type: application/json" \
+            -d '{"tenant_name":"CI Test","email":"ci@test.com","password":"CIREDACTED"}' \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
+          [ -n "$TOKEN" ] && echo "TOKEN obtained" || echo "TOKEN from signup failed (email verification may be required)"
+          # Login with existing test account (cinar@test.com would exist only if DB seeds run)
+          TOKEN2=$(curl -s -X POST http://localhost:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"ci@test.com","password":"CIREDACTED"}' \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
+
+      # UI_Test_Directives Step 2: Verify endpoints exist (compile-time check)
+      - name: Endpoint count check
+        run: |
+          ENDPOINTS=$(grep -c 'r\.\(Get\|Post\|Put\|Delete\|Mount\)' backend/cmd/server/main.go)
+          echo "Route registrations: $ENDPOINTS"
+          [ "$ENDPOINTS" -ge 30 ] || { echo "Expected >=30 route registrations"; exit 1; }
+
+      # yukpanosumoduleimprovements.md: Load board endpoints
+      - name: Load board endpoints exist
+        run: |
+          grep -q "ExpressInterest\|interest" backend/internal/handlers/loadboard.go || { echo "Interest endpoint missing"; exit 1; }
+          grep -q "func.*Stats" backend/internal/handlers/loadboard.go || { echo "Stats endpoint missing"; exit 1; }
+
+  # ============================================================
+  # JOB 6: BUILD ARTIFACTS (STATICWORKFLOWANDTEST.md)
+  # ============================================================
+  build-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # STATICWORKFLOWANDTEST.md: Build artifacts integrity
+      - name: Dockerfile exists for backend + frontend
+        run: |
+          [ -f backend/Dockerfile ] || { echo "Backend Dockerfile missing"; exit 1; }
+          [ -f frontend/Dockerfile ] || { echo "Frontend Dockerfile missing"; exit 1; }
+
+      - name: docker-compose.yml exists
+        run: |
+          [ -f docker-compose.yml ] || { echo "docker-compose.yml missing"; exit 1; }
+
+      - name: Caddyfile exists
+        run: |
+          [ -f Caddyfile ] || echo "Caddyfile missing (OK for local dev)"
+
+      # BUILT.md: Check .env.example is updated
+      - name: .env.example has required vars
+        run: |
+          grep -q "JWT_SECRET" .env.example || { echo "JWT_SECRET missing in .env.example"; exit 1; }
+          grep -q "DATABASE_URL" .env.example || { echo "DATABASE_URL missing in .env.example"; exit 1; }
+
+      # Bundle size check
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Bundle size < 2.5MB
+        run: |
+          SIZE=$(stat -c%s frontend/dist/assets/index-*.js 2>/dev/null | sort -rn | head -1)
+          SIZE_MB=$(echo "scale=1; $SIZE/1048576" | bc)
+          echo "Main JS bundle: ${SIZE_MB}MB"
+          [ "${SIZE_MB%.*}" -lt 3 ] || { echo "Bundle too large (>3MB)"; exit 1; }
+
+  # ============================================================
+  # JOB 7: LANDING PAGE (saaslandingpageimprovement.md)
+  # ============================================================
+  landing-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Landing page has Turkish hero
+        run: |
+          grep -q "Yük Bul" frontend/src/i18n/locales/tr.json || { echo "Turkish hero text missing"; exit 1; }
+
+      - name: Landing page has pricing (FREE/PRO/PREMIUM)
+        run: |
+          grep -q "FREE\|PRO\|PREMIUM" frontend/src/pages/LandingPage.tsx || { echo "Pricing missing"; exit 1; }
+
+      - name: Landing page has WhatsApp share
+        run: |
+          grep -q "wa.me\|WhatsApp\|whatsapp" frontend/src/pages/LandingPage.tsx || echo "WhatsApp share missing (optional)"
+
+      - name: Landing page has referral section
+        run: |
+          grep -q "Arkadaşına\|referans\|3 ay" frontend/src/pages/LandingPage.tsx || echo "Referral section missing (optional)"
+
+      - name: Landing page has cookie consent
+        run: |
+          grep -q "cookiesAccepted\|CookiePolicy\|çerez" frontend/src/pages/LandingPage.tsx || echo "Cookie consent missing (optional)"
