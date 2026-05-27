@@ -1,7 +1,8 @@
 import { useState, useEffect, FormEvent } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import DataGrid, { type Column } from '@/components/DataGrid';
-import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2 } from 'lucide-react';
+import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2, Trash2 } from 'lucide-react';
 
 interface LoadBoardItem {
   id: number;
@@ -19,6 +20,7 @@ interface LoadBoardItem {
   contact_phone?: string;
   contact_email: string;
   company_name: string;
+  user_id: number;
   created_at: string;
 }
 
@@ -60,6 +62,8 @@ const emptyForm: FormData = {
 };
 
 export default function LoadBoardPage() {
+  const { user } = useAuth();
+  const currentUserId = user?.id || 0;
   const [data, setData] = useState<LoadBoardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -161,8 +165,19 @@ export default function LoadBoardPage() {
     { key: 'price', header: 'Fiyat', render: (row) => row.price ? `₺${row.price.toLocaleString('tr')}` : '-' },
     { key: 'company_name', header: 'Firma', render: (row) => (
       <div className="space-y-1">
-        <div className="flex items-center gap-1.5 text-enterprise-text font-medium text-sm">
-          <Building2 size={13} /> {row.company_name}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-enterprise-text font-medium text-sm">
+            <Building2 size={13} /> {row.company_name}
+          </div>
+          {row.user_id === currentUserId && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
+              className="text-[#8a8f98] hover:text-[#DC2626] p-0.5 transition-colors"
+              title="İlanı sil"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-xs text-enterprise-text-muted">
           <Mail size={12} /> {row.contact_email || '-'}
@@ -209,7 +224,6 @@ export default function LoadBoardPage() {
       </div>
 
       <DataGrid columns={columns} data={filtered} loading={loading} title="Yük Panosu"
-        onDelete={(row) => handleDelete(row.id)}
         emptyIcon={<Package size={48} className="text-gray-300" />}
         emptyText={search || typeFilter || cityFilter ? 'Aramanızla eşleşen ilan bulunamadı' : 'Henüz ilan yok'} />
 
