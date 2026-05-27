@@ -317,17 +317,12 @@ export default function DataGrid<T>({
             </div>
           )}
 
-          {/* Delete selected */}
-          {selected.size > 0 && onDelete && (
+          {/* Delete selected — single row only, no bulk delete */}
+          {selected.size === 1 && onDelete && (
             <button
               onClick={() => {
-                if (selected.size === 1) {
-                  const selRow = data.find((r) => selected.has(String((r as any)[keyField])));
-                  if (selRow) setConfirmDelete(selRow);
-                } else {
-                  const ids = [...selected];
-                  setConfirmBulkDelete(ids);
-                }
+                const selRow = data.find((r) => selected.has(String((r as any)[keyField])));
+                if (selRow) setConfirmDelete(selRow);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[#DC2626] bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
             >

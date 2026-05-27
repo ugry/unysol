@@ -19,6 +19,7 @@ func (h *TollLogHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
+	r.Put("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
 	return r
 }
@@ -61,4 +62,19 @@ func (h *TollLogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	h.DB.Exec(r.Context(), `DELETE FROM toll_logs WHERE id=$1 AND tenant_id=$2`, id, tenantID)
 	writeJSON(w, 200, map[string]string{"status": "deleted"})
+}
+
+func (h *TollLogHandler) Update(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	var req struct {
+		HgsEtiketNo string  `json:"hgs_etiket_no"`
+		GirisGise   string  `json:"giris_gise"`
+		CikisGise   string  `json:"cikis_gise"`
+		GecisUcreti float64 `json:"gecis_ucreti"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	_, err := h.DB.Exec(r.Context(), `UPDATE toll_logs SET hgs_etiket_no=COALESCE(NULLIF($3,''),hgs_etiket_no), giris_gise=COALESCE(NULLIF($4,''),giris_gise), cikis_gise=COALESCE(NULLIF($5,''),cikis_gise), gecis_ucreti=COALESCE(NULLIF($6,0),gecis_ucreti) WHERE id=$1 AND tenant_id=$2`, id, tenantID, req.HgsEtiketNo, req.GirisGise, req.CikisGise, req.GecisUcreti)
+	if err != nil { writeError(w, 404, "Kayıt bulunamadı"); return }
+	writeJSON(w, 200, map[string]string{"status": "updated"})
 }

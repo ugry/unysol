@@ -14,6 +14,7 @@ export default function FuelLogPage() {
   const [form, setForm] = useState({ truck_id: 0, tarih: '', miktar_litre: '', birim_fiyat: '', toplam_tutar: '', alinan_yer: '', km_okuma: '' });
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const fetchData = () => {
     api.get('/api/tenant/fuel-logs').then(r => setData(Array.isArray(r.data) ? r.data : [])).catch(() => {}).finally(() => setLoading(false));
@@ -26,8 +27,8 @@ export default function FuelLogPage() {
     if (!form.truck_id || !form.miktar_litre) { setFormError('Kamyon ve litre zorunludur'); return; }
     setSubmitting(true);
     try {
-      await api.post('/api/tenant/fuel-logs', { ...form, truck_id: Number(form.truck_id), miktar_litre: parseFloat(form.miktar_litre), birim_fiyat: parseFloat(form.birim_fiyat) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, km_okuma: parseInt(form.km_okuma) || 0 });
-      setShowModal(false); setForm({ truck_id: 0, tarih: '', miktar_litre: '', birim_fiyat: '', toplam_tutar: '', alinan_yer: '', km_okuma: '' }); fetchData();
+      if (editingId) await api.put(`/api/tenant/fuel-logs/${editingId}`, { ...form, truck_id: Number(form.truck_id), miktar_litre: parseFloat(form.miktar_litre), birim_fiyat: parseFloat(form.birim_fiyat) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, km_okuma: parseInt(form.km_okuma) || 0 }); else await api.post('/api/tenant/fuel-logs', { ...form, truck_id: Number(form.truck_id), miktar_litre: parseFloat(form.miktar_litre), birim_fiyat: parseFloat(form.birim_fiyat) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, km_okuma: parseInt(form.km_okuma) || 0 });
+      setShowModal(false); setEditingId(null); setForm({ truck_id: 0, tarih: '', miktar_litre: '', birim_fiyat: '', toplam_tutar: '', alinan_yer: '', km_okuma: '' }); fetchData();
     } catch (err: any) { setFormError(err?.response?.data?.error || 'Kayıt oluşturulamadı'); }
     finally { setSubmitting(false); }
   };
@@ -51,11 +52,12 @@ export default function FuelLogPage() {
         <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Yakıt Ekle</button>
       </div>
       <DataGrid columns={columns} data={data} loading={loading} title="Yakıt Takip" emptyIcon={<Fuel size={48} className="text-gray-300" />} emptyText="Henüz yakıt kaydı yok"
+        onEdit={(row) => { setEditingId(row.id); setForm({ truck_id: row.truck_id, tarih: (row.tarih || '').substring(0,10), miktar_litre: String(row.miktar_litre || ''), birim_fiyat: String(row.birim_fiyat || ''), toplam_tutar: String(row.toplam_tutar || ''), alinan_yer: row.alinan_yer || '', km_okuma: String(row.km_okuma || '') }); setShowModal(true); }}
         onDelete={row => { api.delete(`/api/tenant/fuel-logs/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white border border-enterprise-border rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">Yakıt Ekle</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">{editingId ? 'Yakıt Düzenle' : 'Yakıt Ekle'}</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
             {formError && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[#DC2626] text-sm">{formError}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

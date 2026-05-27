@@ -16,6 +16,7 @@ export default function MaintenancePage() {
   const [form, setForm] = useState({ truck_id: 0, tarih: '', km: '', turu: 'PERIYODIK_BAKIM', yapilan_islemler: '', toplam_tutar: '', fatura_no: '', servis_adi: '', sonraki_bakim_km: '', sonraki_bakim_tarih: '' });
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const fetchData = () => {
     api.get('/api/tenant/maintenance').then(r => setData(Array.isArray(r.data) ? r.data : [])).catch(() => {}).finally(() => setLoading(false));
@@ -28,8 +29,8 @@ export default function MaintenancePage() {
     if (!form.truck_id || !form.tarih) { setFormError('Kamyon ve tarih zorunludur'); return; }
     setSubmitting(true);
     try {
-      await api.post('/api/tenant/maintenance', { ...form, truck_id: Number(form.truck_id), km: parseInt(form.km) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, sonraki_bakim_km: parseInt(form.sonraki_bakim_km) || 0 });
-      setShowModal(false); setForm({ truck_id: 0, tarih: '', km: '', turu: 'PERIYODIK_BAKIM', yapilan_islemler: '', toplam_tutar: '', fatura_no: '', servis_adi: '', sonraki_bakim_km: '', sonraki_bakim_tarih: '' }); fetchData();
+      if (editingId) await api.put(`/api/tenant/maintenance/${editingId}`, { ...form, truck_id: Number(form.truck_id), km: parseInt(form.km) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, sonraki_bakim_km: parseInt(form.sonraki_bakim_km) || 0 }); else await api.post('/api/tenant/maintenance', { ...form, truck_id: Number(form.truck_id), km: parseInt(form.km) || 0, toplam_tutar: parseFloat(form.toplam_tutar) || 0, sonraki_bakim_km: parseInt(form.sonraki_bakim_km) || 0 });
+      setShowModal(false); setEditingId(null); setForm({ truck_id: 0, tarih: '', km: '', turu: 'PERIYODIK_BAKIM', yapilan_islemler: '', toplam_tutar: '', fatura_no: '', servis_adi: '', sonraki_bakim_km: '', sonraki_bakim_tarih: '' }); fetchData();
     } catch (err: any) { setFormError(err?.response?.data?.error || 'Kayıt oluşturulamadı'); }
     finally { setSubmitting(false); }
   };
@@ -52,11 +53,12 @@ export default function MaintenancePage() {
         <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Bakım Ekle</button>
       </div>
       <DataGrid columns={columns} data={data} loading={loading} title="Bakım Kayıtları" emptyIcon={<Wrench size={48} className="text-gray-300" />} emptyText="Henüz bakım kaydı yok"
+        onEdit={(row) => { setEditingId(row.id); setForm({ truck_id: row.truck_id, tarih: (row.tarih || '').substring(0,10), km: String(row.km || ''), turu: row.turu || 'PERIYODIK_BAKIM', yapilan_islemler: row.yapilan_islemler || '', toplam_tutar: String(row.toplam_tutar || ''), fatura_no: row.fatura_no || '', servis_adi: row.servis_adi || '', sonraki_bakim_km: String(row.sonraki_bakim_km || ''), sonraki_bakim_tarih: (row.sonraki_bakim_tarih || '').substring(0,10) }); setShowModal(true); }}
         onDelete={row => { api.delete(`/api/tenant/maintenance/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white border border-enterprise-border rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">Bakım Ekle</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">{editingId ? 'Bakım Düzenle' : 'Bakım Ekle'}</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
             {formError && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[#DC2626] text-sm">{formError}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">

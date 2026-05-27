@@ -11,6 +11,7 @@ export default function TrailersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ plaka: '', marka: '', model: '', yil: '', tip: 'TENTELI_PERDELI' });
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -21,7 +22,10 @@ export default function TrailersPage() {
     e.preventDefault(); setFormError('');
     if (!form.plaka) { setFormError('Plaka zorunludur'); return; }
     setSubmitting(true);
-    try { await api.post('/api/tenant/trailers', { ...form, yil: parseInt(form.yil) || 0 }); setShowModal(false); setForm({ plaka: '', marka: '', model: '', yil: '', tip: 'TENTELI_PERDELI' }); fetchData(); }
+    try { 
+      if (editingId) await api.put(`/api/tenant/trailers/${editingId}`, { ...form, yil: parseInt(form.yil) || 0 });
+      else await api.post('/api/tenant/trailers', { ...form, yil: parseInt(form.yil) || 0 });
+      setShowModal(false); setEditingId(null); setForm({ plaka: '', marka: '', model: '', yil: '', tip: 'TENTELI_PERDELI' }); fetchData(); }
     catch (err: any) { setFormError(err?.response?.data?.error || 'Kayıt oluşturulamadı'); }
     finally { setSubmitting(false); }
   };
@@ -39,11 +43,12 @@ export default function TrailersPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between"><div /><button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Dorse Ekle</button></div>
       <DataGrid columns={columns} data={data} loading={loading} title="Dorse Yönetimi" emptyIcon={<Truck size={48} className="text-gray-300" />} emptyText="Henüz dorse kaydı yok"
-        onDelete={row => { api.delete(`/api/tenant/trailers/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />
+        onEdit={(row) => { setEditingId(row.id); setForm({ plaka: row.plaka, marka: row.marka || '', model: row.model || '', yil: String(row.yil || ''), tip: row.tip }); setShowModal(true); }}
+        onDelete={(row) => { api.delete(`/api/tenant/trailers/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white border border-enterprise-border rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">Dorse Ekle</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-semibold">{editingId ? 'Dorse Düzenle' : 'Dorse Ekle'}</h3><button onClick={() => setShowModal(false)}><X size={20} /></button></div>
             {formError && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[#DC2626] text-sm">{formError}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">

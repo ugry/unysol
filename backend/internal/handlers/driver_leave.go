@@ -60,9 +60,24 @@ func (h *LeaveHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LeaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 	tenantID := middleware.GetTenantID(r.Context())
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
-	var req struct{ OnayDurumu string `json:"onay_durumu"` }
+	var req struct {
+		UserID       int    `json:"user_id"`
+		Baslangic    string `json:"baslangic"`
+		Bitis        string `json:"bitis"`
+		Turu         string `json:"turu"`
+		Aciklama     string `json:"aciklama"`
+		OnayDurumu   string `json:"onay_durumu"`
+	}
 	json.NewDecoder(r.Body).Decode(&req)
-	_, err := h.DB.Exec(r.Context(), `UPDATE driver_leave SET onay_durumu=$3 WHERE id=$1 AND tenant_id=$2`, id, tenantID, req.OnayDurumu)
+
+	if req.OnayDurumu != "" {
+		_, err := h.DB.Exec(r.Context(), `UPDATE driver_leave SET onay_durumu=$3 WHERE id=$1 AND tenant_id=$2`, id, tenantID, req.OnayDurumu)
+		if err != nil { writeError(w, 404, "Kayıt bulunamadı"); return }
+		writeJSON(w, 200, map[string]string{"status": "updated"})
+		return
+	}
+
+	_, err := h.DB.Exec(r.Context(), `UPDATE driver_leave SET user_id=$3, baslangic=$4, bitis=$5, turu=$6, aciklama=COALESCE(NULLIF($7,''),aciklama) WHERE id=$1 AND tenant_id=$2`, id, tenantID, req.UserID, req.Baslangic, req.Bitis, req.Turu, req.Aciklama)
 	if err != nil { writeError(w, 404, "Kayıt bulunamadı"); return }
 	writeJSON(w, 200, map[string]string{"status": "updated"})
 }
