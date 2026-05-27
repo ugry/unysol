@@ -25,13 +25,16 @@ func (h *TrailerHandler) Routes() chi.Router {
 
 func (h *TrailerHandler) List(w http.ResponseWriter, r *http.Request) {
 	tenantID := middleware.GetTenantID(r.Context())
-	rows, err := h.DB.Query(r.Context(), `SELECT id, tenant_id, plaka, COALESCE(marka,''), COALESCE(model,''), COALESCE(yil,0), COALESCE(tip,''), COALESCE(muayene_bitis,''), COALESCE(aktif,true), created_at FROM trailers WHERE tenant_id=$1 ORDER BY id DESC LIMIT 500`, tenantID)
-	if err != nil { writeError(w, 500, "Dorse listesi yüklenemedi"); return }
+	rows, err := h.DB.Query(r.Context(), `SELECT id, tenant_id, plaka, COALESCE(marka,''), COALESCE(model,''), COALESCE(yil,0), COALESCE(tip,'TENTELI_PERDELI'), COALESCE(muayene_bitis::text,''), COALESCE(aktif,true), created_at FROM trailers WHERE tenant_id=$1 ORDER BY id DESC LIMIT 500`, tenantID)
+	if err != nil { slog.Error("trailers list failed", "error", err); writeError(w, 500, "Dorse listesi yüklenemedi"); return }
 	defer rows.Close()
 	result := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		var id, tid, yil int; var plaka, marka, model, tip, muayene string; var aktif bool; var created interface{}
-		rows.Scan(&id, &tid, &plaka, &marka, &model, &yil, &tip, &muayene, &aktif, &created)
+		if err := rows.Scan(&id, &tid, &plaka, &marka, &model, &yil, &tip, &muayene, &aktif, &created); err != nil {
+			slog.Error("trailers scan failed", "error", err)
+			continue
+		}
 		result = append(result, map[string]interface{}{"id": id, "tenant_id": tid, "plaka": plaka, "marka": marka, "model": model, "yil": yil, "tip": tip, "muayene_bitis": muayene, "aktif": aktif})
 	}
 	writeJSON(w, 200, result)
