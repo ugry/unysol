@@ -106,3 +106,22 @@
 | Empty state "Henüz sefer" shown | ✅ |
 | Loading spinner cleared | ✅ |
 | Quick-create dropdowns visible | ✅ |
+
+---
+
+## Load Board (v2.16 — Cross-Tenant Marketplace)
+
+| # | Test | Result | Detail |
+|---|------|:---:|--------|
+| 1 | Cities API (public) | ✅ | 81 cities with districts |
+| 2 | Create listing 1-5 | ✅ 5/5 | All with district data |
+| 3 | List all | ✅ | 11 listings cross-tenant |
+| 4 | Filter YUK_VAR | ✅ | 6 results |
+| 5 | Filter YUK_ARA | ✅ | 5 results |
+| 6 | Filter İstanbul | ✅ | 8 results |
+| 7 | Contact email visible | ✅ | All listings |
+| 8 | Company name visible | ✅ | All listings |
+| 9 | District data present | ✅ | from_district populated |
+| 10 | Soft delete | ✅ | status=IPAL |
+
+**Verdict: 10/10 PASS. Cross-tenant marketplace. City/district picker. Contact info visible.**
