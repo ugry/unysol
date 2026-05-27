@@ -54,14 +54,14 @@ func PlanLimitsMiddleware(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 
 			if strings.Contains(path, "/api/tenant/trucks") && r.Method == http.MethodPost {
 				if exceeded, limit := checkTruckLimit(r.Context(), pool, tenantID); exceeded {
-					writePlanLimitError(w, "truck", limit)
+					writePlanLimitError(w, "kamyon", limit)
 					return
 				}
 			}
 
 			if (strings.Contains(path, "/api/tenant/employees") || strings.Contains(path, "/api/admin/users")) && r.Method == http.MethodPost {
 				if exceeded, limit := checkUserLimit(r.Context(), pool, tenantID); exceeded {
-					writePlanLimitError(w, "user", limit)
+					writePlanLimitError(w, "kullanıcı", limit)
 					return
 				}
 			}
@@ -145,7 +145,12 @@ func checkUserLimit(ctx context.Context, pool *pgxpool.Pool, tenantID string) (b
 func writePlanLimitError(w http.ResponseWriter, resource string, limit int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	msg := "Mevcut planınızda en fazla " + formatInt(limit) + " " + resource + " ekleyebilirsiniz."
+	var msg string
+	if limit == 0 {
+		msg = resource + " ekleme sınırı yoktur (sınırsız plan)"
+	} else {
+		msg = "Planınız en fazla " + formatInt(limit) + " " + resource + " eklemenize izin veriyor. Daha fazlası için planınızı yükseltin."
+	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"error":   "plan limiti aşıldı",
 		"message": msg,
