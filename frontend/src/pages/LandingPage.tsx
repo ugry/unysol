@@ -44,31 +44,54 @@ export default function LandingPage() {
 
   const plans = [
     {
-      name: 'FREE', monthly: 0, yearly: 0, trucks: 3,
-      features: ['3 Kamyon', 'GPS Takip', 'Yük Panosu', 'Temel Dashboard', 'Manuel Fatura'],
+      name: 'FREE', monthly: 0, yearly: 0, trucks: 5,
+      features: ['5 Kamyon', 'GPS Takip (Telefon)', 'Yük Panosu', 'Temel Dashboard', 'Manuel Fatura', 'Sefer Yönetimi', 'Topluluk Desteği'],
       popular: false,
       cta: 'Ücretsiz Başla',
     },
     {
       name: 'PRO', monthly: 200, yearly: 2000, trucks: 10,
-      features: ['10 Kamyon', 'Tüm Özellikler', 'e-Fatura / e-Arşiv', 'CRM + Personel + Gider', 'Tahmin Motoru', 'E-posta + Telefon Desteği'],
+      features: ['10 Kamyon', 'Canlı GPS Takip', 'e-Fatura / e-Arşiv', 'Müşteri Yönetimi (CRM)', 'Personel Yönetimi', 'Gider Takibi (21 kategori)', 'Tahmin Motoru (12 ay)', 'Sefer Yönetimi', 'Bakım Takvimi', 'Yakıt Takibi', 'HGS Geçiş Takibi', 'E-posta + Telefon Desteği'],
       popular: true,
       note: 'Referansla 3 ay ücretsiz',
       cta: 'Hemen Başla',
     },
     {
       name: 'PREMIUM', monthly: -1, yearly: -1, trucks: 'Sınırsız',
-      features: ['Sınırsız Kamyon', 'Tüm Özellikler', 'API Erişimi', 'Beyaz Etiket', 'Öncelikli Destek', 'Veri Dışa Aktarım'],
+      features: [
+        '🚛 Sınırsız Kamyon & Dorse',
+        '📡 Canlı GPS Filo Takip',
+        '📋 Sefer & Rota Yönetimi',
+        '📄 e-Fatura / e-Arşiv / GİB Entegrasyonu',
+        '👥 CRM — Müşteri Risk Skoru & Depo Yönetimi',
+        '👷 Personel & Şoför Performans Takibi',
+        '📊 Gider Takibi — 21 Kategori',
+        '🔮 12 Ay Gelir/Gider/Kâr Tahmini',
+        '🔧 Bakım & Onarım Planlaması',
+        '⛽ Yakıt & Lastik Takibi',
+        '🛣️ HGS & Köprü/Otoyol Geçişleri',
+        '💰 Çek / Senet Portföy Yönetimi',
+        '📦 Yük Panosu — Ortak Pazar Yeri',
+        '⏰ Şoför İzin & Vardiya Takvimi',
+        '📱 WhatsApp & SMS Bildirimleri',
+        '🔌 API Erişimi',
+        '🏷️ Beyaz Etiket (Logo & Marka)',
+        '📤 Veri Dışa Aktarım (CSV/Excel/PDF)',
+        '🌍 Çok Dilli (TR/EN/AR/RU)',
+        '🔐 Çok Kiracılı & KVKK Uyumlu',
+        '🛡️ 7/24 Öncelikli Destek',
+      ],
       popular: false,
-      note: 'Özel fiyatlandırma için',
+      note: 'Kurumsal çözümler için',
       cta: 'Satış ile İletişime Geç',
+      premium: true,
     },
   ];
 
   const faqs = [
     { q: 'Cihaz taktırmak zorunlu mu?', a: 'Hayır. Şoförün telefonundaki GPS ile ücretsiz takip yapabilirsiniz. İsterseniz ESP32 LTE cihaz (600 TL) veya profesyonel cihaz (1.500 TL) ile OBD verilerini de alabilirsiniz.' },
     { q: 'Verilerim güvende mi?', a: 'Evet. Tüm verileriniz SSL şifreli olarak iletilir. PostgreSQL Row-Level Security ile her firma sadece kendi verisini görür. KVKK uyumluyuz. İsteyen firmalar için On-Premise kurulum da mevcut.' },
-    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 3 kamyon için süresiz ücretsizdir. PRO pakete geçmek isterseniz yıllık 2.000 TL. Hiçbir ödeme bilgisi istenmez.' },
+    { q: 'Ücretsiz paket gerçekten ücretsiz mi?', a: 'Evet. FREE paket 5 kamyon için süresiz ücretsizdir. PRO pakete geçmek isterseniz yıllık 2.000 TL. Hiçbir ödeme bilgisi istenmez.' },
     { q: 'Mevcut verilerimi aktarabilir miyim?', a: 'Evet. CSV dosyası ile toplu olarak müşteri, kamyon ve şoför verilerinizi içe aktarabilirsiniz. Ayrıca FiloMetrik, Lojisoft gibi sistemlerden geçiş için özel import araçlarımız var.' },
     { q: 'e-Fatura kesebilir miyim?', a: 'Evet. PRO ve PREMIUM paketlerde e-Fatura ve e-Arşiv entegrasyonu mevcuttur. Gelir İdaresi Başkanlığı (GİB) onaylı entegratörler üzerinden faturalarınızı yasal olarak iletebilirsiniz.' },
     { q: 'Kaç kullanıcı giriş yapabilir?', a: 'Sınırsız. Firma sahibi, operasyon sorumlusu, muhasebeci ve şoför olmak üzere 4 farklı rol tanımlayabilir, her role farklı yetkiler verebilirsiniz.' },
@@ -166,13 +189,13 @@ export default function LandingPage() {
               WhatsApp'ta Paylaş
             </button>
           </div>
-          <p className="text-[13px] text-[#62666d]">FREE süresiz · PRO referansla 3 ay ücretsiz · Kredi kartı gerekmez</p>
+          <p className="text-[13px] text-[#62666d]">FREE 5 kamyon süresiz · PRO referansla 3 ay ücretsiz · Kredi kartı gerekmez</p>
         </div>
 
         {/* Stats */}
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-8 mt-12">
           {[
-            { value: '3 Kamyon', label: 'Ücretsiz Paket' },
+            { value: '5 Kamyon', label: 'Ücretsiz Paket' },
             { value: '1 dk', label: 'Kayıt Süresi' },
             { value: 'Telefondan', label: 'Her Yerden Erişim' },
           ].map((s) => (
@@ -249,12 +272,19 @@ export default function LandingPage() {
                 <div
                   key={p.name}
                   className={`relative bg-[rgba(255,255,255,0.02)] rounded-lg p-6 border transition-colors ${
-                    p.popular
+                    (p as any).premium
+                      ? 'border-[#8b5cf6]/40 bg-[rgba(139,92,246,0.03)]'
+                      : p.popular
                       ? 'border-[#FF5F03]/40'
                       : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.12)]'
                   }`}
                 >
-                  {p.popular && (
+                  {(p as any).premium && (
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#8b5cf6] text-white text-[12px] font-[510] px-3 py-0.5 rounded-full">
+                      Kurumsal
+                    </div>
+                  )}
+                  {p.popular && !((p as any).premium) && (
                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#FF5F03] text-white text-[12px] font-[510] px-3 py-0.5 rounded-full">
                       En Popüler
                     </div>
@@ -273,10 +303,10 @@ export default function LandingPage() {
                     <div className="text-[12px] text-[#FF5F03] font-[510] mb-4">{p.note}</div>
                   )}
                   <button
-                    onClick={() => { scrollTo('contact'); }}
+                    onClick={() => p.name === 'PREMIUM' ? scrollTo('contact') : navigate('/login')}
                     className={`w-full py-2 rounded-md font-[510] text-[14px] transition-colors ${
-                      p.name === 'PREMIUM'
-                        ? 'bg-[rgba(255,255,255,0.04)] text-[#d0d6e0] hover:bg-[rgba(255,255,255,0.06)]'
+                      (p as any).premium
+                        ? 'bg-[#8b5cf6] hover:bg-[#7c3aed] text-white'
                         : p.popular
                         ? 'bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white'
                         : 'bg-[rgba(255,255,255,0.04)] text-[#d0d6e0] hover:bg-[rgba(255,255,255,0.06)]'
