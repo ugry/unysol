@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,9 +31,9 @@ func (h *LeaveHandler) List(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	result := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var id, tid, uid int; var adSoyad, baslangic, bitis, turu, durum, aciklama string; var created interface{}
+		var id, tid, uid int; var adSoyad, turu, durum, aciklama string; var baslangic, bitis time.Time; var created interface{}
 		rows.Scan(&id, &tid, &uid, &adSoyad, &baslangic, &bitis, &turu, &durum, &aciklama, &created)
-		result = append(result, map[string]interface{}{"id": id, "tenant_id": tid, "user_id": uid, "ad_soyad": adSoyad, "baslangic": baslangic[:10], "bitis": bitis[:10], "turu": turu, "onay_durumu": durum, "aciklama": aciklama})
+		result = append(result, map[string]interface{}{"id": id, "tenant_id": tid, "user_id": uid, "ad_soyad": adSoyad, "baslangic": baslangic.Format("2006-01-02"), "bitis": bitis.Format("2006-01-02"), "turu": turu, "onay_durumu": durum, "aciklama": aciklama})
 	}
 	writeJSON(w, 200, result)
 }

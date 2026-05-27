@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,9 +30,10 @@ func (h *TollLogHandler) List(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	result := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var id, tid, truckID int; var plaka, etiket, giris, cikis, tarih string; var ucret float64; var created interface{}
+		var id, tid, truckID int; var plaka, etiket, giris, cikis string; var tarih time.Time; var ucret float64; var created interface{}
 		rows.Scan(&id, &tid, &truckID, &plaka, &tarih, &etiket, &giris, &cikis, &ucret, &created)
-		result = append(result, map[string]interface{}{"id": id, "tenant_id": tid, "truck_id": truckID, "truck_plaka": plaka, "gecis_tarihi": tarih[:10], "hgs_etiket_no": etiket, "giris_gise": giris, "cikis_gise": cikis, "gecis_ucreti": ucret})
+		dateStr := tarih.Format("2006-01-02")
+		result = append(result, map[string]interface{}{"id": id, "tenant_id": tid, "truck_id": truckID, "truck_plaka": plaka, "gecis_tarihi": dateStr, "hgs_etiket_no": etiket, "giris_gise": giris, "cikis_gise": cikis, "gecis_ucreti": ucret})
 	}
 	writeJSON(w, 200, result)
 }
