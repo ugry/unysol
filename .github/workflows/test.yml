@@ -39,3 +39,10 @@ jobs:
       - name: Build check
         working-directory: frontend
         run: npm run build
+
+  module-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check module consistency
+        run: bash scripts/check-module-consistency.sh
