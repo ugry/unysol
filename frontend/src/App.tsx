@@ -22,6 +22,9 @@ import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import HelpPage from '@/pages/HelpPage';
 import FuelLogPage from '@/pages/FuelLogPage';
 import MaintenancePage from '@/pages/MaintenancePage';
+import TrailersPage from '@/pages/TrailersPage';
+import TollLogsPage from '@/pages/TollLogsPage';
+import DriverLeavePage from '@/pages/DriverLeavePage';
 import LoadBoardPage from '@/pages/LoadBoardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -87,6 +90,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/dashboard/trucks" element={<TrucksPage />} />
+        <Route path="/dashboard/trailers" element={<TrailersPage />} />
         <Route path="/dashboard/trips" element={<TripsPage />} />
         <Route path="/dashboard/customers" element={<CustomersPage />} />
         <Route path="/dashboard/invoices" element={<InvoicesPage />} />
@@ -95,7 +99,9 @@ export default function App() {
         <Route path="/dashboard/expenses" element={<ExpensesPage />} />
         <Route path="/dashboard/employees" element={<EmployeesPage />} />
         <Route path="/dashboard/fuel-logs" element={<FuelLogPage />} />
+        <Route path="/dashboard/toll-logs" element={<TollLogsPage />} />
         <Route path="/dashboard/maintenance" element={<MaintenancePage />} />
+        <Route path="/dashboard/driver-leave" element={<DriverLeavePage />} />
         <Route path="/dashboard/predictions" element={<PredictionsPage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
       </Route>

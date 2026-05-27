@@ -22,6 +22,7 @@ import {
 const navItems = [
   { path: '/dashboard', label: 'Ana Panel', icon: LayoutDashboard },
   { path: '/dashboard/trucks', label: 'Kamyonlar', icon: Truck },
+  { path: '/dashboard/trailers', label: 'Dorseler', icon: Truck },
   { path: '/dashboard/trips', label: 'Seferler', icon: MapPin },
   { path: '/dashboard/load-board', label: 'Yük Panosu', icon: Package },
   { path: '/dashboard/customers', label: 'Müşteriler', icon: Users },
@@ -29,7 +30,9 @@ const navItems = [
   { path: '/dashboard/cek-senet', label: 'Çek/Senet', icon: CreditCard },
   { path: '/dashboard/expenses', label: 'Giderler', icon: DollarSign },
   { path: '/dashboard/fuel-logs', label: 'Yakıt Takip', icon: Fuel },
+  { path: '/dashboard/toll-logs', label: 'HGS Takip', icon: CreditCard },
   { path: '/dashboard/maintenance', label: 'Bakım', icon: Wrench },
+  { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck },
   { path: '/dashboard/employees', label: 'Personel', icon: UserCheck },
   { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp },
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings },

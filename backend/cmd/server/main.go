@@ -85,6 +85,9 @@ func main() {
 	fuelLogHandler := &handlers.FuelLogHandler{DB: pool}
 	maintenanceHandler := &handlers.MaintenanceHandler{DB: pool}
 	userMgmtHandler := &handlers.UserManagementHandler{DB: pool}
+	trailerHandler := &handlers.TrailerHandler{DB: pool}
+	tollLogHandler := &handlers.TollLogHandler{DB: pool}
+	leaveHandler := &handlers.LeaveHandler{DB: pool}
 
 	// Load email config from database on startup
 	loadEmailConfig(pool)
@@ -173,6 +176,9 @@ func main() {
 			r.Mount("/load-board", loadBoardHandler.Routes())
 			r.Mount("/fuel-logs", fuelLogHandler.Routes())
 			r.Mount("/maintenance", maintenanceHandler.Routes())
+			r.Mount("/trailers", trailerHandler.Routes())
+			r.Mount("/toll-logs", tollLogHandler.Routes())
+			r.Mount("/driver-leave", leaveHandler.Routes())
 			r.Mount("/user-management", userMgmtHandler.Routes())
 			r.Get("/my-permissions", userMgmtHandler.GetAllPermissions)
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
