@@ -31,7 +31,7 @@ const navItems = [
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -68,7 +68,7 @@ export default function Sidebar() {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => { navigate(item.path); onNavigate?.(); }}
               className={`w-full flex items-center gap-2.5 px-4 py-2 text-[13px] font-[510] transition-colors duration-150 ${
                 isActive
                   ? 'text-[#FF5F03] bg-[#FF5F03]-bg border-l-[2px] border-[#FF5F03]'
