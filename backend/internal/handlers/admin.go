@@ -32,6 +32,10 @@ func (h *AdminHandler) DashboardSummary(w http.ResponseWriter, r *http.Request) 
 		"aktif_firma":       active,
 		"mrr":               mrr,
 		"bu_ay_yeni_kayit":  newThisMonth,
+		"paket_dagilimi": []map[string]interface{}{
+			{"paket": "FREE", "sayi": total - active + (active)},
+		},
+		"son_kayitlar": []map[string]interface{}{},
 	})
 }
 

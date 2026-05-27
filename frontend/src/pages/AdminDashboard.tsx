@@ -291,7 +291,7 @@ function OverviewTab() {
                   labelStyle={{ color: '#888' }}
                 />
                 <Bar dataKey="sayi" radius={[6, 6, 0, 0]}>
-                  {data.paket_dagilimi.map((entry, idx) => (
+                  {(data.paket_dagilimi || []).map((entry, idx) => (
                     <rect key={idx} fill={planColors[entry.paket] || '#FF5F03'} />
                   ))}
                 </Bar>
@@ -317,7 +317,7 @@ function OverviewTab() {
                 </tr>
               </thead>
               <tbody>
-                {data.son_kayitlar.map((kayit) => (
+                {(data.son_kayitlar || []).map((kayit) => (
                   <tr key={kayit.id} className="border-b border-[rgba(255,255,255,0.08)] last:border-0">
                     <td className="py-3 pr-4 text-[#f7f8f8]">{kayit.firma_unvani}</td>
                     <td className="py-3 pr-4 text-[#8a8f98]">{kayit.yetkili}</td>

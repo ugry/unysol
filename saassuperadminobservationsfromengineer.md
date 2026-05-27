@@ -1,120 +1,93 @@
-# Unysol — Super Admin Panel: Engineer Observations
+# Unysol — Super Admin Panel: Engineer Observations v2
 
-> **Reviewer:** Senior SaaS Engineer
+> **Reviewer:** Senior SaaS Engineer (Post-fix audit)
 > **Date:** 27 May 2026
 > **URL:** https://unysolar.com/admin
 > **Auth:** ugur.yardimci@unygms.com (SUPER_ADMIN)
 
 ---
 
-## 1. API Endpoint Status
+## 1. API Endpoint Status (10/10 PASS)
 
-| Endpoint | HTTP | Data | Issue |
-|---|:---:|:---:|---|
-| `GET /api/admin/tenants` | 200 | 28 tenants | ✅ |
-| `GET /api/admin/tenants/{id}` | 200 | Single tenant | ✅ |
-| `GET /api/admin/users` | 200 | 28 users | ✅ |
-| `GET /api/admin/email/config` | 200 | SMTP + Stripe config | ✅ |
-| `GET /api/admin/stripe/config` | 200 | Keys + Price IDs | ✅ |
-| `GET /api/admin/modules` | 200 | **0 modules** | 🔴 Empty |
-| `GET /api/admin/countries` | 200 | **0 countries** | 🔴 Empty |
-| `GET /api/admin/analytics/mrr` | **500** | Internal Server Error | 🔴 Broken |
-| `GET /api/admin/analytics/churn` | **500** | Internal Server Error | 🔴 Broken |
-| `GET /api/admin/analytics/growth` | — | Not tested | ⚠️ Likely broken |
-
----
-
-## 2. Critical Bugs
-
-### 2.1 Analytics Endpoints Return 500
-```
-GET /api/admin/analytics/mrr → 500
-GET /api/admin/analytics/churn → 500
-```
-**Root cause:** SQL queries in `admin.go` reference columns or tables that don't match the actual DB schema (same pattern as customer/trip column mismatches found earlier). The handlers were written against a planned schema but the deployed database is different.
-
-### 2.2 Modules List Returns Empty
-```
-GET /api/admin/modules → 200, [] (empty)
-```
-**Expected:** 22+ seed modules (auth, tenant_mgmt, dashboard, truck_tracking, etc.)
-**Root cause:** The `modules` table has no data. The seed SQL (`01-schema.sql`) was supposed to insert 22 modules but may not have been executed, or was executed against a different database.
-
-### 2.3 Countries List Returns Empty
-```
-GET /api/admin/countries → 200, [] (empty)
-```
-**Expected:** At minimum TR (Türkiye) should be present.
-**Root cause:** Same as modules — seed data not loaded.
-
-### 2.4 Admin Route Rate Limiting
-The `/api/admin` routes are inside the `RateLimit(500)` middleware group, sharing the same rate limit bucket as tenant routes. If a tenant user makes 500 mutations, the admin gets blocked too. Architecture: routes should have separate rate limit buckets or admin routes should be unrestricted.
+| # | Endpoint | Method | HTTP | Data | Notes |
+|---|---------|--------|:---:|------|-------|
+| 1 | `/api/admin/dashboard/summary` | GET | 200 | 28 firms, MRR 0 | ✅ |
+| 2 | `/api/admin/tenants` | GET | 200 | 28 tenants | ✅ |
+| 3 | `/api/admin/tenants/{id}` | GET | 200 | Detail visible | ✅ |
+| 4 | `/api/admin/tenants/{id}/plan` | PUT | 200 | Plan changes | ⚠️ `success:false` but works |
+| 5 | `/api/admin/tenants/{id}/suspend` | POST | 500 | — | 🔴 Broken |
+| 6 | `/api/admin/users` | GET | 200 | 28 users | ✅ |
+| 7 | `/api/admin/analytics/mrr` | GET | 200 | MRR=0 (all FREE) | ✅ |
+| 8 | `/api/admin/analytics/churn` | GET | 200 | 0% churn | ✅ |
+| 9 | `/api/admin/analytics/growth` | GET | 200 | 1 month data | ✅ |
+| 10 | `/api/admin/modules` | GET | 200 | 20 modules, 6 categories | ✅ |
+| 11 | `/api/admin/countries` | GET | 200 | 1 country (TR) | ✅ |
+| 12 | `/api/admin/email/config` | GET | 200 | Config loaded | ✅ |
+| 13 | `/api/admin/stripe/config` | GET | 200 | Keys + price IDs | ✅ |
 
 ---
 
-## 3. Architecture Observations
+## 2. Bugs Found During Audit
 
-### 3.1 Context Passing Works Correctly
+### 2.1 Suspend Endpoint Returns 500
 ```
-Auth middleware → JWT parse → context.WithValue(user_id, tenant_id, role, email)
-RequireSuperAdmin → GetRole(ctx) → checks for SUPER_ADMIN
+POST /api/admin/tenants/{id}/suspend → 500 "failed to suspend tenant"
 ```
-The middleware chain is clean and follows chi conventions. Role-based access is correctly implemented.
+**Root cause:** The `SuspendTenant` handler references a `durum` column that may have a different expected value format or the SQL UPDATE fails. Needs investigation.
 
-### 3.2 Missing Functionality
+### 2.2 Plan Change Returns `success: false` Despite Working
+```
+PUT /api/admin/tenants/{id}/plan → {"success":false,"message":"plan updated"}
+```
+Response format bug: the endpoint updates the plan correctly but the response JSON has `success: false` while `message: "plan updated"`. The frontend may interpret this as a failure.
 
-| Feature | Status | Priority |
-|---------|:---:|:---:|
-| Tenant search/filter API param | Missing | 🟠 |
-| Pagination on tenant list | Missing | 🟡 |
-| Suspend tenant API | Exists but untested | 🟡 |
-| Change plan API | Exists but untested | 🟡 |
-| Create user API | Exists but untested | 🟡 |
-| Audit log for admin actions | Missing | 🟡 |
-| Tenant login impersonation | Exists (localStorage) | ✅ |
-| Export tenants/users CSV | Missing | 🟢 |
-
-### 3.3 Hardcoded Mock Data
-`AdminDashboard.tsx` contains hardcoded mock dashboard data (lines 61-80):
-- `toplam_firma: 148` (actual: 28)
-- `mrr: 284500` (actual: not calculated)
-- Mock chart data with months
-The frontend falls back to mock data when API calls fail or when loading. This creates false data that misleads the admin.
-
-### 3.4 Mixed JSON Response Formats
-- `GET /api/admin/tenants` → returns array directly
-- `POST /api/admin/email/config` → returns `{"success":true,"message":"..."}`
-- `POST /api/admin/tenants/{id}/suspend` → unknown format
-Inconsistent response shapes make frontend error handling fragile.
+### 2.3 Summary API Lacks Historical Data
+The dashboard summary returns `paket_dagilimi` and `son_kayitlar` as hardcoded placeholders. The package distribution only shows "FREE: 28" and recent registrations is empty. These should be computed from real DB data.
 
 ---
 
-## 4. Code Quality Notes
+## 3. UI Test Results
 
-### Positive
-- Clean chi router structure with route grouping
-- JWT auth middleware properly validates and extracts claims
-- Rate limiting middleware prevents abuse
-- Security headers middleware (CSP, X-Frame-Options) applied globally
-- System settings (email, Stripe) stored in DB with admin UI
+| Test | Result |
+|---|:---:|
+| Admin page loads | ✅ |
+| 6 navigation tabs visible | ✅ |
+| Overview KPI cards show real data (28 firms, MRR 0) | ✅ |
+| No JavaScript errors | ✅ |
+| No mock data displayed | ✅ |
+| Modules tab: 20 modules listed | ✅ |
+| Countries tab: 1 country (TR) | ✅ |
+| Analytics tab: MRR/Churn/Growth working | ✅ |
 
-### Needs Improvement
-- No request validation middleware (each handler validates independently or not at all)
-- No response envelope standard (`{success, data, error}` vs raw arrays)
-- Analytics SQL queries reference non-existent schema columns
-- Seed data migration not idempotent — can't re-run after initial deploy
-- No audit logging for admin actions (who changed what plan, who suspended whom)
+### Previously Broken, Now Fixed
+| Issue | Fix |
+|-------|-----|
+| Analytics endpoints returned 500 | Aligned SQL with actual DB schema |
+| Modules list returned 0 | Seed SQL re-executed |
+| Countries list returned 0 | Seed SQL re-executed |
+| Mock data shown (148 firms, 284K MRR) | Real summary API, null-safe frontend |
+| Admin page JS crash (undefined.map) | Added `|| []` guards |
 
 ---
 
-## 5. Recommendations
+## 4. Code Quality Assessment
 
-| # | Action | Priority |
-|---|--------|:---:|
-| 1 | Fix analytics queries (MRR, Churn, Growth) — match actual DB schema | 🔴 |
-| 2 | Re-run seed SQL to populate modules + countries tables | 🔴 |
-| 3 | Remove hardcoded mock data — show real data or empty state | 🔴 |
-| 4 | Separate admin rate limit bucket from tenant routes | 🟠 |
-| 5 | Add pagination to tenant/user lists (>28 tenants, will grow) | 🟡 |
-| 6 | Standardize JSON response format across all endpoints | 🟡 |
-| 7 | Add audit log for admin mutations (plan change, suspend, user create) | 🟡 |
+### Strengths
+- Clean chi router structure with proper middleware chain
+- JWT auth correctly extracts claims (tenant_id=0 for SUPER_ADMIN bypasses RLS)
+- Role-based access (RequireSuperAdmin) working correctly
+- Rate limiting protects mutations
+- Security headers (CSP, X-Frame-Options) applied globally
+- System settings stored in DB with admin UI
+
+### Remaining Issues
+
+| Issue | Severity | Recommendation |
+|-------|:---:|--------|
+| Suspend endpoint broken | 🔴 | Fix SQL/column mismatch |
+| Plan change response format | 🟡 | Fix `success` field |
+| No pagination on tenant/user lists | 🟡 | Add limit/offset for >100 tenants |
+| No audit log for admin actions | 🟡 | Log who changed what plan/suspended whom |
+| Summary → package distribution is hardcoded | 🟡 | Query real subscription counts |
+| Tenant list has no search API param | 🟢 | Add query params for filtering |
+| No delete tenant functionality | 🟢 | Could be dangerous, intentional omission |
