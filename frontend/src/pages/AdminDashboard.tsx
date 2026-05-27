@@ -98,11 +98,11 @@ function getMockTenants(): AdminTenant[] {
   return [
     { id: '1', firma_unvani: 'İstanbul Express Lojistik', yetkili: 'Ahmet Yılmaz', email: 'ahmet@istanbulexpress.com', plan: 'PREMIUM', kayit_tarihi: '2024-01-15T10:30:00Z', son_giris: '2026-05-20T08:45:00Z', durum: 'AKTIF', telefon: '+90 212 555 0101' },
     { id: '2', firma_unvani: 'Anadolu Nakliyat', yetkili: 'Mehmet Demir', email: 'mehmet@anadolunakliyat.com', plan: 'PRO', kayit_tarihi: '2024-02-20T14:00:00Z', son_giris: '2026-05-19T17:30:00Z', durum: 'AKTIF', telefon: '+90 312 555 0202' },
-    { id: '3', firma_unvani: 'Ege Turizm Taşımacılık', yetkili: 'Ayşe Kaya', email: 'ayse@egeturizm.com', plan: 'FREE', kayit_tarihi: '2024-03-10T09:15:00Z', son_giris: '2026-05-10T12:00:00Z', durum: 'DONDURULMUS', telefon: '+90 232 555 0303' },
+    { id: '3', firma_unvani: 'Ege Turizm Taşımacılık', yetkili: 'Ayşe Kaya', email: 'ayse@egeturizm.com', plan: 'FREE', kayit_tarihi: '2024-03-10T09:15:00Z', son_giris: '2026-05-10T12:00:00Z', durum: 'PASIF', telefon: '+90 232 555 0303' },
     { id: '4', firma_unvani: 'Karadeniz Lojistik A.Ş.', yetkili: 'Ali Öztürk', email: 'ali@karadenizlojistik.com', plan: 'PRO', kayit_tarihi: '2024-04-05T16:45:00Z', son_giris: '2026-05-20T09:15:00Z', durum: 'AKTIF', telefon: '+90 462 555 0404' },
     { id: '5', firma_unvani: 'Marmara Dağıtım', yetkili: 'Zeynep Çelik', email: 'zeynep@marmaradagitim.com', plan: 'PREMIUM', kayit_tarihi: '2024-05-12T11:20:00Z', son_giris: '2026-05-20T07:30:00Z', durum: 'AKTIF', telefon: '+90 216 555 0505' },
     { id: '6', firma_unvani: 'Akdeniz Uluslararası Taşımacılık', yetkili: 'Mustafa Şahin', email: 'mustafa@akdeniztasimacilik.com', plan: 'PRO', kayit_tarihi: '2024-06-18T08:00:00Z', son_giris: '2026-05-18T14:20:00Z', durum: 'AKTIF', telefon: '+90 242 555 0606' },
-    { id: '7', firma_unvani: 'GAP Tarım Lojistik', yetkili: 'Fatma Yıldız', email: 'fatma@gaplojistik.com', plan: 'FREE', kayit_tarihi: '2024-07-22T13:30:00Z', son_giris: '2026-05-01T10:00:00Z', durum: 'DONDURULMUS', telefon: '+90 414 555 0707' },
+    { id: '7', firma_unvani: 'GAP Tarım Lojistik', yetkili: 'Fatma Yıldız', email: 'fatma@gaplojistik.com', plan: 'FREE', kayit_tarihi: '2024-07-22T13:30:00Z', son_giris: '2026-05-01T10:00:00Z', durum: 'PASIF', telefon: '+90 414 555 0707' },
     { id: '8', firma_unvani: 'Trakya Nakliye', yetkili: 'Hasan Koç', email: 'hasan@trakyanakliye.com', plan: 'PREMIUM', kayit_tarihi: '2024-08-30T10:10:00Z', son_giris: '2026-05-20T11:00:00Z', durum: 'AKTIF', telefon: '+90 284 555 0808' },
   ];
 }
@@ -380,10 +380,10 @@ function TenantsTab() {
     if (!tenant) return;
     try {
       await adminApi.post(`/api/admin/tenants/${id}/suspend`);
-      const newStatus = tenant.durum === 'AKTIF' ? 'DONDURULMUS' as const : 'AKTIF' as const;
+      const newStatus = tenant.durum === 'AKTIF' ? 'PASIF' as const : 'AKTIF' as const;
       setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, durum: newStatus } : t)));
     } catch { /* API not available — optimistic update */
-      const newStatus = tenant.durum === 'AKTIF' ? 'DONDURULMUS' as const : 'AKTIF' as const;
+      const newStatus = tenant.durum === 'AKTIF' ? 'PASIF' as const : 'AKTIF' as const;
       setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, durum: newStatus } : t)));
     }
     setSuspendLoading(null);
@@ -458,7 +458,7 @@ function TenantsTab() {
                             : 'bg-red-500/15 text-red-400'
                         }`}
                       >
-                        {tenant.durum === 'AKTIF' ? 'Aktif' : 'Donduruldu'}
+                        {tenant.durum === 'AKTIF' ? 'Aktif' : 'Pasif'}
                       </span>
                     </td>
                     <td className="py-3 px-2">
@@ -525,7 +525,7 @@ function TenantsTab() {
                     }`}
                   >
                     {suspendLoading === tenant.id && <Loader2 size={14} className="animate-spin" />}
-                    {tenant.durum === 'AKTIF' ? 'Dondur' : 'Aktifleştir'}
+                    {tenant.durum === 'AKTIF' ? 'Pasif Yap' : 'Aktifleştir'}
                   </button>
 
                   <button

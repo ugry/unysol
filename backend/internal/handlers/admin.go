@@ -125,7 +125,11 @@ func (h *AdminHandler) ChangePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, models.SuccessResponse{Message: "plan updated"})
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Plan güncellendi",
+		"plan":    input.Plan,
+	})
 }
 
 func (h *AdminHandler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
@@ -135,11 +139,21 @@ func (h *AdminHandler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var input struct {
+		Durum string `json:"durum"`
+	}
+	json.NewDecoder(r.Body).Decode(&input)
+
+	newDurum := "PASIF"
+	if input.Durum == "AKTIF" {
+		newDurum = "AKTIF"
+	}
+
 	tag, err := h.DB.Exec(r.Context(),
-		`UPDATE tenants SET durum = 'SUSPENDED' WHERE id = $1`, id)
+		`UPDATE tenants SET durum = $1 WHERE id = $2`, newDurum, id)
 	if err != nil {
-		slog.Error("failed to suspend tenant", "error", err, "id", id)
-		writeError(w, http.StatusInternalServerError, "failed to suspend tenant")
+		slog.Error("failed to update tenant status", "error", err, "id", id)
+		writeError(w, http.StatusInternalServerError, "failed to update tenant status")
 		return
 	}
 	if tag.RowsAffected() == 0 {
@@ -147,7 +161,11 @@ func (h *AdminHandler) SuspendTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, models.SuccessResponse{Message: "tenant suspended"})
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Firma durumu güncellendi",
+		"durum":   newDurum,
+	})
 }
 
 func (h *AdminHandler) GetMRR(w http.ResponseWriter, r *http.Request) {

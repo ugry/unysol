@@ -58,7 +58,7 @@ export interface AdminTenant {
   plan: 'FREE' | 'PRO' | 'PREMIUM';
   kayit_tarihi: string;
   son_giris: string;
-  durum: 'AKTIF' | 'DONDURULMUS';
+  durum: 'AKTIF' | 'PASIF';
   telefon?: string;
 }
 
