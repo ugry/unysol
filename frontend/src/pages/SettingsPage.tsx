@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import api from '@/lib/api';
 import {
   Building2,
   Users as UsersIcon,
@@ -26,11 +27,15 @@ export default function SettingsPage() {
   });
 
   const [saved, setSaved] = useState(false);
-  const [users] = useState([
-    { id: '1', ad_soyad: 'Kemal Aras', email: 'kemal@unysolar.com', rol: 'Yönetici' },
-    { id: '2', ad_soyad: 'Ayşe Demir', email: 'ayse@unysolar.com', rol: 'Operasyon' },
-    { id: '3', ad_soyad: 'Can Yıldız', email: 'can@unysolar.com', rol: 'Muhasebe' },
-  ]);
+  const [users, setUsers] = useState<{ id: string; ad_soyad: string; email: string; rol: string }[]>([]);
+
+  useEffect(() => {
+    api.get('/api/tenant/employees').then(r => {
+      if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({
+        id: String(e.id), ad_soyad: e.ad_soyad || 'Kullanıcı', email: e.email || '', rol: e.rol || 'DRIVER'
+      })));
+    }).catch(() => {});
+  }, []);
 
   const [notifications, setNotifications] = useState({
     sefer_baslangic: true,
