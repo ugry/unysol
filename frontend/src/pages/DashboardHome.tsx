@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Truck,
   DollarSign,
@@ -6,6 +7,7 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  Package,
 } from 'lucide-react';
 import {
   BarChart,
@@ -21,8 +23,10 @@ import type { DashboardSummary, Activity } from '@/types';
 import KpiCard from '@/components/KpiCard';
 
 export default function DashboardHome() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadStats, setLoadStats] = useState({ today_new: 0, active_total: 0 });
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -41,6 +45,11 @@ export default function DashboardHome() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    // Fetch load board stats
+    api.get('/api/tenant/load-board/stats')
+      .then(res => { if (!cancelled) setLoadStats(res.data); })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
@@ -74,7 +83,7 @@ export default function DashboardHome() {
   return (
     <div className="max-w-7xl mx-auto space-y-5">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard icon={Truck} label="Aktif Kamyon" value={summary.aktif_kamyon} />
         <KpiCard
           icon={DollarSign}
@@ -93,6 +102,17 @@ export default function DashboardHome() {
           value={`₺${summary.bekleyen_tahsilat.toLocaleString('tr-TR')}`}
           overdue={summary.bekleyen_tahsilat > 50000}
         />
+        <div onClick={() => navigate('/dashboard/load-board')} className="cursor-pointer">
+          <KpiCard
+            icon={Package}
+            label="Yük Panosu"
+            value={`${loadStats.active_total} Aktif`}
+            trend={loadStats.today_new > 0 ? loadStats.today_new : undefined}
+          />
+          {loadStats.today_new > 0 && (
+            <p className="text-xs text-[#FF5F03] mt-1 text-center">Bugün {loadStats.today_new} yeni ilan</p>
+          )}
+        </div>
       </div>
 
       {/* Chart + Activity */}

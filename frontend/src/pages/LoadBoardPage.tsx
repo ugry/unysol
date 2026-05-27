@@ -2,7 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import DataGrid, { type Column } from '@/components/DataGrid';
-import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2, Trash2 } from 'lucide-react';
+import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2, Trash2, HeartHandshake, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface LoadBoardItem {
   id: number;
@@ -74,6 +74,9 @@ export default function LoadBoardPage() {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [interestMsg, setInterestMsg] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ price_min: '', price_max: '', weight_min: '', weight_max: '', vehicle: '' });
 
   const [cities, setCities] = useState<CityData[]>([]);
   const [fromDistricts, setFromDistricts] = useState<string[]>([]);
@@ -135,6 +138,27 @@ export default function LoadBoardPage() {
     } catch {}
   };
 
+  const handleInterest = async (listing: LoadBoardItem) => {
+    try {
+      await api.post(`/api/tenant/load-board/${listing.id}/interest`);
+      setInterestMsg(`${listing.company_name} firmasına ilginiz iletildi.`);
+      setTimeout(() => setInterestMsg(''), 4000);
+    } catch (err: any) {
+      setInterestMsg(err?.response?.data?.error || 'İlgi iletilemedi');
+      setTimeout(() => setInterestMsg(''), 4000);
+    }
+  };
+
+  const shareWhatsApp = (listing: LoadBoardItem) => {
+    const typeLabel = listing.type === 'YUK_VAR' ? 'Yük Var' : 'Yük Ara';
+    const text = `Unysol Yük Panosu — ${typeLabel}: ${listing.from_city}→${listing.to_city} | ${listing.load_date} | ${listing.price ? '₺' + listing.price.toLocaleString('tr') : 'Fiyat belirtilmedi'} | ${listing.description || ''} | İletişim: ${listing.contact_phone || listing.contact_email}`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  };
+
+  const updateFilter = (key: string, val: string) => {
+    setFilters(f => ({ ...f, [key]: val }));
+  };
+
   const filtered = data.filter(item => {
     if (typeFilter && item.type !== typeFilter) return false;
     if (cityFilter && !item.from_city.toLowerCase().includes(cityFilter.toLowerCase()) && !item.to_city.toLowerCase().includes(cityFilter.toLowerCase())) return false;
@@ -143,6 +167,11 @@ export default function LoadBoardPage() {
       return item.from_city.toLowerCase().includes(s) || item.to_city.toLowerCase().includes(s) ||
              item.company_name.toLowerCase().includes(s) || (item.description || '').toLowerCase().includes(s);
     }
+    if (filters.price_min && item.price && item.price < parseInt(filters.price_min)) return false;
+    if (filters.price_max && item.price && item.price > parseInt(filters.price_max)) return false;
+    if (filters.weight_min && item.weight_kg && item.weight_kg < parseInt(filters.weight_min)) return false;
+    if (filters.weight_max && item.weight_kg && item.weight_kg > parseInt(filters.weight_max)) return false;
+    if (filters.vehicle && item.vehicle_type !== filters.vehicle) return false;
     return true;
   });
 
@@ -169,15 +198,26 @@ export default function LoadBoardPage() {
           <div className="flex items-center gap-1.5 text-enterprise-text font-medium text-sm">
             <Building2 size={13} /> {row.company_name}
           </div>
-          {row.user_id === currentUserId && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
-              className="text-[#8a8f98] hover:text-[#DC2626] p-0.5 transition-colors"
-              title="İlanı sil"
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {row.user_id !== currentUserId && (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); handleInterest(row); }}
+                  className="text-[#FF5F03] hover:text-[#E55600] p-0.5 transition-colors" title="İlgileniyorum">
+                  <HeartHandshake size={14} />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); shareWhatsApp(row); }}
+                  className="text-[#25D366] hover:text-[#20bd5a] p-0.5 transition-colors" title="WhatsApp'ta Paylaş">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/></svg>
+                </button>
+              </>
+            )}
+            {row.user_id === currentUserId && (
+              <button onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
+                className="text-[#8a8f98] hover:text-[#DC2626] p-0.5 transition-colors" title="İlanı sil">
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-enterprise-text-muted">
           <Mail size={12} /> {row.contact_email || '-'}
@@ -221,6 +261,38 @@ export default function LoadBoardPage() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm">
           <Plus size={18} /> Yeni İlan
         </button>
+      </div>
+
+      {interestMsg && (
+        <div className="p-3 rounded-lg bg-[#FF5F03]/10 border border-[#FF5F03]/20 text-[#FF5F03] text-sm">{interestMsg}</div>
+      )}
+
+      <div>
+        <button onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-1.5 text-sm text-[#8a8f98] hover:text-[#d0d6e0] transition-colors">
+          {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          Gelişmiş Filtreler
+        </button>
+        {showFilters && (
+          <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <input type="number" placeholder="Min Fiyat (₺)" value={filters.price_min} onChange={e => updateFilter('price_min', e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+            <input type="number" placeholder="Max Fiyat (₺)" value={filters.price_max} onChange={e => updateFilter('price_max', e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+            <input type="number" placeholder="Min Ağırlık (kg)" value={filters.weight_min} onChange={e => updateFilter('weight_min', e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+            <input type="number" placeholder="Max Ağırlık (kg)" value={filters.weight_max} onChange={e => updateFilter('weight_max', e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+            <select value={filters.vehicle} onChange={e => updateFilter('vehicle', e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border text-sm cursor-pointer">
+              <option value="">Tüm Araçlar</option>
+              <option value="TIR">TIR</option>
+              <option value="KAMYON">Kamyon</option>
+              <option value="KIRKAYAK">Kırkayak</option>
+              <option value="KAMYONET">Kamyonet</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <DataGrid columns={columns} data={filtered} loading={loading} title="Yük Panosu"

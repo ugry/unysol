@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"unysol/internal/logging"
 	"unysol/internal/middleware"
 )
 
@@ -46,6 +48,8 @@ func (h *LoadBoardHandler) Routes() chi.Router {
 	r.Post("/", h.Create)
 	r.Put("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
+	r.Post("/{id}/interest", h.ExpressInterest)
+	r.Get("/stats", h.Stats)
 	return r
 }
 
@@ -53,6 +57,11 @@ func (h *LoadBoardHandler) List(w http.ResponseWriter, r *http.Request) {
 	ttype := r.URL.Query().Get("type")
 	city := r.URL.Query().Get("city")
 	search := r.URL.Query().Get("search")
+	priceMin := r.URL.Query().Get("price_min")
+	priceMax := r.URL.Query().Get("price_max")
+	weightMin := r.URL.Query().Get("weight_min")
+	weightMax := r.URL.Query().Get("weight_max")
+	vehicle := r.URL.Query().Get("vehicle")
 
 	query := `SELECT lb.id, lb.tenant_id, lb.user_id, lb.type, lb.from_city, COALESCE(lb.from_district,''),
 		lb.to_city, COALESCE(lb.to_district,''), lb.load_date, lb.weight_kg, lb.vehicle_type, lb.price,
@@ -77,6 +86,31 @@ func (h *LoadBoardHandler) List(w http.ResponseWriter, r *http.Request) {
 	if search != "" {
 		query += ` AND (lb.from_city ILIKE $` + itoa(argN) + ` OR lb.to_city ILIKE $` + itoa(argN) + ` OR lb.description ILIKE $` + itoa(argN) + ` OR t.firma_unvani ILIKE $` + itoa(argN) + `)`
 		args = append(args, "%"+search+"%")
+		argN++
+	}
+	if priceMin != "" {
+		query += ` AND lb.price >= $` + itoa(argN)
+		args = append(args, priceMin)
+		argN++
+	}
+	if priceMax != "" {
+		query += ` AND lb.price <= $` + itoa(argN)
+		args = append(args, priceMax)
+		argN++
+	}
+	if weightMin != "" {
+		query += ` AND lb.weight_kg >= $` + itoa(argN)
+		args = append(args, weightMin)
+		argN++
+	}
+	if weightMax != "" {
+		query += ` AND lb.weight_kg <= $` + itoa(argN)
+		args = append(args, weightMax)
+		argN++
+	}
+	if vehicle != "" {
+		query += ` AND lb.vehicle_type = $` + itoa(argN)
+		args = append(args, vehicle)
 		argN++
 	}
 	query += ` ORDER BY lb.created_at DESC LIMIT 500`
@@ -203,6 +237,70 @@ func (h *LoadBoardHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+func (h *LoadBoardHandler) ExpressInterest(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	var ownerID int
+	var lbType, fromCity, toCity string
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT lb.user_id, lb.type, lb.from_city, lb.to_city FROM load_board lb WHERE lb.id=$1 AND lb.status='AKTIF'`,
+		id).Scan(&ownerID, &lbType, &fromCity, &toCity)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "İlan bulunamadı")
+		return
+	}
+
+	// Don't allow expressing interest in own listing
+	if strconv.Itoa(ownerID) == userID {
+		writeError(w, http.StatusBadRequest, "Kendi ilanınıza ilgi gösteremezsiniz")
+		return
+	}
+
+	// Get interested user info
+	var userName, userEmail, userPhone, companyName string
+	_ = h.DB.QueryRow(r.Context(),
+		`SELECT COALESCE(u.ad_soyad,''), COALESCE(u.email,''), COALESCE(u.telefon,''), COALESCE(t.firma_unvani,'')
+		 FROM users u JOIN tenants t ON t.id=u.tenant_id WHERE u.id=$1`, userID,
+	).Scan(&userName, &userEmail, &userPhone, &companyName)
+
+	// Create notification for listing owner
+	_, _ = h.DB.Exec(r.Context(),
+		`INSERT INTO notifications (tenant_id, user_id, type, title, message)
+		 VALUES ((SELECT tenant_id FROM users WHERE id=$1), $1, 'LOAD_INTEREST', $2, $3)`,
+		ownerID,
+		"Yük Panosu — İlgi Bildirimi",
+		fmt.Sprintf("%s (%s) ilanınızla ilgileniyor.\nİlan: %s → %s\nTelefon: %s\nE-posta: %s",
+			companyName, userName, fromCity, toCity, userPhone, userEmail),
+	)
+
+	logging.System(logging.LevelInfo, "load board interest expressed", map[string]interface{}{
+		"listing_id": id, "interested_user": userID, "owner_id": ownerID,
+	})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "İlginiz ilan sahibine iletildi.",
+	})
+}
+
+func (h *LoadBoardHandler) Stats(w http.ResponseWriter, r *http.Request) {
+	var todayNew, activeTotal int
+
+	_ = h.DB.QueryRow(r.Context(),
+		`SELECT COUNT(*) FROM load_board WHERE status='AKTIF' AND created_at::date = CURRENT_DATE`,
+	).Scan(&todayNew)
+
+	_ = h.DB.QueryRow(r.Context(),
+		`SELECT COUNT(*) FROM load_board WHERE status='AKTIF'`,
+	).Scan(&activeTotal)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"today_new":    todayNew,
+		"active_total": activeTotal,
+	})
 }
 
 var (
