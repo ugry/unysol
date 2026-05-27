@@ -79,10 +79,53 @@ export default function TripsPage() {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [lastCreatedTripId, setLastCreatedTripId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchTrips();
-    fetchDropdownData();
-  }, []);
+  // Quick-create state
+  const [showQuickTruck, setShowQuickTruck] = useState(false);
+  const [showQuickDriver, setShowQuickDriver] = useState(false);
+  const [showQuickCustomer, setShowQuickCustomer] = useState(false);
+  const [quickTruck, setQuickTruck] = useState({ plaka: '', marka: '', model: '', yil: '2024' });
+  const [quickDriver, setQuickDriver] = useState({ ad_soyad: '' });
+  const [quickCustomer, setQuickCustomer] = useState({ firma_unvani: '', telefon: '' });
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+
+  const createQuickTruck = async () => {
+    if (!quickTruck.plaka) return;
+    setQuickSubmitting(true);
+    try {
+      const res = await api.post('/api/tenant/trucks', { ...quickTruck, yil: parseInt(quickTruck.yil), tracking_source: 'PHONE' });
+      setTrucks(prev => [...prev, { id: res.data.id, plaka: res.data.plaka, marka: res.data.marka, model: res.data.model }]);
+      setFormData(f => ({ ...f, truck_id: res.data.id }));
+      setShowQuickTruck(false);
+      setQuickTruck({ plaka: '', marka: '', model: '', yil: '2024' });
+    } catch (err: any) { setFormError(err?.response?.data?.message || err?.response?.data?.error || 'Kamyon eklenemedi'); }
+    finally { setQuickSubmitting(false); }
+  };
+
+  const createQuickDriver = async () => {
+    if (!quickDriver.ad_soyad) return;
+    setQuickSubmitting(true);
+    try {
+      await api.post('/api/tenant/employees', { ...quickDriver, rol: 'DRIVER' });
+      setFormData(f => ({ ...f, sofor: quickDriver.ad_soyad }));
+      fetchDropdownData();
+      setShowQuickDriver(false);
+      setQuickDriver({ ad_soyad: '' });
+    } catch (err: any) { setFormError(err?.response?.data?.message || err?.response?.data?.error || 'Şoför eklenemedi'); }
+    finally { setQuickSubmitting(false); }
+  };
+
+  const createQuickCustomer = async () => {
+    if (!quickCustomer.firma_unvani) return;
+    setQuickSubmitting(true);
+    try {
+      const res = await api.post('/api/tenant/customers', quickCustomer);
+      setCustomers(prev => [...prev, { id: res.data.id, firma_unvani: res.data.firma_unvani }]);
+      setFormData(f => ({ ...f, customer_id: res.data.id }));
+      setShowQuickCustomer(false);
+      setQuickCustomer({ firma_unvani: '', telefon: '' });
+    } catch (err: any) { setFormError(err?.response?.data?.message || err?.response?.data?.error || 'Müşteri eklenemedi'); }
+    finally { setQuickSubmitting(false); }
+  };
 
   const fetchTrips = () => {
     setLoading(true);
@@ -271,29 +314,76 @@ export default function TripsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-enterprise-text-secondary mb-1.5">Plaka</label>
-                <select value={formData.truck_id} onChange={(e) => setFormData({ ...formData, truck_id: Number(e.target.value) })} required
+                <select value={formData.truck_id} onChange={(e) => { const v = Number(e.target.value); if (v === -1) { setShowQuickTruck(true); setShowQuickDriver(false); setShowQuickCustomer(false); } else setFormData({ ...formData, truck_id: v }); }} required
                   className="w-full px-3.5 py-2.5 rounded-lg bg-gray-50 border border-enterprise-border-subtle text-enterprise-text text-sm outline-none focus:border-[#072C2C] cursor-pointer">
                   <option value={0}>Seçiniz</option>
                   {trucks.map((t) => (<option key={t.id} value={t.id}>{t.plaka} — {t.marka} {t.model}</option>))}
+                  <option value={-1} className="font-semibold text-[#FF5F03]">+ Yeni Kamyon Ekle</option>
                 </select>
+                {showQuickTruck && (
+                  <div className="mt-2 p-3 rounded-lg bg-gray-50 border border-enterprise-border-subtle space-y-2">
+                    <input type="text" placeholder="Plaka (örn: 06 ABC 123)" value={quickTruck.plaka} onChange={e => setQuickTruck(p => ({ ...p, plaka: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="text" placeholder="Marka" value={quickTruck.marka} onChange={e => setQuickTruck(p => ({ ...p, marka: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                      <input type="text" placeholder="Model" value={quickTruck.model} onChange={e => setQuickTruck(p => ({ ...p, model: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={createQuickTruck} disabled={quickSubmitting}
+                        className="px-4 py-1.5 rounded-md bg-[#FF5F03] text-white text-sm font-medium">{quickSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Ekle'}</button>
+                      <button type="button" onClick={() => setShowQuickTruck(false)}
+                        className="px-3 py-1.5 rounded-md border text-sm">İptal</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-enterprise-text-secondary mb-1.5">Şoför</label>
-                <select value={formData.sofor} onChange={(e) => setFormData({ ...formData, sofor: e.target.value })} required
+                <select value={formData.sofor} onChange={(e) => { const v = e.target.value; if (v === '__new__') { setShowQuickDriver(true); setShowQuickTruck(false); setShowQuickCustomer(false); } else setFormData({ ...formData, sofor: v }); }} required
                   className="w-full px-3.5 py-2.5 rounded-lg bg-gray-50 border border-enterprise-border-subtle text-enterprise-text text-sm outline-none focus:border-[#072C2C] cursor-pointer">
                   <option value="">Seçiniz</option>
                   {drivers.map((d) => (<option key={d.id} value={d.ad_soyad}>{d.ad_soyad}</option>))}
+                  <option value="__new__" className="font-semibold text-[#FF5F03]">+ Yeni Şoför Ekle</option>
                 </select>
+                {showQuickDriver && (
+                  <div className="mt-2 p-3 rounded-lg bg-gray-50 border border-enterprise-border-subtle space-y-2">
+                    <input type="text" placeholder="Ad Soyad" value={quickDriver.ad_soyad} onChange={e => setQuickDriver({ ad_soyad: e.target.value })}
+                      className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={createQuickDriver} disabled={quickSubmitting}
+                        className="px-4 py-1.5 rounded-md bg-[#FF5F03] text-white text-sm font-medium">{quickSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Ekle'}</button>
+                      <button type="button" onClick={() => setShowQuickDriver(false)}
+                        className="px-3 py-1.5 rounded-md border text-sm">İptal</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-enterprise-text-secondary mb-1.5">Müşteri</label>
-                <select value={formData.customer_id} onChange={(e) => setFormData({ ...formData, customer_id: Number(e.target.value) })} required
+                <select value={formData.customer_id} onChange={(e) => { const v = Number(e.target.value); if (v === -1) { setShowQuickCustomer(true); setShowQuickTruck(false); setShowQuickDriver(false); } else setFormData({ ...formData, customer_id: v }); }} required
                   className="w-full px-3.5 py-2.5 rounded-lg bg-gray-50 border border-enterprise-border-subtle text-enterprise-text text-sm outline-none focus:border-[#072C2C] cursor-pointer">
                   <option value={0}>Seçiniz</option>
                   {customers.map((c) => (<option key={c.id} value={c.id}>{c.firma_unvani}</option>))}
+                  <option value={-1} className="font-semibold text-[#FF5F03]">+ Yeni Müşteri Ekle</option>
                 </select>
+                {showQuickCustomer && (
+                  <div className="mt-2 p-3 rounded-lg bg-gray-50 border border-enterprise-border-subtle space-y-2">
+                    <input type="text" placeholder="Firma Ünvanı" value={quickCustomer.firma_unvani} onChange={e => setQuickCustomer(c => ({ ...c, firma_unvani: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                    <input type="text" placeholder="Telefon" value={quickCustomer.telefon} onChange={e => setQuickCustomer(c => ({ ...c, telefon: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-md bg-white border text-sm outline-none focus:border-[#FF5F03]" />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={createQuickCustomer} disabled={quickSubmitting}
+                        className="px-4 py-1.5 rounded-md bg-[#FF5F03] text-white text-sm font-medium">{quickSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Ekle'}</button>
+                      <button type="button" onClick={() => setShowQuickCustomer(false)}
+                        className="px-3 py-1.5 rounded-md border text-sm">İptal</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
