@@ -6,3 +6,4 @@ actions.log
 backend/server
 /tmp/
 /dist/
+infra/terraform/tfplan
