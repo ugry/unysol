@@ -26,11 +26,46 @@ type PermissionEntry struct {
 
 func (h *UserManagementHandler) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Use(middleware.RequireTenant)
+	r.Get("/", h.ListUsers)
 	r.Get("/permissions/{userId}", h.GetPermissions)
 	r.Put("/permissions/{userId}", h.SavePermissions)
 	r.Post("/", h.CreateUser)
 	r.Delete("/{id}", h.DeleteUser)
 	return r
+}
+
+func (h *UserManagementHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT id, email, ad_soyad, rol, telefon, aktif, COALESCE(to_char(created_at, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '')
+		 FROM users WHERE tenant_id = $1 ORDER BY id ASC`, tenantID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Kullanıcılar listelenemedi"})
+		return
+	}
+	defer rows.Close()
+
+	users := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var id int
+		var email, adSoyad, rol, telefon string
+		var aktif bool
+		var createdAtStr string
+		rows.Scan(&id, &email, &adSoyad, &rol, &telefon, &aktif, &createdAtStr)
+		users = append(users, map[string]interface{}{
+			"id":         id,
+			"email":      email,
+			"ad_soyad":   adSoyad,
+			"rol":        rol,
+			"telefon":    telefon,
+			"aktif":      aktif,
+			"created_at": createdAtStr,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, users)
 }
 
 func (h *UserManagementHandler) CreateUser(w http.ResponseWriter, r *http.Request) {

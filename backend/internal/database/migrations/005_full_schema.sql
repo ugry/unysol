@@ -7,46 +7,11 @@ BEGIN
     END IF;
 END$$;
 
--- Drop minimal tables created by earlier migrations
-DROP TABLE IF EXISTS driver_leave CASCADE;
-DROP TABLE IF EXISTS toll_logs CASCADE;
-DROP TABLE IF EXISTS fuel_logs CASCADE;
-DROP TABLE IF EXISTS maintenance_records CASCADE;
-DROP TABLE IF EXISTS password_resets CASCADE;
-DROP TABLE IF EXISTS subscriptions CASCADE;
-DROP TABLE IF EXISTS predictions CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS settings CASCADE;
-DROP TABLE IF EXISTS actions CASCADE;
-DROP TABLE IF EXISTS country_configs CASCADE;
-DROP TABLE IF EXISTS countries CASCADE;
-DROP TABLE IF EXISTS tenant_modules CASCADE;
-DROP TABLE IF EXISTS plan_modules CASCADE;
-DROP TABLE IF EXISTS country_modules CASCADE;
-DROP TABLE IF EXISTS modules CASCADE;
-DROP TABLE IF EXISTS cek_senet CASCADE;
-DROP TABLE IF EXISTS employees CASCADE;
-DROP TABLE IF EXISTS expenses CASCADE;
-DROP TABLE IF EXISTS invoice_recurrences CASCADE;
-DROP TABLE IF EXISTS e_fatura_logs CASCADE;
-DROP TABLE IF EXISTS invoice_payments CASCADE;
-DROP TABLE IF EXISTS invoice_items CASCADE;
-DROP TABLE IF EXISTS invoices CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS trips CASCADE;
-DROP TABLE IF EXISTS trailers CASCADE;
-DROP TABLE IF EXISTS trucks CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS tenants CASCADE;
--- ============================================================
--- Unysol SaaS Platform — Database Schema v1
--- Multi-tenant · Multi-language · Modular
--- PostgreSQL 16+
--- ============================================================
+-- Schema types and tables (CREATE IF NOT EXISTS)
 
--- ============================================================
--- EXTENSIONS
--- ============================================================
+
+
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

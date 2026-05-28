@@ -1,9 +1,16 @@
 -- Add all missing columns that exist in application code
 
--- customers - fix column type
-ALTER TABLE customers ALTER COLUMN durum TYPE VARCHAR(20) USING 
-  CASE WHEN durum = true THEN 'AKTIF' ELSE 'PASIF' END;
-ALTER TABLE customers ALTER COLUMN durum SET DEFAULT 'AKTIF';
+-- customers - fix column type (only if still boolean)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name='customers' AND column_name='durum' 
+               AND data_type='boolean') THEN
+        ALTER TABLE customers ALTER COLUMN durum TYPE VARCHAR(20) USING 
+          CASE WHEN durum = true THEN 'AKTIF' ELSE 'PASIF' END;
+        ALTER TABLE customers ALTER COLUMN durum SET DEFAULT 'AKTIF';
+    END IF;
+END$$;
 
 -- customers
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS fatura_adresi TEXT;

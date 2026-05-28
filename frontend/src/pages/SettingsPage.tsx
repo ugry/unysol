@@ -26,8 +26,8 @@ export default function SettingsPage() {
   const [showPermsFor, setShowPermsFor] = useState<number | null>(null);
 
   useEffect(() => {
-    // Fetch employees
-    api.get('/api/tenant/employees').then(r => {
+    // Fetch users from user management
+    api.get('/api/tenant/user-management').then(r => {
       if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({
         id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || ''
       })));
@@ -60,7 +60,7 @@ export default function SettingsPage() {
 
   // Fetch plan info from admin endpoint
   useEffect(() => {
-    api.get('/api/tenant/employees').then(r => {
+    api.get('/api/tenant/user-management').then(r => {
       if (Array.isArray(r.data)) setPlanInfo(prev => ({ ...prev, userCount: r.data.length }));
     }).catch(() => {});
   }, [users.length]);
@@ -275,7 +275,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {showAddUser && <AddUserModal onClose={() => setShowAddUser(false)} onCreated={() => { api.get('/api/tenant/employees').then(r => { if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({ id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || '' }))); }); }} />}
+      {showAddUser && <AddUserModal onClose={() => setShowAddUser(false)} onCreated={() => {     api.get('/api/tenant/user-management').then(r => {
+      if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({
+        id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || ''
+      }))); }); }} />}
       {showPermsFor !== null && <PermissionsModal userId={showPermsFor} onClose={() => setShowPermsFor(null)} />}
     </div>
   );
