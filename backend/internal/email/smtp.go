@@ -8,20 +8,33 @@ import (
 )
 
 type Config struct {
+	Method   string // "smtp" or "ses"
 	Host     string
 	Port     string
 	Username string
 	Password string
 	From     string
+	Region   string
 }
 
 var cfg Config
 
 func Configure(c Config) {
+	if c.Method == "" {
+		c.Method = "smtp"
+	}
 	cfg = c
 }
 
 func Send(to string, subject string, body string) error {
+	if cfg.Method == "ses" {
+		region := cfg.Region
+		if region == "" {
+			region = "eu-central-1"
+		}
+		return sendViaSES(cfg.From, to, subject, body, region)
+	}
+
 	if cfg.Host == "" {
 		return fmt.Errorf("SMTP yapılandırılmamış. Lütfen admin panelinden e-posta ayarlarını yapın.")
 	}

@@ -295,23 +295,28 @@ func maskPassword(url string) string {
 }
 
 func loadEmailConfig(pool *pgxpool.Pool) {
-	var host, port, username, password, from string
+	var method, host, port, username, password, from, region string
 	err := pool.QueryRow(context.Background(), `
-		SELECT COALESCE(host,''), COALESCE(port,'465'), COALESCE(username,''), COALESCE(password,''), COALESCE(from_email,'')
+		SELECT COALESCE(email_method,'smtp'), COALESCE(host,''), COALESCE(port,'465'),
+		       COALESCE(username,''), COALESCE(password,''), COALESCE(from_email,''),
+		       COALESCE(aws_region,'eu-central-1')
 		FROM email_config WHERE id=1
-	`).Scan(&host, &port, &username, &password, &from)
-	if err != nil || host == "" {
+	`).Scan(&method, &host, &port, &username, &password, &from, &region)
+	if err != nil || (method == "smtp" && host == "") {
 		return
 	}
 	email.Configure(email.Config{
+		Method:   method,
 		Host:     host,
 		Port:     port,
 		Username: username,
 		Password: password,
 		From:     from,
+		Region:   region,
 	})
 	logging.System(logging.LevelInfo, "email config loaded from database", map[string]interface{}{
-		"host": host,
-		"user": username,
+		"method": method,
+		"host":   host,
+		"user":   username,
 	})
 }

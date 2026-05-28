@@ -58,7 +58,9 @@ resource "aws_iam_role_policy" "ecs_task" {
         "logs:CreateLogStream",
         "logs:PutLogEvents",
         "s3:GetObject",
-        "s3:PutObject"
+        "s3:PutObject",
+        "ses:SendEmail",
+        "ses:SendRawEmail"
       ]
       Resource = "*"
     }]
