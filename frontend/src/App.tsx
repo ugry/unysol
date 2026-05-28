@@ -26,6 +26,9 @@ import TrailersPage from '@/pages/TrailersPage';
 import TollLogsPage from '@/pages/TollLogsPage';
 import DriverLeavePage from '@/pages/DriverLeavePage';
 import LoadBoardPage from '@/pages/LoadBoardPage';
+import KvkkPage from '@/pages/KvkkPage';
+import TermsPage from '@/pages/TermsPage';
+import PrivacyPage from '@/pages/PrivacyPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -60,6 +63,10 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/verify" element={<VerifyEmailPage />} />
       <Route path="/yardim" element={<HelpPage />} />
+      <Route path="/kvkk" element={<KvkkPage />} />
+      <Route path="/kullanim-kosullari" element={<TermsPage />} />
+      <Route path="/gizlilik-politikasi" element={<PrivacyPage />} />
+      <Route path="/cerez-politikasi" element={<PrivacyPage />} />
 
       {/* Admin Routes — separate from tenant layout */}
       <Route path="/admin/login" element={<AdminLoginPage />} />

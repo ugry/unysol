@@ -1,0 +1,19 @@
+project     = "unysol"
+environment = "production"
+aws_region  = "eu-central-1"
+domain_name = "unysolar.com"
+
+db_username = "unysol"
+db_password = "CHANGE_ME_TO_A_STRONG_PASSWORD"
+db_name     = "unysol"
+
+jwt_secret = "CHANGE_ME_TO_A_RANDOM_SECRET"
+
+backend_cpu    = 256
+backend_memory = 512
+
+frontend_cpu    = 256
+frontend_memory = 512
+
+backend_desired_count  = 1
+frontend_desired_count = 1

@@ -474,10 +474,10 @@ export default function LandingPage() {
           <div>
             <h4 className="text-[14px] font-[590] text-[#f7f8f8] mb-3">Yasal</h4>
             <div className="space-y-2 text-[13px]">
-              <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">KVKK</button></div>
-              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Kullanım Koşulları</button></div>
-              <div><button onClick={() => navigate('/login')} className="hover:text-[#d0d6e0] transition-colors">Gizlilik Politikası</button></div>
-              <div><button onClick={() => scrollTo('faq')} className="hover:text-[#d0d6e0] transition-colors">Çerez Politikası</button></div>
+              <div><button onClick={() => navigate('/kvkk')} className="hover:text-[#d0d6e0] transition-colors">KVKK</button></div>
+              <div><button onClick={() => navigate('/kullanim-kosullari')} className="hover:text-[#d0d6e0] transition-colors">Kullanım Koşulları</button></div>
+              <div><button onClick={() => navigate('/gizlilik-politikasi')} className="hover:text-[#d0d6e0] transition-colors">Gizlilik Politikası</button></div>
+              <div><button onClick={() => navigate('/cerez-politikasi')} className="hover:text-[#d0d6e0] transition-colors">Çerez Politikası</button></div>
             </div>
           </div>
         </div>
@@ -496,7 +496,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-[13px] text-[#8a8f98] max-w-2xl">
             Size daha iyi hizmet sunabilmek için çerezler kullanıyoruz.
-            <span className="text-[#FF5F03] cursor-pointer hover:text-[#FF5F03]-hover ml-1" onClick={() => scrollTo('faq')}>Çerez Politikası</span>
+            <span className="text-[#FF5F03] cursor-pointer hover:text-[#FF5F03]-hover ml-1" onClick={() => navigate('/cerez-politikasi')}>Çerez Politikası</span>
           </p>
           <div className="flex items-center gap-2.5 shrink-0">
             <button onClick={acceptCookies} className="text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] px-3 py-1.5 rounded-md border border-[rgba(255,255,255,0.08)] transition-colors font-[510]">Sadece Zorunlu</button>
