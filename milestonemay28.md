@@ -53,8 +53,10 @@
 | **Sender** | `registration@unysolar.com` |
 | **Region** | `eu-central-1` |
 | **Domain verified** | `unysolar.com` (DKIM + SPF configured) |
-| **Production access** | 🔴 Sandbox mode |
-| **Verified recipients** | `ugur.yardimci@unygms.com`, `uguryardimci82@gmail.com`, `test@unygms.com` (pending) |
+| **Production access** | 🟡 Requested — awaiting AWS approval (24h) |
+| **Production request URL** | https://console.aws.amazon.com/ses/home?region=eu-central-1#/account-review |
+| **AWS account** | Root account `326804802908` — request submitted via console |
+| **Verified recipients** | `ugur.yardimci@unygms.com`, `uguryardimci82@gmail.com` |
 
 ### SMTP Credentials (alternative method, not in use)
 
@@ -66,6 +68,14 @@
 | Password | `AmGi8BKMQ+VGxKdk5SanFptmZ/IW9gj3qKhcSHSMMIDr` |
 
 SMTP credentials are not currently used — SES API via IAM role is active and working.
+
+### Production Access Request
+
+Submitted via AWS Console on May 28, 2026. Request text:
+
+> We use SES to send transactional emails (account verification, password resets, notifications) to our users who register on our platform (unysolar.com). Domain verified with DKIM + SPF. Sender: registration@unysolar.com. No marketing/bulk email. ~50-200 emails/day. Bounce/complaint handling via SES notifications.
+
+---
 
 ### Implementation
 
@@ -248,8 +258,8 @@ Created:
 
 | Priority | Task |
 |----------|------|
-| 🔴 | Verify `test@unygms.com` in SES (pending — check Hostinger inbox) |
-| 🔴 | Request SES production access (for sending to any email) |
+| ✅ | SES production access — requested via AWS Console, pending approval |
+| 🟡 | Verify `test@unygms.com` in SES (optional once production access approved) |
 | 🟠 | Stripe Price IDs — create in Dashboard |
 | 🟠 | Admin audit log |
 | 🟠 | Load board match notification |
