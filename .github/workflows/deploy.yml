@@ -55,6 +55,7 @@ jobs:
           push: true
           build-args: |
             VITE_API_URL=${{ env.FRONTEND_API_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || '1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com' }}
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:latest
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:sha-${{ github.sha }}

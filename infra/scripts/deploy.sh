@@ -37,6 +37,7 @@ echo ""
 echo "Building frontend..."
 docker build \
   --build-arg VITE_API_URL="${FRONTEND_API_URL:-https://unysolar.com}" \
+  --build-arg VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID:-1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com}" \
   -t "${ECR_BASE}/${PROJECT}/frontend:latest" \
   "$PROJECT_ROOT/frontend"
 echo "Pushing frontend..."
