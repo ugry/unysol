@@ -37,6 +37,21 @@ case "$cmd" in
     echo "    API:       http://localhost/api/system/health"
     echo "    Login:     http://localhost/login"
     echo "    Dashboard: http://localhost/dashboard"
+    echo ""
+    # Seed modules + countries if not already seeded
+    echo "  Seeding modules + countries..."
+    sleep 3
+    if docker exec unysol-qa-db psql -U unysol -d unysol -t -c "SELECT COUNT(*) FROM modules;" 2>/dev/null | grep -q "0"; then
+      sed -n '755,830p' "$SCRIPT_DIR/database/01-schema.sql" | docker exec -i unysol-qa-db psql -U unysol -d unysol > /dev/null 2>&1
+      echo "  ✅ Modules + countries seeded (20 modules)"
+    else
+      echo "  ℹ️  Modules already seeded"
+    fi
+    # Ensure test user is active
+    docker exec unysol-qa-db psql -U unysol -d unysol -c "UPDATE users SET aktif = true WHERE email = 'admin@qa.local';" > /dev/null 2>&1 || true
+    echo "  ✅ Test user activated"
+    echo ""
+    echo -e "${GREEN}  QA ready: http://localhost/login (admin@qa.local / REDACTED)${NC}"
     ;;
   
   down|stop)

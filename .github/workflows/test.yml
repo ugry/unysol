@@ -205,6 +205,15 @@ jobs:
           fi
           echo "✅ Permissions handlers have proper error handling"
 
+      # B-SET-09: Module seed data must use correct English enum values
+      - name: "DB: Module seed data uses English enum values"
+        run: |
+          if grep -q "'FILO'\|'FINANS'\|'IK'\|'ANALITIK'" database/01-schema.sql; then
+            echo "❌ B-SET-09: Module seed data has Turkish enum values (must be FLEET/FINANCE/HR/ANALYTICS)"
+            exit 1
+          fi
+          echo "✅ Module seed data uses correct English enum values"
+
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
   # ============================================================
