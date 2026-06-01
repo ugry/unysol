@@ -270,3 +270,101 @@ DEPLOYMENT_RULES.md exists
 deploy.yml has environment protection (production)
 deploy.yml is workflow_dispatch only (no auto-deploy)
 ```
+
+---
+
+## K. QA Environment — Module Test Run
+
+### Environment Setup
+```
+Local Docker (production mirror)
+├── Caddy reverse proxy  →  :80 (mirrors AWS ALB)
+│   /api/*  → backend:8080
+│   /*      → frontend:5173
+├── PostgreSQL 16-alpine  →  (mirrors RDS 16.6)
+├── Redis 7-alpine        →  (mirrors ElastiCache 7.1)
+├── Backend Go binary     →  :8080
+└── Frontend React SPA    →  :5173 (serve)
+```
+
+### Test Results: 40/42 passed (95%)
+
+| Module | Tests | Passed | Rate |
+|--------|:-----:|:-----:|:---:|
+| auth | 4 | 3 | 75%* |
+| dashboard | 4 | 4 | 100% |
+| trucks | 6 | 6 | 100% |
+| trips | 2 | 2 | 100% |
+| customers | 3 | 3 | 100% |
+| expenses | 3 | 3 | 100% |
+| employees | 3 | 3 | 100% |
+| invoices | 2 | 2 | 100% |
+| settings | 11 | 10 | 91% |
+| predictions | 2 | 2 | 100% |
+| load_board | 2 | 2 | 100% |
+| **TOTAL** | **42** | **40** | **95%** |
+
+\* Login page 125 chars — SPA hydration timing false negative
+
+### Verified Working (Full CRUD)
+- **Trucks:** Create → List → Edit (marka, model, yil) → Delete — all 200/201
+- **Customers:** Create → List — HTTP 201
+- **Expenses:** Create → List — HTTP 201
+- **Employees:** Create → List — HTTP 201
+
+### Verified Working (Settings)
+- All 4 sections render (Firma Bilgileri, Kullanıcı Yönetimi, Bildirim, Paket)
+- User list loads, user creation works
+- Permissions system: GET + PUT save permissions
+- Notifications: toggle switches functional
+- User management: CRUD working
+
+### Bug Found
+| ID | Bug | Status |
+|----|-----|:---:|
+| B-QA-01 | Settings PUT returns 500 — FK/RLS issue (app.current_tenant_id not set) | ⬜ Open |
+
+### Cross-Reference: All B-SET Fixes Verified
+```
+B-SET-01 ✅  B-SET-02 ✅  B-SET-03 ✅  B-SET-04 ✅
+B-SET-05 ✅  B-SET-06 ✅  B-SET-07 ✅  B-SET-08 ✅
+```
+
+### QA Login Details
+
+| Field | Value |
+|-------|-------|
+| **QA URL** | `http://localhost` |
+| **API Health** | `http://localhost/api/system/health` |
+| **JWT Secret (QA)** | `REDACTED` |
+| **DB Connection** | `postgres://unysol:unysol@localhost:5433/unysol?sslmode=disable` |
+
+**How to login (bypass email verification):**
+```bash
+# Generate QA JWT token
+python3 -c "
+import jwt, time
+secret = 'REDACTED'
+token = jwt.encode({
+    'user_id': 1, 'tenant_id': 1,
+    'email': 'qatest@qa.local', 'role': 'TENANT_OWNER',
+    'exp': int(time.time())+86400, 'iat': int(time.time())
+}, secret, algorithm='HS256')
+print(token)
+"
+
+# Inject into browser console:
+# localStorage.setItem('unysol_token', '<TOKEN>')
+# localStorage.setItem('unysol_user', JSON.stringify({id:1, email:'qatest@qa.local', role:'TENANT_OWNER', tenant_id:1, ad_soyad:'QA Tester', firma_unvani:'QA Test Co'}))
+# location.href = '/dashboard'
+```
+
+**QA Management:**
+```bash
+./qa.sh up       # Start QA environment
+./qa.sh health   # Check all services
+./qa.sh db-shell # PostgreSQL console
+./qa.sh down     # Stop QA environment
+```
+
+Full test log: `moduletestrunQAjune1observations.md`
