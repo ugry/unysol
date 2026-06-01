@@ -1,8 +1,8 @@
 # Unysol — Bug Database: Found & Fixed
 
 > **Session:** June 1, 2026  
-> **Total Bugs Found:** 15  
-> **Total Bugs Fixed:** 14  
+> **Total Bugs Found:** 16  
+> **Total Bugs Fixed:** 15  
 > **Open:** 1  
 
 ---
@@ -30,6 +30,7 @@
 | B-SET-07 | P1 | Permissions | user_permissions table missing from schema | ✅ Fixed |
 | B-SET-08 | P1 | Permissions | DB errors silently discarded in handlers | ✅ Fixed |
 | B-SET-09 | P2 | Permissions | Module seed data not loaded in QA | ✅ Fixed |
+| B-SET-10 | P0 | Permissions | Permission enforcement not implemented | ✅ Fixed |
 | B-QA-01 | P2 | Settings | Settings PUT 500 (app.current_tenant_id not set) | ⬜ Open |
 
 ---
@@ -399,6 +400,23 @@ moduletestrunQAjune1observations.md — QA test results
 
 ```
 35 automated checks across 8 GitHub Actions jobs
-9 permanent regression gates for fixed bugs
+10 permanent regression gates for fixed bugs
 3 deployment rule enforcement gates
 ```
+
+---
+
+### B-SET-10: Permission Enforcement Not Implemented
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P0 — Critical |
+| **Module** | Permissions / Auth |
+| **Found** | QA testing — ofis@ofis.com user with only 2 module permissions could access ALL modules |
+| **Bug** | Permissions were saved correctly in `user_permissions` table via `SavePermissions`, but **never enforced** at the backend level. No middleware checked user permissions before allowing access to module endpoints. All non-TENANT_OWNER users had unrestricted access to every module regardless of their permission settings. |
+| **Impact** | Security: OFFICE, DRIVER, ACCOUNTANT roles could access any module (customers, invoices, settings, user management, etc.) even if the tenant owner explicitly restricted their permissions. The entire role-based access control system was cosmetic only. |
+| **Root Cause** | `SavePermissions` stored data correctly, `GetPermissions` returned data correctly, but **no middleware or handler ever queried `user_permissions` to enforce access control**. The permissions system was save-only with no read/enforce step. |
+| **Fix** | Created `middleware/permissions.go` — `PermissionEnforcer` middleware that: 1) Skips TENANT_OWNER and SUPER_ADMIN (full access), 2) Maps URL path prefix → module_key (21 routes), 3) Maps HTTP method → permission column (GET→can_view, POST→can_create, PUT→can_edit, DELETE→can_delete), 4) Queries `user_permissions` table, 5) Returns 403 with Turkish error message if not permitted. Wired via `r.Use(middleware.PermissionEnforcer(pool))` in main.go tenant route group. |
+| **Files Changed** | `backend/internal/middleware/permissions.go` (new), `backend/cmd/server/main.go` |
+| **CI Gate** | `Permission enforcement middleware exists` + `PermissionEnforcer wired in main.go` in `security-checks` job |
+| **Verified** | QA: ofis user with 2 module permissions gets 200 on truck_tracking + expense_tracking, 403 on all other 9 modules. create permissions enforced (POST blocked for can_create=false). TENANT_OWNER retains full access. |

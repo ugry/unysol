@@ -214,6 +214,13 @@ jobs:
           fi
           echo "✅ Module seed data uses correct English enum values"
 
+      # B-SET-10: Permission enforcement middleware must exist and be wired
+      - name: "Auth: Permission enforcement middleware exists"
+        run: |
+          [ -f backend/internal/middleware/permissions.go ] || { echo "❌ B-SET-10: permissions.go missing"; exit 1; }
+          grep -q "PermissionEnforcer" backend/cmd/server/main.go || { echo "❌ B-SET-10: PermissionEnforcer not wired in main.go"; exit 1; }
+          echo "✅ Permission enforcement middleware wired"
+
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
   # ============================================================

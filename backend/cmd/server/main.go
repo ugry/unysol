@@ -159,6 +159,7 @@ func main() {
 
 		r.Route("/api/tenant", func(r chi.Router) {
 			r.Use(middleware.RequireTenant)
+			r.Use(middleware.PermissionEnforcer(pool))
 
 			r.Mount("/dashboard", dashboardHandler.Routes())
 			r.Mount("/trucks", trucksHandler.Routes())
