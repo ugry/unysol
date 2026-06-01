@@ -22,8 +22,13 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<{ id: string; ad_soyad: string; email: string; rol: string }[]>([]);
   const [planInfo, setPlanInfo] = useState({ plan: 'FREE', truckCount: 0, truckLimit: 5, userCount: 0, userLimit: 5 });
   const [upgrading, setUpgrading] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
   const [showPermsFor, setShowPermsFor] = useState<number | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({
+    trip_started: false, trip_completed: false, invoice_due: false, maintenance: false, weekly_summary: false,
+  });
+  const [notifSaving, setNotifSaving] = useState(false);
 
   useEffect(() => {
     // Fetch users from user management
@@ -41,7 +46,7 @@ export default function SettingsPage() {
       }));
     }).catch(() => {});
 
-    // Fetch settings for company form
+    // Fetch settings for company form + notifications
     api.get('/api/tenant/settings').then(r => {
       const s = r.data?.settings;
       if (s && Array.isArray(s)) {
@@ -54,6 +59,14 @@ export default function SettingsPage() {
           adres: map['adres'] || '',
           telefon: map['telefon'] || '',
         }));
+      }
+      // Load notification preferences
+      const notifs = r.data?.notifications;
+      if (notifs && typeof notifs === 'string') {
+        try {
+          const parsed = JSON.parse(notifs);
+          setNotifPrefs(prev => ({ ...prev, ...parsed }));
+        } catch {}
       }
     }).catch(() => {});
   }, []);
@@ -86,16 +99,41 @@ export default function SettingsPage() {
 
   const handleUpgrade = async () => {
     setUpgrading(true);
+    setUpgradeMsg('');
     try {
       const res = await api.post('/api/tenant/stripe/checkout', { plan: 'PRO' });
       if (res.data?.url) {
         window.open(res.data.url, '_blank');
+      } else {
+        setUpgradeMsg('PRO plana yükseltmek için info@unysolar.com adresine yazabilirsiniz.');
       }
     } catch {
-      // Stripe not configured — scroll to contact
-      alert('PRO plana yükseltmek için info@unysolar.com adresine yazabilirsiniz.');
+      setUpgradeMsg('PRO plana yükseltmek için info@unysolar.com adresine yazabilirsiniz.');
     } finally {
       setUpgrading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+    try {
+      await api.delete(`/api/tenant/user-management/${userId}`);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleToggleNotification = async (key: string) => {
+    const updated = { ...notifPrefs, [key]: !notifPrefs[key] };
+    setNotifPrefs(updated);
+    setNotifSaving(true);
+    try {
+      await api.put('/api/tenant/settings/notifications', updated);
+    } catch {
+      setNotifPrefs(notifPrefs); // rollback
+    } finally {
+      setNotifSaving(false);
     }
   };
 
@@ -184,7 +222,7 @@ export default function SettingsPage() {
                     <Settings2 size={16} />
                   </button>
                 )}
-                <button className="text-[#8a8f98] hover:text-[#DC2626] transition-colors p-1.5 rounded-md hover:bg-[#DC2626]/10">
+                <button onClick={() => handleDeleteUser(u.id)} className="text-[#8a8f98] hover:text-[#DC2626] transition-colors p-1.5 rounded-md hover:bg-[#DC2626]/10" title="Kullanıcıyı Sil">
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -210,18 +248,24 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-3">
           {[
-            { label: 'Sefer başladığında' },
-            { label: 'Sefer tamamlandığında' },
-            { label: 'Fatura vadesi yaklaştığında' },
-            { label: 'Bakım hatırlatması' },
-            { label: 'Haftalık özet raporu' },
+            { label: 'Sefer başladığında', key: 'trip_started' },
+            { label: 'Sefer tamamlandığında', key: 'trip_completed' },
+            { label: 'Fatura vadesi yaklaştığında', key: 'invoice_due' },
+            { label: 'Bakım hatırlatması', key: 'maintenance' },
+            { label: 'Haftalık özet raporu', key: 'weekly_summary' },
           ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between bg-[#191a1b] rounded-lg px-4 py-3 border border-[rgba(255,255,255,0.08)]">
+            <div key={item.key} className="flex items-center justify-between bg-[#191a1b] rounded-lg px-4 py-3 border border-[rgba(255,255,255,0.08)]">
               <div className="flex items-center gap-3">
                 <Bell size={16} className="text-[#8a8f98]" />
-                <span className="text-sm text-[#8a8f98]">{item.label}</span>
+                <span className="text-sm text-[#f7f8f8]">{item.label}</span>
               </div>
-              <span className="text-xs text-[#62666d] bg-[#8a8f98]/10 px-2 py-0.5 rounded">Yakında</span>
+              <button
+                onClick={() => handleToggleNotification(item.key)}
+                disabled={notifSaving}
+                className={`w-10 h-5 rounded-full transition-colors duration-200 relative ${notifPrefs[item.key] ? 'bg-[#FF5F03]' : 'bg-[#333]'}`}
+              >
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${notifPrefs[item.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
             </div>
           ))}
         </div>
@@ -259,6 +303,9 @@ export default function SettingsPage() {
               </button>
             )}
           </div>
+          {upgradeMsg && (
+            <p className="mt-3 text-sm text-[#FF5F03] bg-[#FF5F03]/10 rounded-lg px-4 py-2">{upgradeMsg}</p>
+          )}
           {planInfo.plan === 'FREE' && (
             <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.08)]">
               <h4 className="text-xs font-semibold text-[#8a8f98] uppercase tracking-wider mb-2">PRO Plan Özellikleri</h4>

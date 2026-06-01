@@ -98,7 +98,7 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, models.SuccessResponse{Message: "settings updated"})
+	writeJSON(w, http.StatusOK, models.SuccessResponse{Success: true, Message: "settings updated"})
 }
 
 func (h *SettingsHandler) UpdateNotifications(w http.ResponseWriter, r *http.Request) {
@@ -127,5 +127,5 @@ func (h *SettingsHandler) UpdateNotifications(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeJSON(w, http.StatusOK, models.SuccessResponse{Message: "notification preferences updated"})
+	writeJSON(w, http.StatusOK, models.SuccessResponse{Success: true, Message: "notification preferences updated"})
 }

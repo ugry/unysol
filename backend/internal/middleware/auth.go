@@ -72,7 +72,8 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 
 func RequireTenant(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if GetTenantID(r.Context()) == "" {
+		tid := GetTenantID(r.Context())
+		if tid == "" || tid == "0" {
 			http.Error(w, `{"error":"tenant context required"}`, http.StatusForbidden)
 			return
 		}

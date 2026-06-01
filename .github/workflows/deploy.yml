@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   AWS_REGION: eu-central-1
   ECR_BACKEND: unysol/backend
@@ -15,9 +19,14 @@ env:
   FRONTEND_API_URL: https://unysolar.com
 
 jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/test.yml
+
   deploy:
     name: Build & Deploy to ECS
     runs-on: ubuntu-latest
+    needs: [test]
 
     steps:
       - name: Checkout
@@ -55,7 +64,7 @@ jobs:
           push: true
           build-args: |
             VITE_API_URL=${{ env.FRONTEND_API_URL }}
-            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || '1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com' }}
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:latest
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:sha-${{ github.sha }}

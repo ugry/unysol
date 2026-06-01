@@ -16,17 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with: { go-version: '1.22' }
+        with:
+          go-version: '1.22'
+          cache: true
 
       # BUILT.md: Go binary must compile
       - name: Build check (linux/amd64)
         working-directory: backend
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dev/null ./cmd/server
 
-      # TESTRESULTS.md: Go unit tests
+      # TESTRESULTS.md: Go unit tests (no silent failures)
       - name: Go tests
         working-directory: backend
-        run: go test ./... -v -count=1 2>&1 || true
+        run: go test ./... -v -count=1 -coverprofile=coverage.out -covermode=atomic
+
+      # golangci-lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: backend
+          version: latest
+          args: --timeout=5m
 
       # STATICWORKFLOWANDTEST.md: vet
       - name: Go vet
@@ -40,6 +50,10 @@ jobs:
           echo "Handler files: $COUNT"
           [ "$COUNT" -ge 18 ] || { echo "Expected >=18 handler files"; exit 1; }
 
+      - name: govulncheck
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck ./...
+
   # ============================================================
   # JOB 2: FRONTEND (React/Vite)
   # ============================================================
@@ -48,7 +62,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22' }
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install
         working-directory: frontend
@@ -58,10 +75,17 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
-      # BUILT.md: Frontend must build
+      - name: ESLint
+        working-directory: frontend
+        run: npx eslint src/ --max-warnings=0
+
       - name: Build check
         working-directory: frontend
         run: npm run build
+
+      - name: npm audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
 
       # BUILT.md: Page count >= 14
       - name: Frontend page count
@@ -109,6 +133,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Gitleaks — detect secrets and credentials in code
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # saaslandingpagesecurity.md: Security headers middleware exists
       - name: Security middleware file exists
@@ -139,6 +171,19 @@ jobs:
       - name: Demo route rate limited
         run: |
           grep -A2 "/api/demo" backend/cmd/server/main.go | grep -q "RateLimit" || { echo "Demo rate limit missing"; exit 1; }
+
+      # B-SET-01: RequireTenant must reject tenant_id=0 (super admin)
+      - name: "RequireTenant rejects super admin (tid=0)"
+        run: |
+          grep -B2 "http.Error.*Forbidden" backend/internal/middleware/auth.go | grep -q 'tid.*==.*"0"' || \
+          grep -q 'tenant_id.*!=.*"0"\|tenand_id.*!=.*"0"\|tid.*!=.*"0"' backend/internal/middleware/auth.go || \
+          { echo "❌ B-SET-01: RequireTenant does not reject tenant_id=0"; exit 1; }
+
+      # B-SET-02: Notification PUT must return success:true
+      - name: "Settings: Notification PUT returns success:true"
+        run: |
+          grep -A1 "notification preferences updated" backend/internal/handlers/settings.go | grep -q "Success: true" || \
+          { echo "❌ B-SET-02: Notification PUT missing Success:true"; exit 1; }
 
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
@@ -172,7 +217,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with: { go-version: '1.22' }
+        with:
+          go-version: '1.22'
+          cache: true
 
       - name: Init DB schema
         run: |
@@ -361,6 +408,36 @@ jobs:
         run: |
           if grep -q "FREE.*5.*kamyon\|Firma Bilgileri" frontend/src/pages/SettingsPage.tsx 2>/dev/null; then
             echo "✅ Settings page active"
+          fi
+
+      # B-SET-03: Delete user button must have onClick handler
+      - name: "Settings: Delete button has onClick handler"
+        run: |
+          if grep -A1 "Trash2" frontend/src/pages/SettingsPage.tsx | grep -q "onClick"; then
+            echo "✅ Delete button has onClick handler"
+          else
+            echo "❌ B-SET-03: Delete button has no onClick handler"
+            exit 1
+          fi
+
+      # B-SET-04: Notifications must be wired to backend API
+      - name: "Settings: Notifications wired to backend API"
+        run: |
+          if grep -q "notification_prefs\|handleToggleNotification\|notifications" frontend/src/pages/SettingsPage.tsx; then
+            echo "✅ Notifications wired to backend"
+          else
+            echo "❌ B-SET-04: Notifications toggles not wired to backend"
+            exit 1
+          fi
+
+      # B-SET-05: Upgrade button must have fallback
+      - name: "Settings: PRO upgrade has fallback response"
+        run: |
+          if grep -A10 "handleUpgrade" frontend/src/pages/SettingsPage.tsx | grep -q "upgradeMsg\|alert\|catch"; then
+            echo "✅ PRO upgrade has fallback handler"
+          else
+            echo "❌ B-SET-05: PRO upgrade has no visible fallback response"
+            exit 1
           fi
 
       # truckownersettingsanalysis.md: WhatsApp integration tracking
