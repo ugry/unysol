@@ -1,0 +1,11 @@
+linters:
+  disable:
+    - errcheck
+    - unused
+  enable:
+    - govet
+    - staticcheck
+    - ineffassign
+    - typecheck
+    - gosimple
+    - bodyclose
