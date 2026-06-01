@@ -1,8 +1,10 @@
 # Unysol — June 1, 2026 Milestone
 
-> **Session:** Full day — CI/CD hardening + Settings bug bash + QA environment  
-> **Commits:** ~12 (v2.37 series)  
+> **Session:** Full day — CI/CD hardening + Settings bug bash + QA environment + Permission enforcement  
+> **Commits:** ~20 (v2.37 series)  
 > **Production:** All fixes deployed via GitHub Actions → ECS  
+> **Bugs:** 18 found, 17 fixed, 1 open  
+> **QA:** 40/42 module tests passed (95%)  
 
 ---
 
@@ -381,3 +383,76 @@ docker exec -it unysol-qa-db psql -U unysol -d unysol
 ```
 
 Full test log: `moduletestrunQAjune1observations.md`
+
+---
+
+## L. Permission Enforcement System (B-SET-10, B-UI-01, B-UI-02)
+
+### B-SET-10: Permission Enforcement Not Implemented (P0)
+Permissions were SAVED in `user_permissions` but never ENFORCED. All non-owner users had unrestricted access.
+
+**Fix:** Created `backend/internal/middleware/permissions.go` — `PermissionEnforcer` middleware:
+- 21 URL path → module_key mappings
+- HTTP method → permission column (GET→can_view, POST→can_create, PUT→can_edit, DELETE→can_delete)
+- Queries `user_permissions` per request, returns 403 if not permitted
+- Skips TENANT_OWNER/SUPER_ADMIN (full access)
+
+### B-UI-01: Sidebar Shows All Modules (P1)
+Sidebar rendered all 16 hardcoded navItems without checking permissions.
+
+**Fix:** `Sidebar.tsx` now fetches `GET /api/tenant/my-permissions` and filters to only `can_view: true` modules. Dashboard always shown.
+
+### B-UI-02: No Access Denied Message (P2)
+Unauthorized module pages showed blank with no error.
+
+**Fix:** Created `AccessDenied.tsx` component + 403 handler in `api.ts` interceptor.
+
+### Verified on QA (ofis@ofis.com / OFFICE role)
+```
+Allowed:  truck_tracking, expense_tracking  ✅
+Blocked:  9 other modules (403)             ✅
+Sidebar:  Ana Panel, Kamyonlar, Giderler    ✅
+Hidden:   13 unauthorized nav items          ✅
+```
+
+---
+
+## M. Handoff — Continue Tomorrow
+
+### QA Environment
+```bash
+cd /home/ugur/unysol && ./qa.sh up
+```
+
+| Login | |
+|-------|---|
+| URL | `http://localhost` |
+| Admin | `admin@qa.local` / `REDACTED` (TENANT_OWNER, all access) |
+| Ofis | `ofis@ofis.com` / `REDACTED` (OFFICE, trucks + expenses only) |
+
+### Key Files for Tomorrow
+| File | Purpose |
+|------|---------|
+| `bugfoundbugfixed.md` | Complete bug database (18 bugs, 17 fixed) |
+| `CICDimprovements.md` | CI/CD audit + remaining tasks |
+| `DEPLOYMENT_RULES.md` | Deployment governance (tests + approval) |
+| `moduletestrunQAjune1observations.md` | QA module test log (40/42 passed) |
+| `milestone1june.md` | This file |
+
+### Open Issues (1)
+| ID | Bug | Priority |
+|----|-----|:---:|
+| B-QA-01 | Settings PUT 500 — `app.current_tenant_id` not set in PostgreSQL | P2 |
+
+### Production URLs
+```
+App:   https://unysolar.com
+CI:    https://github.com/ugry/unysol/actions
+ECS:   https://eu-central-1.console.aws.amazon.com/ecs/v2/clusters/unysol-cluster/services
+```
+
+### Deploy to Production
+```bash
+gh workflow run deploy.yml --repo ugry/unysol --ref main -f reason="..."
+# → Tests pass → Approve in GitHub UI → Deploy
+```

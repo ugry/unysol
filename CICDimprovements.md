@@ -562,4 +562,4 @@ These checks should be added to the `api-smoke` job:
 | B-SET-03 | Delete user button decorative (no handler) | ⬜ |
 | B-SET-04 | Notifications UI not wired to backend | ⬜ |
 | B-SET-05 | PRO upgrade button no visible response | ⬜ |
-| B-SET-06 | Verify settings PUT works for real tenants | ⬜ |
+| B-SET-06 | Verify settings PUT works for real tenants | ✅ |
