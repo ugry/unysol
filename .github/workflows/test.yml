@@ -430,6 +430,18 @@ jobs:
             exit 1
           fi
 
+      # B-SET-06: onCreated callback must accept user data for optimistic UI
+      - name: "Settings: onCreated uses optimistic user add"
+        run: |
+          if grep -q "onCreated={(newUser)" frontend/src/pages/SettingsPage.tsx && \
+             grep -q "setUsers(prev => \[...prev" frontend/src/pages/SettingsPage.tsx && \
+             grep -q "onCreated: (user:" frontend/src/components/AddUserModal.tsx; then
+            echo "✅ onCreated receives and uses created user data"
+          else
+            echo "❌ B-SET-06: onCreated does not optimistically add user to list"
+            exit 1
+          fi
+
       # B-SET-05: Upgrade button must have fallback
       - name: "Settings: PRO upgrade has fallback response"
         run: |

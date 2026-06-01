@@ -4,7 +4,7 @@ import { X, Loader2 } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (user: { id: number; ad_soyad: string; email: string; rol: string }) => void;
 }
 
 export default function AddUserModal({ onClose, onCreated }: Props) {
@@ -17,8 +17,8 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
     if (!form.ad_soyad || !form.email || !form.password) { setError('Ad soyad, e-posta ve şifre zorunludur'); return; }
     setSubmitting(true);
     try {
-      await api.post('/api/tenant/user-management', form);
-      onCreated();
+      const res = await api.post('/api/tenant/user-management', form);
+      onCreated({ id: res.data.id, ad_soyad: form.ad_soyad, email: form.email, rol: form.rol });
       onClose();
     } catch (err: any) { setError(err?.response?.data?.error || 'Kullanıcı oluşturulamadı'); }
     finally { setSubmitting(false); }

@@ -322,10 +322,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {showAddUser && <AddUserModal onClose={() => setShowAddUser(false)} onCreated={() => {     api.get('/api/tenant/user-management').then(r => {
-      if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({
-        id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || ''
-      }))); }); }} />}
+      {showAddUser && <AddUserModal onClose={() => setShowAddUser(false)} onCreated={(newUser) => {
+        setUsers(prev => [...prev, { id: String(newUser.id), ad_soyad: newUser.ad_soyad, email: newUser.email, rol: newUser.rol }]);
+        api.get('/api/tenant/user-management').then(r => {
+          if (Array.isArray(r.data)) setUsers(r.data.map((e: any) => ({
+            id: String(e.id), ad_soyad: e.ad_soyad || '', email: e.email || '', rol: e.rol || ''
+          })));
+        }).catch(() => {});
+      }} />}
       {showPermsFor !== null && <PermissionsModal userId={showPermsFor} onClose={() => setShowPermsFor(null)} />}
     </div>
   );
