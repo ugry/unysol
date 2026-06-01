@@ -147,7 +147,7 @@ func (h *UserManagementHandler) GetPermissions(w http.ResponseWriter, r *http.Re
 			"module_key":  key,
 			"module_name": name,
 			"category":    cat,
-			"can_view":    true,
+			"can_view":    false,
 			"can_create":  false,
 			"can_edit":    false,
 			"can_delete":  false,

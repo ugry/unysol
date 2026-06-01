@@ -45,12 +45,18 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t, i18n } = useTranslation();
-  const [permittedModules, setPermittedModules] = useState<Set<string> | null>(null);
+  const [permittedModules, setPermittedModules] = useState<Set<string> | null | undefined>(undefined);
 
   useEffect(() => {
     // TENANT_OWNER sees all modules
     if (user?.role === 'TENANT_OWNER') {
       setPermittedModules(null); // null = show all
+      return;
+    }
+
+    // Non-owner: fetch permissions
+    if (!user) {
+      setPermittedModules(undefined); // still loading
       return;
     }
 
@@ -66,15 +72,20 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (p.can_view) allowed.add(p.module_key);
         });
         setPermittedModules(allowed);
+      } else {
+        setPermittedModules(null); // fallback: show all
       }
     }).catch(() => {
       setPermittedModules(null); // on error, show all
     });
   }, [user]);
 
-  const filteredItems = permittedModules === null
-    ? navItems
-    : navItems.filter(item => item.moduleKey === 'dashboard' || permittedModules.has(item.moduleKey));
+  // undefined = loading, null = show all (owner), Set = filtered
+  const filteredItems = permittedModules === undefined
+    ? [] // loading — show nothing until permissions loaded
+    : permittedModules === null
+      ? navItems
+      : navItems.filter(item => item.moduleKey === 'dashboard' || permittedModules.has(item.moduleKey));
 
   const toggleLanguage = () => {
     const next = i18n.language === 'tr' ? 'en' : 'tr';
