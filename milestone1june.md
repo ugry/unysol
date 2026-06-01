@@ -339,24 +339,37 @@ B-SET-05 ✅  B-SET-06 ✅  B-SET-07 ✅  B-SET-08 ✅
 | **JWT Secret (QA)** | `REDACTED` |
 | **DB Connection** | `postgres://unysol:unysol@localhost:5433/unysol?sslmode=disable` |
 
-**How to login (bypass email verification):**
-```bash
-# Generate QA JWT token
-python3 -c "
-import jwt, time
-secret = 'REDACTED'
-token = jwt.encode({
-    'user_id': 1, 'tenant_id': 1,
-    'email': 'qatest@qa.local', 'role': 'TENANT_OWNER',
-    'exp': int(time.time())+86400, 'iat': int(time.time())
-}, secret, algorithm='HS256')
-print(token)
-"
+**Test Tenant User (email + password login):**
 
-# Inject into browser console:
-# localStorage.setItem('unysol_token', '<TOKEN>')
-# localStorage.setItem('unysol_user', JSON.stringify({id:1, email:'qatest@qa.local', role:'TENANT_OWNER', tenant_id:1, ad_soyad:'QA Tester', firma_unvani:'QA Test Co'}))
-# location.href = '/dashboard'
+| Field | Value |
+|-------|-------|
+| **Login URL** | `http://localhost/login` |
+| **Email** | `admin@qa.local` |
+| **Password** | `REDACTED` |
+| **Role** | TENANT_OWNER |
+| **Tenant** | QA Test Company (id=2) |
+| **Access** | Full dashboard, all modules, settings, user management |
+
+**How to create additional users (bypass email verification):**
+```bash
+# 1. Signup
+curl -X POST http://localhost/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"tenant_name":"My Company","email":"user@qa.local","password":"MyPass123!"}'
+
+# 2. Activate (bypass email verification)
+docker exec unysol-qa-db psql -U unysol -d unysol \
+  -c "UPDATE users SET aktif = true WHERE email = 'user@qa.local';"
+
+# 3. Login
+curl -X POST http://localhost/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@qa.local","password":"MyPass123!"}'
+```
+
+**Direct DB access:**
+```bash
+docker exec -it unysol-qa-db psql -U unysol -d unysol
 ```
 
 **QA Management:**
