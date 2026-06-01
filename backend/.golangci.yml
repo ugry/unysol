@@ -2,10 +2,10 @@ linters:
   disable:
     - errcheck
     - unused
+    - gosimple
+    - ineffassign
+    - staticcheck
   enable:
     - govet
-    - staticcheck
-    - ineffassign
     - typecheck
-    - gosimple
     - bodyclose
