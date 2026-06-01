@@ -1,6 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 import {
   LayoutDashboard,
   Truck,
@@ -20,22 +22,22 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/dashboard', label: 'Ana Panel', icon: LayoutDashboard },
-  { path: '/dashboard/trucks', label: 'Kamyonlar', icon: Truck },
-  { path: '/dashboard/trailers', label: 'Dorseler', icon: Truck },
-  { path: '/dashboard/trips', label: 'Seferler', icon: MapPin },
-  { path: '/dashboard/load-board', label: 'Yük Panosu', icon: Package },
-  { path: '/dashboard/customers', label: 'Müşteriler', icon: Users },
-  { path: '/dashboard/invoices', label: 'Faturalar', icon: FileText },
-  { path: '/dashboard/cek-senet', label: 'Çek/Senet', icon: CreditCard },
-  { path: '/dashboard/expenses', label: 'Giderler', icon: DollarSign },
-  { path: '/dashboard/fuel-logs', label: 'Yakıt Takip', icon: Fuel },
-  { path: '/dashboard/toll-logs', label: 'HGS Takip', icon: CreditCard },
-  { path: '/dashboard/maintenance', label: 'Bakım', icon: Wrench },
-  { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck },
-  { path: '/dashboard/employees', label: 'Personel', icon: UserCheck },
-  { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp },
-  { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings },
+  { path: '/dashboard', label: 'Ana Panel', icon: LayoutDashboard, moduleKey: 'dashboard' },
+  { path: '/dashboard/trucks', label: 'Kamyonlar', icon: Truck, moduleKey: 'truck_tracking' },
+  { path: '/dashboard/trailers', label: 'Dorseler', icon: Truck, moduleKey: 'trailer_mgmt' },
+  { path: '/dashboard/trips', label: 'Seferler', icon: MapPin, moduleKey: 'trip_mgmt' },
+  { path: '/dashboard/load-board', label: 'Yük Panosu', icon: Package, moduleKey: 'load_board' },
+  { path: '/dashboard/customers', label: 'Müşteriler', icon: Users, moduleKey: 'customer_mgmt' },
+  { path: '/dashboard/invoices', label: 'Faturalar', icon: FileText, moduleKey: 'invoice_mgmt' },
+  { path: '/dashboard/cek-senet', label: 'Çek/Senet', icon: CreditCard, moduleKey: 'cek_senet' },
+  { path: '/dashboard/expenses', label: 'Giderler', icon: DollarSign, moduleKey: 'expense_tracking' },
+  { path: '/dashboard/fuel-logs', label: 'Yakıt Takip', icon: Fuel, moduleKey: 'fuel_logging' },
+  { path: '/dashboard/toll-logs', label: 'HGS Takip', icon: CreditCard, moduleKey: 'toll_tracking' },
+  { path: '/dashboard/maintenance', label: 'Bakım', icon: Wrench, moduleKey: 'maintenance' },
+  { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck, moduleKey: 'driver_leave' },
+  { path: '/dashboard/employees', label: 'Personel', icon: UserCheck, moduleKey: 'employee_mgmt' },
+  { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp, moduleKey: 'predictions' },
+  { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings, moduleKey: 'settings' },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -43,6 +45,36 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t, i18n } = useTranslation();
+  const [permittedModules, setPermittedModules] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    // TENANT_OWNER sees all modules
+    if (user?.role === 'TENANT_OWNER') {
+      setPermittedModules(null); // null = show all
+      return;
+    }
+
+    api.get('/api/tenant/my-permissions').then(r => {
+      if (r.data?.all_access) {
+        setPermittedModules(null);
+        return;
+      }
+      const perms = r.data?.permissions;
+      if (Array.isArray(perms)) {
+        const allowed = new Set<string>();
+        perms.forEach((p: any) => {
+          if (p.can_view) allowed.add(p.module_key);
+        });
+        setPermittedModules(allowed);
+      }
+    }).catch(() => {
+      setPermittedModules(null); // on error, show all
+    });
+  }, [user]);
+
+  const filteredItems = permittedModules === null
+    ? navItems
+    : navItems.filter(item => item.moduleKey === 'dashboard' || permittedModules.has(item.moduleKey));
 
   const toggleLanguage = () => {
     const next = i18n.language === 'tr' ? 'en' : 'tr';
@@ -68,7 +100,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 py-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
 

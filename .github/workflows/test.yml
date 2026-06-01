@@ -528,6 +528,23 @@ jobs:
             exit 1
           fi
 
+      # B-UI-01: Sidebar must filter by user permissions
+      - name: "Sidebar filters by user permissions"
+        run: |
+          if grep -q "my-permissions\|filteredItems\|permittedModules" frontend/src/components/Sidebar.tsx; then
+            echo "✅ Sidebar filters by user permissions"
+          else
+            echo "❌ B-UI-01: Sidebar does not filter by permissions"
+            exit 1
+          fi
+
+      # B-UI-02: AccessDenied component must exist
+      - name: "AccessDenied component exists"
+        run: |
+          [ -f frontend/src/components/AccessDenied.tsx ] || { echo "❌ B-UI-02: AccessDenied.tsx missing"; exit 1; }
+          grep -q "Erişim Reddedildi" frontend/src/components/AccessDenied.tsx || { echo "❌ B-UI-02: AccessDenied missing Turkish message"; exit 1; }
+          echo "✅ AccessDenied component present"
+
       # truckownersettingsanalysis.md: WhatsApp integration tracking
       - name: WhatsApp integration status
         run: |

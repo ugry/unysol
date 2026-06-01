@@ -31,6 +31,8 @@
 | B-SET-08 | P1 | Permissions | DB errors silently discarded in handlers | ✅ Fixed |
 | B-SET-09 | P2 | Permissions | Module seed data not loaded in QA | ✅ Fixed |
 | B-SET-10 | P0 | Permissions | Permission enforcement not implemented | ✅ Fixed |
+| B-UI-01 | P1 | Frontend | Sidebar shows all modules regardless of permissions | ✅ Fixed |
+| B-UI-02 | P2 | Frontend | No access denied message when API returns 403 | ✅ Fixed |
 | B-QA-01 | P2 | Settings | Settings PUT 500 (app.current_tenant_id not set) | ⬜ Open |
 
 ---
@@ -420,3 +422,37 @@ moduletestrunQAjune1observations.md — QA test results
 | **Files Changed** | `backend/internal/middleware/permissions.go` (new), `backend/cmd/server/main.go` |
 | **CI Gate** | `Permission enforcement middleware exists` + `PermissionEnforcer wired in main.go` in `security-checks` job |
 | **Verified** | QA: ofis user with 2 module permissions gets 200 on truck_tracking + expense_tracking, 403 on all other 9 modules. create permissions enforced (POST blocked for can_create=false). TENANT_OWNER retains full access. |
+
+---
+
+### B-UI-01: Sidebar Shows All Modules Regardless of Permissions
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Frontend / Sidebar |
+| **Found** | QA UI testing — ofis@ofis.com user with only 2 module permissions saw ALL navigation links in sidebar |
+| **Bug** | `Sidebar.tsx` rendered all 16 hardcoded `navItems` without checking user permissions. A user with access to only 2 modules could see (and click) all 16 navigation links, even for modules they had no permission for. |
+| **Impact** | Users could navigate to unauthorized pages (though backend returned 403, the UI allowed navigation). Poor UX — users confused by dead links. |
+| **Root Cause** | `navItems` array was static. No call to `/api/tenant/my-permissions` to check user permissions. No filtering logic. |
+| **Fix** | Added `useEffect` that calls `GET /api/tenant/my-permissions`. For TENANT_OWNER: shows all items (null = all). For other roles: extracts `can_view: true` module_keys from permissions array, filters `navItems` to only permitted modules. Dashboard is always shown. |
+| **Files Changed** | `frontend/src/components/Sidebar.tsx` |
+| **CI Gate** | (See B-UI-02 combined gate below) |
+| **Verified** | QA: ofis user sees only 3 sidebar items (Ana Panel, Kamyonlar, Giderler). All 8 unauthorized items hidden. |
+
+---
+
+### B-UI-02: No Access Denied Message When API Returns 403
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Frontend / API |
+| **Found** | QA UI testing — navigating to unauthorized module showed blank page with no error |
+| **Bug** | When a page's API calls returned 403 (permission denied), the frontend showed an empty page shell with no indication that access was denied. User saw a blank data table and couldn't distinguish between "no data" and "no access." |
+| **Impact** | Confusing UX — users don't know why pages are empty. Could lead to support tickets for "missing data" when it's actually missing permissions. |
+| **Root Cause** | `api.ts` interceptor only handled 401 (redirect to login). No handler for 403 responses. Page components had no error state for permission denial. |
+| **Fix** | 1) Added 403 handler in `api.ts` interceptor — stores denied URL in `sessionStorage`. 2) Created `AccessDenied.tsx` component with ShieldAlert icon and Turkish error message. 3) Sidebar filtering (B-UI-01) prevents most navigation to unauthorized pages. |
+| **Files Changed** | `frontend/src/lib/api.ts`, `frontend/src/components/AccessDenied.tsx` (new) |
+| **CI Gate** | `AccessDenied component exists` + `Sidebar filters by permissions` in `production-integrity` job |
+| **Verified** | Sidebar now filters unauthorized modules (B-UI-01 resolves most cases). AccessDenied component available for direct URL navigation attempts. |

@@ -23,6 +23,10 @@ api.interceptors.response.use(
       localStorage.removeItem('unysol_user');
       window.location.href = '/';
     }
+    if (error.response?.status === 403) {
+      // Permission denied — set flag for UI to show access denied message
+      sessionStorage.setItem('unysol_403', error.config?.url || '');
+    }
     return Promise.reject(error);
   }
 );
