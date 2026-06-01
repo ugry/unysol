@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   # ============================================================
@@ -319,6 +320,26 @@ jobs:
           grep -q "reverse_proxy backend:8080" Caddyfile || { echo "Caddyfile missing backend route"; exit 1; }
           grep -q "reverse_proxy frontend:5173" Caddyfile || { echo "Caddyfile missing frontend route"; exit 1; }
           echo "✅ Caddyfile routes match production ALB"
+
+      # Deployment rules enforcement
+      - name: "Deploy rules: DEPLOYMENT_RULES.md exists"
+        run: |
+          [ -f DEPLOYMENT_RULES.md ] || { echo "DEPLOYMENT_RULES.md missing"; exit 1; }
+
+      - name: "Deploy rules: environment protection configured"
+        run: |
+          grep -q "environment:" .github/workflows/deploy.yml || { echo "deploy.yml missing environment protection"; exit 1; }
+          grep -q "name: production" .github/workflows/deploy.yml || { echo "deploy.yml missing production environment"; exit 1; }
+          echo "✅ Deploy environment protection configured"
+
+      - name: "Deploy rules: workflow_dispatch only (no auto-deploy)"
+        run: |
+          if grep -A5 "on:" .github/workflows/deploy.yml | grep -q "push:"; then
+            echo "❌ deploy.yml has auto-deploy on push — must be workflow_dispatch only"
+            exit 1
+          fi
+          grep -q "workflow_dispatch:" .github/workflows/deploy.yml || { echo "deploy.yml missing workflow_dispatch"; exit 1; }
+          echo "✅ Deploy is manual-only (workflow_dispatch)"
 
       - name: docker-compose.yml exists
         run: |
