@@ -300,6 +300,26 @@ jobs:
           [ -f backend/Dockerfile ] || { echo "Backend Dockerfile missing"; exit 1; }
           [ -f frontend/Dockerfile ] || { echo "Frontend Dockerfile missing"; exit 1; }
 
+      # QA environment: must mirror production topology
+      - name: QA environment files present
+        run: |
+          [ -f docker-compose.qa.yml ] || { echo "docker-compose.qa.yml missing"; exit 1; }
+          [ -f Caddyfile ] || { echo "Caddyfile missing"; exit 1; }
+          [ -f qa.sh ] || { echo "qa.sh missing"; exit 1; }
+          [ -f .env.qa ] || { echo ".env.qa missing"; exit 1; }
+          echo "✅ QA environment files present"
+
+      - name: QA compose has Caddy (mirrors ALB)
+        run: |
+          grep -q "caddy:" docker-compose.qa.yml || { echo "Caddy service missing from QA compose"; exit 1; }
+          echo "✅ QA compose includes Caddy reverse proxy"
+
+      - name: QA compose routes match production ALB
+        run: |
+          grep -q "reverse_proxy backend:8080" Caddyfile || { echo "Caddyfile missing backend route"; exit 1; }
+          grep -q "reverse_proxy frontend:5173" Caddyfile || { echo "Caddyfile missing frontend route"; exit 1; }
+          echo "✅ Caddyfile routes match production ALB"
+
       - name: docker-compose.yml exists
         run: |
           [ -f docker-compose.yml ] || { echo "docker-compose.yml missing"; exit 1; }
