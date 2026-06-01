@@ -131,8 +131,12 @@ func (h *UserManagementHandler) GetPermissions(w http.ResponseWriter, r *http.Re
 	userID := chi.URLParam(r, "userId")
 
 	// Get all modules
-	modRows, _ := h.DB.Query(r.Context(),
+	modRows, err := h.DB.Query(r.Context(),
 		`SELECT module_key, module_name, category FROM modules ORDER BY category, module_key`)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Modüller yüklenemedi"})
+		return
+	}
 	defer modRows.Close()
 
 	perms := make([]map[string]interface{}, 0)
@@ -152,9 +156,14 @@ func (h *UserManagementHandler) GetPermissions(w http.ResponseWriter, r *http.Re
 	}
 
 	// Load existing permissions for this user
-	permRows, _ := h.DB.Query(r.Context(),
+	permRows, err := h.DB.Query(r.Context(),
 		`SELECT module_key, can_view, can_create, can_edit, can_delete
 		 FROM user_permissions WHERE tenant_id=$1 AND user_id=$2`, tenantID, userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "İzinler yüklenemedi"})
+		return
+	}
+	defer permRows.Close()
 
 	for permRows.Next() {
 		var key string
@@ -169,7 +178,6 @@ func (h *UserManagementHandler) GetPermissions(w http.ResponseWriter, r *http.Re
 			}
 		}
 	}
-	permRows.Close()
 
 	writeJSON(w, http.StatusOK, perms)
 }
@@ -185,12 +193,16 @@ func (h *UserManagementHandler) SavePermissions(w http.ResponseWriter, r *http.R
 	}
 
 	for _, p := range perms {
-		_, _ = h.DB.Exec(r.Context(),
+		_, err := h.DB.Exec(r.Context(),
 			`INSERT INTO user_permissions (tenant_id, user_id, module_key, can_view, can_create, can_edit, can_delete)
 			 VALUES ($1,$2,$3,$4,$5,$6,$7)
 			 ON CONFLICT (user_id, module_key) DO UPDATE SET
 			 can_view=$4, can_create=$5, can_edit=$6, can_delete=$7`,
 			tenantID, userID, p.ModuleKey, p.CanView, p.CanCreate, p.CanEdit, p.CanDelete)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "İzinler kaydedilemedi: " + err.Error()})
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "İzinler kaydedildi"})

@@ -185,6 +185,25 @@ jobs:
           grep -A1 "notification preferences updated" backend/internal/handlers/settings.go | grep -q "Success: true" || \
           { echo "❌ B-SET-02: Notification PUT missing Success:true"; exit 1; }
 
+      # B-SET-07: user_permissions table must exist in schema
+      - name: "DB: user_permissions table defined in schema"
+        run: |
+          grep -q "CREATE TABLE.*user_permissions" database/01-schema.sql || \
+          { echo "❌ B-SET-07: user_permissions table missing from schema"; exit 1; }
+
+      # B-SET-08: GetPermissions/SavePermissions must handle errors
+      - name: "DB: Permissions handlers have error handling"
+        run: |
+          if grep -q "permRows, _ := h.DB.Query" backend/internal/handlers/usermanagement.go; then
+            echo "❌ B-SET-08: GetPermissions discards DB errors"
+            exit 1
+          fi
+          if grep -q "_, _ = h.DB.Exec.*user_permissions" backend/internal/handlers/usermanagement.go; then
+            echo "❌ B-SET-08: SavePermissions discards DB errors"
+            exit 1
+          fi
+          echo "✅ Permissions handlers have proper error handling"
+
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
   # ============================================================

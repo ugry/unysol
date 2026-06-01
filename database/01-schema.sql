@@ -72,6 +72,23 @@ CREATE TABLE IF NOT EXISTS users (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- user_permissions: per-user module-level CRUD permissions
+CREATE TABLE IF NOT EXISTS user_permissions (
+    id              SERIAL PRIMARY KEY,
+    tenant_id       INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    module_key      VARCHAR(50) NOT NULL,
+    can_view        BOOLEAN NOT NULL DEFAULT true,
+    can_create      BOOLEAN NOT NULL DEFAULT false,
+    can_edit        BOOLEAN NOT NULL DEFAULT false,
+    can_delete      BOOLEAN NOT NULL DEFAULT false,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, module_key)
+);
+CREATE INDEX IF NOT EXISTS idx_user_permissions_tenant ON user_permissions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
+
 -- ============================================================
 -- 3. TRUCKS
 -- ============================================================
@@ -678,6 +695,7 @@ ALTER TABLE invoice_recurrences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE load_board ENABLE ROW LEVEL SECURITY;
 ALTER TABLE actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
 
 -- Generic RLS policy function
 CREATE OR REPLACE FUNCTION tenant_rls_policy(table_name TEXT)
@@ -721,6 +739,7 @@ SELECT tenant_rls_policy('e_fatura_logs');
 SELECT tenant_rls_policy('invoice_recurrences');
 SELECT tenant_rls_policy('load_board');
 SELECT tenant_rls_policy('actions');
+SELECT tenant_rls_policy('user_permissions');
 
 -- Users: SUPER_ADMIN can see all (tenant_id = 0 means super admin bypass)
 CREATE POLICY users_tenant_isolation ON users
