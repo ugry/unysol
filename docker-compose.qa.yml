@@ -27,10 +27,11 @@ services:
   backend:
     build: ./backend
     container_name: unysol-qa-backend
+    env_file: .env.qa
     environment:
       PORT: "8080"
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: "postgres://unysol:unysol@db:5432/unysol?sslmode=disable"
+      JWT_SECRET: "REDACTED"
       REDIS_URL: "redis://redis:6379/0"
       ENVIRONMENT: "qa"
     expose:
@@ -64,9 +65,9 @@ services:
     image: postgres:16-alpine
     container_name: unysol-qa-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: unysol
+      POSTGRES_PASSWORD: unysol
+      POSTGRES_DB: unysol
     expose:
       - "5432"
     volumes:
