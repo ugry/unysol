@@ -33,7 +33,7 @@ function daysLeft(loadDate: string): number {
 interface CityData { name: string; districts: string[] }
 
 const typeConfig: Record<string, { label: string; bg: string; text: string }> = {
-  YUK_VAR: { label: 'Yük Var', bg: 'bg-[#3b82f6]/15', text: 'text-blue-600' },
+  YUK_VAR: { label: 'Yük Var', bg: 'bg-[#3b82f6]/15', text: 'text-[#3b82f6]' },
   YUK_ARA: { label: 'Yük Ara', bg: 'bg-[#FF5F03]/15', text: 'text-[#FF5F03]' },
 };
 
@@ -252,19 +252,18 @@ export default function LoadBoardPage() {
               className="w-full pl-10 pr-3.5 py-2.5 rounded-lg bg-white border border-enterprise-border text-enterprise-text placeholder-gray-400 text-sm outline-none focus:border-[#FF5F03]"
             />
           </div>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            className="px-3.5 py-2.5 rounded-lg bg-white border border-enterprise-border text-enterprise-text text-sm cursor-pointer">
-            <option value="">Tüm İlanlar</option>
-            <option value="YUK_VAR">Yük Var</option>
-            <option value="YUK_ARA">Yük Ara</option>
-          </select>
+          <div className="flex gap-1.5 bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-1">
+            <button onClick={() => setTypeFilter('')} className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${!typeFilter ? 'bg-[#FF5F03] text-white' : 'text-[#8a8f98] hover:text-[#f7f8f8]'}`}>Tümü</button>
+            <button onClick={() => setTypeFilter('YUK_VAR')} className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${typeFilter === 'YUK_VAR' ? 'bg-[#3b82f6] text-white' : 'text-[#8a8f98] hover:text-[#f7f8f8]'}`}>Yük Var</button>
+            <button onClick={() => setTypeFilter('YUK_ARA')} className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${typeFilter === 'YUK_ARA' ? 'bg-[#FF5F03] text-white' : 'text-[#8a8f98] hover:text-[#f7f8f8]'}`}>Yük Ara</button>
+          </div>
           <input type="text" value={cityFilter} onChange={e => setCityFilter(e.target.value)}
             placeholder="Şehir filtrele..."
             className="px-3.5 py-2.5 rounded-lg bg-white border border-enterprise-border text-enterprise-text text-sm outline-none focus:border-[#FF5F03] max-w-[180px]"
           />
         </div>
         <button onClick={() => { setEditingId(null); setFormData(emptyForm); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm">
           <Plus size={18} /> Yeni İlan
         </button>
       </div>
@@ -303,7 +302,7 @@ export default function LoadBoardPage() {
 
       <DataGrid columns={columns} data={filtered} loading={loading} title="Yük Panosu"
         emptyIcon={<Package size={48} className="text-gray-300" />}
-        emptyText={search || typeFilter || cityFilter ? 'Aramanızla eşleşen ilan bulunamadı' : 'Henüz ilan yok'} />
+        emptyText={search || typeFilter || cityFilter ? 'Aramanızla eşleşen ilan bulunamadı' : 'Henüz ilan kaydı yok'} />
 
       {/* Delete Confirmation Modal */}
       {confirmDeleteId !== null && (

@@ -1,0 +1,56 @@
+# customer_mgmt.func
+
+> Module: customer_mgmt (Müşteri Yönetimi) | Category: CRM
+
+## Purpose
+Customer directory management for logistics companies. Tracks client companies with tax information, warehouse addresses, risk scoring, and transaction history. Central entity that links to invoices, trips, and çek/senet records.
+
+## Problems It Solves
+- Turkish logistics companies serve hundreds of regular customers
+- Tax compliance requires customer tax ID (vergi_no) and tax office (vergi_dairesi) on invoices
+- Multiple warehouse/delivery addresses per customer
+- Customer risk assessment for credit decisions
+- Cross-reference: see all trips, invoices, and payments per customer
+
+## Technical Database Structure
+**Table:** `customers`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| firma_unvani | VARCHAR(200) | Company name |
+| vergi_dairesi | VARCHAR(100) | Tax office |
+| vergi_no | VARCHAR(20) | Tax ID number |
+| telefon | VARCHAR(20) | Phone |
+| email | VARCHAR(200) | Email |
+| adres | TEXT | Address |
+| depo_adresleri | JSONB | Warehouse addresses (array) |
+| risk_skoru | INTEGER | Risk score (0-100) |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Related tables:** invoices, trips, cek_senet (all FK to customers.id)
+
+## User Interface
+**CustomersPage.tsx** — `/dashboard/customers`
+- DataGrid table: Firma Ünvanı, Vergi Dairesi, Vergi No, Telefon, Email
+- Search bar with customer name filter
+- Add/Edit modal: all customer fields
+- Customer detail view: linked trips, invoices, payments
+- Export to CSV/Excel/PDF
+- Bulk operations
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/customers/` | Tenant JWT | List customers (searchable) |
+| GET | `/api/tenant/customers/{id}` | Tenant JWT | Customer detail |
+| POST | `/api/tenant/customers/` | Tenant JWT | Add customer |
+| PUT | `/api/tenant/customers/{id}` | Tenant JWT | Edit customer |
+| DELETE | `/api/tenant/customers/{id}` | Tenant JWT | Remove customer |
+
+## Known Bugs
+- None reported
+
+## Test Coverage
+- QA test: 3/3 passed (100%)
+- Full CRUD verified: Create (302 customers in test data) → List → verify

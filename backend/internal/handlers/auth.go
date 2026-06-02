@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"strings"
@@ -129,16 +131,17 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	resetSignupLockout(ip)
 
-	// Generate verification token
+	// Generate verification token + 6-digit code
+	verificationCode := generateVerificationCode()
 	verificationToken := generateVerificationToken()
 	_, _ = h.DB.Exec(r.Context(), `
-		INSERT INTO email_verification_tokens (user_id, token, expires_at)
-		VALUES ($1, $2, NOW() + INTERVAL '24 hours')
-	`, userID, verificationToken)
+		INSERT INTO email_verification_tokens (user_id, token, code, expires_at)
+		VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')
+	`, userID, verificationToken, verificationCode)
 
-	// Send verification email (non-blocking)
+	// Send verification email (non-blocking) with code in subject
 	go func() {
-		if err := email.SendVerificationEmail(req.Email, verificationToken); err != nil {
+		if err := email.SendVerificationEmail(req.Email, verificationCode, verificationToken); err != nil {
 			logging.System(logging.LevelWarn, "verification email failed", map[string]interface{}{
 				"error": err.Error(), "email": req.Email,
 			})
@@ -353,6 +356,104 @@ func generateVerificationToken() string {
 	return hex.EncodeToString(b)
 }
 
+func generateVerificationCode() string {
+	code := ""
+	for i := 0; i < 6; i++ {
+		n, _ := rand.Int(rand.Reader, big.NewInt(10))
+		code += fmt.Sprintf("%d", n.Int64())
+	}
+	return code
+}
+
+func (h *AuthHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Code == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodu gereklidir"})
+		return
+	}
+
+	var userID, tenantID int
+	var emailAddr, role string
+	var expiresAt time.Time
+	var used bool
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT v.user_id, v.expires_at, v.used, u.email, u.tenant_id, u.rol
+		FROM email_verification_tokens v
+		JOIN users u ON u.id = v.user_id
+		WHERE v.code = $1
+		ORDER BY v.created_at DESC LIMIT 1
+	`, req.Code).Scan(&userID, &expiresAt, &used, &emailAddr, &tenantID, &role)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz doğrulama kodu"})
+		return
+	}
+	if used {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu kod zaten kullanılmış"})
+		return
+	}
+	if time.Now().After(expiresAt) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodunun süresi doldu. Lütfen yeni bir kod isteyin."})
+		return
+	}
+
+	_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used = true WHERE code = $1 AND user_id = $2`, req.Code, userID)
+	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET aktif = true WHERE id = $1 AND aktif = false`, userID)
+
+	jwtToken, err := h.generateToken(userID, tenantID, emailAddr, role)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Doğrulandı! Şimdi giriş yapabilirsiniz."})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, AuthResponse{
+		Token: jwtToken, TokenType: "bearer", UserID: userID,
+		TenantID: tenantID, Email: emailAddr, Role: role,
+	})
+}
+
+func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "E-posta adresi gereklidir"})
+		return
+	}
+
+	var userID int
+	var aktif bool
+	err := h.DB.QueryRow(r.Context(), `SELECT id, COALESCE(aktif, false) FROM users WHERE email = $1`, req.Email).Scan(&userID, &aktif)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu e-posta adresiyle kayıtlı hesap bulunamadı"})
+		return
+	}
+	if aktif {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu hesap zaten doğrulanmış"})
+		return
+	}
+
+	// Invalidate old codes
+	_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used = true WHERE user_id = $1 AND used = false`, userID)
+
+	// Generate new code
+	code := generateVerificationCode()
+	token := generateVerificationToken()
+	_, _ = h.DB.Exec(r.Context(), `INSERT INTO email_verification_tokens (user_id, token, code, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')`, userID, token, code)
+
+	go func() {
+		if err := email.SendVerificationEmail(req.Email, code, token); err != nil {
+			logging.System(logging.LevelWarn, "resend verification email failed", map[string]interface{}{"error": err.Error(), "email": req.Email})
+		}
+	}()
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Yeni doğrulama kodu e-posta adresinize gönderildi. Kod 1 saat geçerlidir.",
+	})
+}
+
 func extractIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		parts := strings.Split(xff, ",")
@@ -369,18 +470,37 @@ func extractIP(r *http.Request) string {
 }
 
 func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
 	token := r.URL.Query().Get("token")
-	if token == "" {
+
+	if code == "" && token == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodu eksik"})
 		return
 	}
 
-	var userID int
+	var userID, tenantID int
+	var emailAddr, role string
 	var expiresAt time.Time
 	var used bool
-	err := h.DB.QueryRow(r.Context(), `
-		SELECT user_id, expires_at, used FROM email_verification_tokens WHERE token=$1
-	`, token).Scan(&userID, &expiresAt, &used)
+	var err error
+
+	if token != "" {
+		err = h.DB.QueryRow(r.Context(), `
+			SELECT v.user_id, v.expires_at, v.used, u.email, u.tenant_id, u.rol
+			FROM email_verification_tokens v
+			JOIN users u ON u.id = v.user_id
+			WHERE v.token = $1
+		`, token).Scan(&userID, &expiresAt, &used, &emailAddr, &tenantID, &role)
+	} else {
+		err = h.DB.QueryRow(r.Context(), `
+			SELECT v.user_id, v.expires_at, v.used, u.email, u.tenant_id, u.rol
+			FROM email_verification_tokens v
+			JOIN users u ON u.id = v.user_id
+			WHERE v.code = $1
+			ORDER BY v.created_at DESC LIMIT 1
+		`, code).Scan(&userID, &expiresAt, &used, &emailAddr, &tenantID, &role)
+	}
+
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz doğrulama kodu"})
 		return
@@ -392,17 +512,36 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if time.Now().After(expiresAt) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodunun süresi dolmuş. Lütfen tekrar kayıt olun."})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodunun süresi dolmuş. Lütfen yeni bir kod isteyin."})
 		return
 	}
 
-	_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used=true WHERE token=$1`, token)
-	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET aktif=true WHERE id=$1 AND aktif=false`, userID)
+	// Mark as used and activate user
+	if token != "" {
+		_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used = true WHERE token = $1`, token)
+	} else {
+		_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used = true WHERE code = $1 AND user_id = $2`, code, userID)
+	}
+	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET aktif = true WHERE id = $1 AND aktif = false`, userID)
 
-	logging.System(logging.LevelInfo, "email verified", map[string]interface{}{"user_id": userID})
+	logging.System(logging.LevelInfo, "email verified", map[string]interface{}{"user_id": userID, "email": emailAddr})
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "E-posta adresiniz başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.",
+	// Auto-login: generate JWT and return it
+	jwtToken, err := h.generateToken(userID, tenantID, emailAddr, role)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "E-posta adresiniz başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.",
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, AuthResponse{
+		Token:     jwtToken,
+		TokenType: "bearer",
+		UserID:    userID,
+		TenantID:  tenantID,
+		Email:     emailAddr,
+		Role:      role,
 	})
 }

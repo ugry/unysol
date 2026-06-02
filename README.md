@@ -998,5 +998,6 @@ Toplam: **11 hafta**, 1-2 geliştirici ile SaaS MVP.
         │   ├── SettingsPage.tsx
         │   └── ActionsPage.tsx
         └── types/
-            └── index.ts         ← TypeScript tip tanımları
+            └── index.ts              ← TypeScript tip tanımları
+└── testusernamesandpasswords.md       ← Çok kiracılı test kullanıcı bilgileri (10 firma + 30 alt kullanıcı)
 ```

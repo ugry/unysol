@@ -22,7 +22,7 @@ type TripsHandler struct {
 
 func (h *TripsHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
 	r.Get("/{id}", h.Get)

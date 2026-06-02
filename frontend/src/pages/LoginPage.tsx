@@ -278,15 +278,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center mt-4 text-[13px] text-[#8a8f98]">
-          {isSignup ? 'Zaten hesabınız var mı?' : 'Henüz hesabınız yok mu?'}{' '}
-          <button
-            onClick={toggleMode}
-            className="text-[#FF5F03] hover:text-[#FF5F03]-hover font-[510] transition-colors"
-          >
-            {isSignup ? 'Giriş Yap' : 'Hesap Oluştur'}
-          </button>
-        </p>
+        <button
+          type="button"
+          onClick={toggleMode}
+          className="w-full mt-3 py-2 rounded-md bg-[#16A34A] hover:bg-[#15803D] text-white font-[510] text-[14px] transition-colors duration-150"
+        >
+          {isSignup ? 'Giriş Yap' : 'Hesap Oluştur'}
+        </button>
       </div>
     </div>
   );

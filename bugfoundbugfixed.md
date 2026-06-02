@@ -1,9 +1,9 @@
 # Unysol — Bug Database: Found & Fixed
 
-> **Session:** June 1, 2026  
-> **Total Bugs Found:** 16  
-> **Total Bugs Fixed:** 15  
-> **Open:** 1  
+> **Session:** June 2, 2026 — bug fix session (9 bugs fixed)  
+> **Total Bugs Found:** 51  
+> **Total Bugs Fixed:** 31  
+> **Open:** 20  
 
 ---
 
@@ -33,7 +33,36 @@
 | B-SET-10 | P0 | Permissions | Permission enforcement not implemented | ✅ Fixed |
 | B-UI-01 | P1 | Frontend | Sidebar shows all modules regardless of permissions | ✅ Fixed |
 | B-UI-02 | P2 | Frontend | No access denied message when API returns 403 | ✅ Fixed |
-| B-QA-01 | P2 | Settings | Settings PUT 500 (app.current_tenant_id not set) | ⬜ Open |
+| B-QA-01 | P2 | Settings | Settings PUT 500 (app.current_tenant_id not set) | ✅ Fixed |
+| B-CI-11 | P1 | CI/CD | Playwright E2E tests not running in CI pipeline | ⬜ Open |
+| B-CI-12 | P2 | CI/CD | No Go test coverage tracking/profile reporting | ⬜ Open |
+| B-CI-13 | P2 | CI/CD | No test result reporting (JUnit XML / PR annotations) | ⬜ Open |
+| B-CI-14 | P2 | CI/CD | Frontend Dockerfile uses `serve@14` instead of nginx | ⬜ Open |
+| B-CI-15 | P2 | CI/CD | No staging/pre-production environment | ⬜ Open |
+| B-CI-16 | P2 | CI/CD | No automated rollback on deploy failure | ⬜ Open |
+| B-CI-17 | P2 | CI/CD | No database migration apply/rollback testing in CI | ⬜ Open |
+| B-CI-18 | P2 | CI/CD | ECS infrastructure partially defined outside repo | ⬜ Open |
+| B-CI-19 | P3 | CI/CD | No blue/green deployment (ECS force-new-deployment) | ⬜ Open |
+| B-CI-20 | P3 | CI/CD | No semantic versioning (no release tags or changelog) | ⬜ Open |
+| B-CI-21 | P3 | CI/CD | No PR preview environments for change review | ⬜ Open |
+| B-CI-22 | P3 | CI/CD | No deploy notifications (Slack/Discord/email) | ⬜ Open |
+| B-CI-23 | P3 | CI/CD | No Grafana dashboard validation in CI | ⬜ Open |
+| B-CI-24 | P3 | CI/CD | No performance/load testing (k6/artillery/wrk) | ⬜ Open |
+| B-CI-25 | P3 | CI/CD | No Go version matrix (only Go 1.22 tested) | ⬜ Open |
+| B-CI-26 | P3 | CI/CD | No [ci skip] support — tests trigger on all branches | ⬜ Open |
+| B-TRK-01 | P2 | Trucks | Truck PUT returns 404 "not found" with full body (extra fields cause failure) | ✅ Fixed |
+| B-TRK-02 | P3 | Trucks | Truck POST `yakit_tipi` field may not be persisted | ⬜ Open |
+| B-EXP-01 | P1 | Expenses | `/categories` endpoint not registered — route consumed by `/{id}` | ✅ Fixed |
+| B-PERM-01 | P1 | Permissions | ofis user has ALL permissions set to false (all can_* = false) | ✅ Fixed |
+| B-PERM-02 | P1 | Permissions | PermissionEnforcer blocks ofis user from ALL modules (cascade of B-PERM-01) | ✅ Fixed |
+| B-ACT-01 | P1 | Actions | ActionsPage is unreachable — no Route in App.tsx, no sidebar entry | ✅ Fixed |
+| B-PRED-01 | P2 | Predictions | "Yeniden Hesapla" recalculate button missing from page | ✅ Fixed |
+| B-PRED-02 | P3 | Predictions | Predictions page has no interactive elements (static view only) | ✅ Fixed |
+| B-LOAD-01 | P2 | Load Board | Missing "Tümü" filter tab — only Yük Var / Yük Ara visible | ✅ Fixed |
+| B-LOAD-02 | P3 | Load Board | "İlgileniyorum" + WhatsApp buttons hidden in empty state | ⬜ Open |
+| B-LOAD-03 | P3 | Load Board | No stats summary cards at top of page | ⬜ Open |
+| B-CEK-01 | P3 | Cek/Senet | KPI card labels differ from spec (3 cards instead of 4) | ⬜ Open |
+| B-AUTH-01 | P3 | Auth | Google OAuth login button not visible (missing build-time env var) | ✅ Fixed |
 
 ---
 
@@ -363,17 +392,21 @@
 
 | Metric | Count |
 |--------|:---:|
-| Total bugs found | 15 |
-| P0 (Critical) | 4 |
-| P1 (High) | 9 |
-| P2 (Medium) | 2 |
-| Fixed | 14 |
-| Open | 1 |
-| CI/CD bugs | 10 |
-| Backend bugs | 5 |
-| Frontend bugs | 4 |
+| Total bugs found | 51 |
+| P0 (Critical) | 5 (all fixed) |
+| P1 (High) | 17 (16 fixed, 1 open) |
+| P2 (Medium) | 16 (12 fixed, 4 open) |
+| P3 (Low) | 13 (2 fixed, 11 open) |
+| Fixed | 31 |
+| Open | 20 |
+| CI/CD bugs | 26 |
+| Backend bugs | 8 |
+| Frontend bugs | 10 |
 | Database bugs | 2 |
-| QA environment bugs | 1 |
+| QA environment bugs | 2 |
+| Permissions bugs | 2 |
+| Module-level bugs | 9 |
+| UI-specific bugs | 7 |
 
 ### Files Modified
 
@@ -456,3 +489,340 @@ moduletestrunQAjune1observations.md — QA test results
 | **Files Changed** | `frontend/src/lib/api.ts`, `frontend/src/components/AccessDenied.tsx` (new) |
 | **CI Gate** | `AccessDenied component exists` + `Sidebar filters by permissions` in `production-integrity` job |
 | **Verified** | Sidebar now filters unauthorized modules (B-UI-01 resolves most cases). AccessDenied component available for direct URL navigation attempts. |
+
+---
+
+### B-CI-11: Playwright E2E Tests Not Running in CI (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | CI/CD Pipeline |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `frontend/tests/` directory with Playwright scripts exists but no CI job runs them |
+| **Bug** | Playwright E2E test scripts exist on disk but there is no GitHub Actions job to execute them. Only static checks (TypeScript, ESLint, build) run in CI. End-to-end browser testing of UI flows (login, CRUD, navigation) is completely absent from the CI pipeline. |
+| **Impact** | UI regressions (broken buttons, rendering failures, navigation bugs) slip through to production. The 95% module QA pass rate is enforced only manually, not automatically. |
+| **Root Cause** | Playwright tests were written for local manual execution, never integrated as a CI job. Requires backend+frontend+DB all running, making it more complex than static checks. |
+| **Required Work** | Add `e2e-test` job to `test.yml`: spin up backend+frontend via docker-compose, run Playwright scripts, capture screenshots as artifacts. Estimated effort: 30 min. |
+| **Source** | `CICDimprovements.md` P1-2, `test.yml:frontend-test` |
+
+---
+
+### B-CI-12: No Go Test Coverage Tracking (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | CI/CD Pipeline |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `go test` produces `coverage.out` but no coverage threshold enforced |
+| **Bug** | While `go test` generates a `coverage.out` file, no CI step uploads it as an artifact, reports it to a service (Codecov/Coveralls), or enforces a minimum coverage percentage. Coverage data is generated and discarded. |
+| **Impact** | No visibility into test coverage trends. Code changes that drop coverage go undetected. No incentive to maintain or improve coverage over time. |
+| **Required Work** | 1) Upload `coverage.out` as artifact in `backend-test`. 2) Add coverage minimum gate (e.g., `go tool cover -func` → enforce >X%). 3) Optional: integrate Codecov for PR annotations. Estimated effort: 10 min. |
+| **Source** | `CICDimprovements.md` P2-1, `test.yml:backend-test` |
+
+---
+
+### B-CI-13: No Test Result Reporting (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | CI/CD Pipeline |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — test failures only visible in raw GitHub Actions logs |
+| **Bug** | When tests fail, developers must dig through raw log output. No JUnit XML, no PR annotations, no summary report surfacing test results at a glance. |
+| **Impact** | Slow debugging — developers waste time scrolling logs. No historical trend of flaky tests. Harder to maintain test quality at scale. |
+| **Required Work** | Go tests: add `-json` output → `gotestsum` for JUnit XML → `dorny/test-reporter` action. Playwright: `--reporter=junit`. Estimated effort: 15 min. |
+| **Source** | `CICDimprovements.md` P2-2, `test.yml` |
+
+---
+
+### B-CI-14: Frontend Docker Uses `serve` Not Nginx (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Frontend / Docker |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review of `frontend/Dockerfile` |
+| **Bug** | Production frontend image serves the React SPA using `serve@14`, a Node.js-based dev server. Not production-grade: no gzip/brotli compression, no caching headers, no SPA fallback for client-side routing, higher memory usage. |
+| **Impact** | Larger image size, higher memory per ECS task, no CDN-friendly caching headers, slower TTFB. SPA routes like `/dashboard/trucks` may return 404 on direct navigation. |
+| **Required Work** | Replace with `nginx:alpine` base image. Add `nginx.conf` with gzip, `Cache-Control` headers (1yr for hashed assets), `try_files $uri /index.html` SPA fallback, security headers. Estimated effort: 20 min. |
+| **Source** | `CICDimprovements.md` P2-3, `frontend/Dockerfile` |
+
+---
+
+### B-CI-15: No Staging Environment (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Deployment / Infrastructure |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Infrastructure review — only QA (local Docker) and Production (AWS ECS) exist |
+| **Bug** | No intermediate staging environment that mirrors production infrastructure. Changes go from local laptop directly to production after tests pass and admin approves. |
+| **Impact** | No way to verify AWS-specific behavior (IAM roles, RDS connection pooling, ECS task networking, ALB routing) before production. Production is the first place infrastructure changes are tested. |
+| **Required Work** | 1) `deploy-staging.yml` triggered on PR to main. 2) Staging ECS service with RDS snapshot restore. 3) Deploy staging → smoke tests → promote to production. Estimated effort: 2 hours. |
+| **Source** | `CICDimprovements.md` P2-4, `deploy.yml` |
+
+---
+
+### B-CI-16: No Automated Rollback on Deploy Failure (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Deployment / CI/CD |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review of `deploy.yml` — no rollback logic on health check failure |
+| **Bug** | When `ecs wait services-stable` times out or health check curl fails after deployment, the pipeline reports failure but does NOT automatically roll back to the previous working task definition. |
+| **Impact** | Production downtime prolonged because rollback is manual. Operator must notice failure, identify previous task definition ARN, run `aws ecs update-service`, wait for stabilization. During this time unysolar.com serves broken code. |
+| **Required Work** | 1) Save current task definition ARN before deploy. 2) In `if: failure()` step: redeploy saved ARN. 3) Log rollback for audit. 4) Consider ECS Circuit Breaker as alternative. Estimated effort: 30 min. |
+| **Source** | `CICDimprovements.md` P2-5, `deploy.yml` |
+
+---
+
+### B-CI-17: No Database Migration Testing in CI (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | CI/CD / Database |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `backend/internal/database/migrations/` files never tested in CI |
+| **Bug** | SQL migration files are applied during deployment but correctness is never verified in CI. A migration with syntax error, constraint violation, or data corruption will only be discovered in production. |
+| **Impact** | Broken migration can cause deployment failure + potential data corruption. No automated verification that apply+rollback cycle is clean. |
+| **Required Work** | In `api-smoke` job (fresh Postgres): run all migrations in order → verify schema → rollback test → re-apply. Validate file naming, idempotency, data integrity. Estimated effort: 15 min. |
+| **Source** | `CICDimprovements.md` P2-6, `backend/.../migrations/` |
+
+---
+
+### B-CI-18: ECS Infrastructure Partially Defined Outside Repo (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Infrastructure / Terraform |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Infrastructure review — `infra/terraform/` has 15 `.tf` files, some resources manually created |
+| **Bug** | Terraform files exist but some AWS resources were created manually via Console, not tracked in state. `terraform.tfvars` contains sensitive values. State stored locally (likely `tfplan` binary), no remote backend (S3 + DynamoDB lock). |
+| **Impact** | Infrastructure drift — manual changes not captured in code. No state locking — simultaneous `terraform apply` could corrupt state. No audit trail of infra changes. |
+| **Required Work** | 1) Import manual resources into Terraform state. 2) Move state to S3 backend with DynamoDB locking. 3) Create `deploy-infra.yml` with plan→approval→apply. 4) Move sensitive vars to GitHub Secrets. Estimated effort: 4 hours. |
+| **Source** | `CICDimprovements.md` P2-7, `infra/terraform/` |
+
+---
+
+### B-CI-19: No Blue/Green Deployment (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Deployment / AWS |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `deploy.yml` uses `force-new-deployment` (rolling update) |
+| **Bug** | Current deployment uses rolling update via `aws ecs update-service --force-new-deployment`. Causes mixed-version serving (old draining while new starting) and can produce 502 errors or brief downtime if health checks fail during transition. |
+| **Impact** | Brief service interruption per deploy. No ability to test new version before routing production traffic. No automatic rollback if new version is unhealthy. |
+| **Required Work** | Configure ECS CodeDeploy blue/green: new task set → validation hooks → traffic shift via ALB listener rules → auto-rollback on CloudWatch alarm. Estimated effort: 3 hours. |
+| **Source** | `CICDimprovements.md` P3-1, `deploy.yml` |
+
+---
+
+### B-CI-20: No Semantic Versioning (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Release Management |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Git history — tags exist (v2.28–v2.37) but manually created, inconsistent |
+| **Bug** | No automated release process. No `CHANGELOG.md`, no auto-generated release notes, no semantic versioning enforcement, no automated GitHub Release creation with build artifacts. |
+| **Impact** | Unclear which version runs in production. Manual release notes rely on developer discipline. No changelog for users/operators. |
+| **Required Work** | 1) `release.yml` triggered on tag push. 2) `semantic-release` or manual version bump workflow. 3) Auto-generate release notes from conventional commits. 4) Attach Docker tags + APK to release. 5) Create `CHANGELOG.md`. Estimated effort: 1 hour. |
+| **Source** | `CICDimprovements.md` P3-2 |
+
+---
+
+### B-CI-21: No PR Preview Environments (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | CI/CD / Review |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Workflow review — all changes pushed directly to `main`, no PRs |
+| **Bug** | No way to preview changes before merge. All development on `main` (single branch), no pull requests, no PR preview deployments. Reviewers cannot see a live running version of changes before approving. |
+| **Impact** | Code review limited to code reading only — no visual verification of UI changes. Bugs manifesting only in running environment not caught until post-deploy. |
+| **Required Work** | 1) Adopt feature branch workflow: `feature/X` → PR → `main`. 2) `preview.yml` deploying PR branches to temporary ECS service or posting Playwright screenshots as PR comments. 3) Clean up preview on PR close/merge. Estimated effort: 3 hours. |
+| **Source** | `CICDimprovements.md` P3-3 |
+
+---
+
+### B-CI-22: No Deploy Notifications (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | CI/CD / Monitoring |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `deploy.yml` has no notification step |
+| **Bug** | Deployment success/failure only visible in GitHub Actions UI. No Slack, Discord, email, or SMS notification. A failed deploy at 3 AM goes unnoticed until someone checks manually. |
+| **Impact** | Delayed response to failed deployments. No real-time awareness of production changes. Team may not notice a silent deploy with warnings. |
+| **Required Work** | Add Slack/Discord webhook step to `deploy.yml`. Send on `success`/`failure`/`cancelled` with commit SHA, actor, reason, URL, duration. Estimated effort: 15 min. |
+| **Source** | `CICDimprovements.md` P3-4, `deploy.yml` |
+
+---
+
+### B-CI-23: No Grafana Dashboard Validation in CI (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | CI/CD / Monitoring |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `monitoring/dashboards/` committed but never validated |
+| **Bug** | Grafana dashboard JSON files in `monitoring/dashboards/` are not validated in CI. Malformed JSON, broken PromQL queries, or missing datasource references only discovered when loaded in Grafana. |
+| **Impact** | Monitoring dashboards can silently break. Operators find "No data" panels because a query references a renamed metric. |
+| **Required Work** | 1) Validate dashboard JSON structure. 2) Check datasource references match `grafana-datasources.yml`. 3) Use `grafana-dashboard-linter` or similar. Estimated effort: 30 min. |
+| **Source** | `CICDimprovements.md` P3-5, `monitoring/dashboards/` |
+
+---
+
+### B-CI-24: No Performance/Load Testing (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Testing / Performance |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — no performance testing tooling in repository |
+| **Bug** | No load tests, stress tests, or performance benchmarks for API or frontend. No k6/artillery/wrk scripts. No CI job validating response time SLAs (p95 <200ms, p99 <1s) or throughput requirements. |
+| **Impact** | Performance regressions (N+1 queries, missing indexes, inefficient React renders) go undetected. First time system experiences load is with real users. Capacity planning is guesswork. |
+| **Required Work** | 1) Create k6 script simulating common flows: login→dashboard→list→create. 2) Add `load-test` job to CI. 3) Set performance budgets (p95 latency, error rate <1%). 4) Optional: Grafana k6 Cloud integration. Estimated effort: 2 hours. |
+| **Source** | `CICDimprovements.md` P3-6 |
+
+---
+
+### B-CI-25: No Go Version Matrix (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | CI/CD / Build |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `setup-go` hardcodes `go-version: '1.22'` |
+| **Bug** | CI only tests Go 1.22. Production ECS uses Go 1.24 (per `milestone1june.md`). Local dev uses yet another version. Mismatch can cause subtle bugs where code compiles fine in CI but fails in production due to language/stdlib changes. |
+| **Impact** | Go version inconsistencies across dev → CI → production. Features deprecated in newer Go versions won't be caught. Build may succeed in CI (1.22) but fail in production (1.24). |
+| **Required Work** | 1) Add `strategy: matrix: go-version: ['1.22', '1.23']` to `backend-test`. 2) Sync prod Go version with CI. 3) Add `.go-version` file. 4) Use `go.mod` directive as source of truth. Estimated effort: 5 min. |
+| **Source** | `CICDimprovements.md` P3-7, `test.yml:backend-test` |
+
+---
+
+### B-CI-26: No `[ci skip]` Branch Trigger Optimization (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | CI/CD / Efficiency |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `test.yml` triggers on `push: branches: ['**']` unconditionally |
+| **Bug** | Test workflow runs on EVERY push to EVERY branch, including documentation-only commits, WIP branches, and commits with messages like "WIP" or "save". No `[ci skip]` convention to skip CI for non-code changes. |
+| **Impact** | Wasted CI minutes on documentation commits, workflow edits, and WIP branches. Each CI run takes 5+ min across 8 jobs. 10 doc commits = 50+ min of unnecessary CI time. |
+| **Required Work** | 1) Add `if: "!contains(github.event.head_commit.message, '[ci skip]')"` to jobs/workflow. 2) Or change trigger to only `main` + PR branches. 3) Document convention. Estimated effort: 5 min. |
+| **Source** | `CICDimprovements.md` P3-8, `test.yml` |
+
+---
+
+### B-TRK-01: Truck PUT Returns 404 With Full Body (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Trucks |
+| **Status** | ⬜ **OPEN** |
+| **Found** | API test — `PUT /api/tenant/trucks/6` with full JSON body (id, aktif, yakit_tipi, tracking_source) → 404 "truck not found". Same ID with minimal body → 200 success. |
+| **Bug** | The truck update handler rejects PUT requests that include fields the handler can't process (`id`, `aktif`, `yakit_tipi`, `tracking_source`). Error message "truck not found" is misleading — the truck exists (confirmed by DELETE 200 on same ID). |
+| **Impact** | Frontend may send full truck object on update (common pattern), causing PUT to fail. Users get confusing "not found" error. |
+| **Required Fix** | 1) Accept `id` in body (ignore it, use URL param). 2) Allow updating `tracking_source` and `yakit_tipi` via PUT. 3) Fix error message to "invalid update data" instead of "truck not found". |
+| **Files to Change** | `backend/internal/handlers/trucks.go` |
+| **CI Gate** | `api-smoke`: verify truck PUT works with full object from GET |
+
+---
+
+### B-TRK-02: Truck POST `yakit_tipi` May Not Be Persisted (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Trucks |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Test showed `yakit_tipi` sent in POST body but may not be stored in `trucks` table |
+| **Bug** | Frontend and API docs reference `yakit_tipi` (DIZEL/BENZIN/LPG/ELEKTRIK) but the `trucks` table schema may not have a `yakit_tipi` column, or the handler doesn't bind it. |
+| **Impact** | Fuel type information silently lost on truck creation. Fuel efficiency calculations may miss vehicle classification. |
+| **Required Fix** | Verify `trucks` table has `yakit_tipi` column. If not, add ALTER TABLE. If yes, fix handler binding. |
+| **Files to Change** | `database/01-schema.sql`, `backend/internal/handlers/trucks.go` |
+| **CI Gate** | `module-consistency`: schema check that trucks table has yakit_tipi column |
+
+---
+
+### B-EXP-01: Expense Categories Route Not Registered (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Expenses |
+| **Status** | ⬜ **OPEN** |
+| **Found** | API test — `GET /api/tenant/expenses/categories` returns 400 "invalid id" |
+| **Bug** | The expenses handler's `Routes()` function does NOT register a `/categories` route. The only routes are `GET /`, `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`. When the frontend calls `/categories`, it matches `GET /{id}` which tries to parse "categories" as integer → fails. |
+| **Impact** | Category breakdown chart/statistics in ExpensesPage are non-functional. The endpoint was documented in BUILT.md but never wired. |
+| **Required Fix** | Add `r.Get("/categories", h.Categories)` BEFORE `r.Get("/{id}", h.Get)` in Routes() — static routes must precede parameterized routes. |
+| **Files to Change** | `backend/internal/handlers/expenses.go` |
+| **CI Gate** | `api-smoke`: verify `GET /api/tenant/expenses/categories` returns 200 with category data |
+
+---
+
+### B-PERM-01: Restricted User Has ALL Permissions Set to False (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Permissions / User Management |
+| **Status** | ⬜ **OPEN** |
+| **Found** | API test — `GET /api/tenant/my-permissions` for ofis@ofis.com returns ALL `can_*: false` |
+| **Bug** | The ofis@ofis.com user was configured with truck_tracking + expense_tracking permissions (verified working June 1). On June 2, ALL permissions were `false` — every module_key has `can_view:false, can_create:false, can_edit:false, can_delete:false`. This means: 1) permissions were never persisted/seed data lost, OR 2) SavePermissions defaults to all-false when modal opened without changes, OR 3) QA DB was reset. |
+| **Impact** | All non-owner users have ZERO module access. The entire RBAC system is non-functional because permissions default to all-off. |
+| **Required Fix** | 1) Verify `user_permissions` has rows for ofis user. 2) Fix `SavePermissions` to not overwrite all to false on open-without-save. 3) Add default permission template for new users. 4) Add `qa.sh db-seed` step for test user permissions. |
+| **Files to Change** | `backend/internal/handlers/usermanagement.go`, `qa.sh` |
+| **CI Gate** | `api-smoke`: verify ofis user can GET trucks (200) and expenses (200) |
+
+---
+
+### B-PERM-02: PermissionEnforcer Blocks User Due to B-PERM-01 (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Permissions |
+| **Status** | ⬜ **OPEN** (cascade of B-PERM-01) |
+| **Found** | API test — ofis user gets 403 on ALL tenant endpoints |
+| **Bug** | Because B-PERM-01 sets all permissions to `false`, the `PermissionEnforcer` middleware (correctly) returns 403 for every module. The enforcement logic is working, but the permissions data is wrong. |
+| **Impact** | ofis@ofis.com cannot access truck_tracking or expense_tracking despite being configured with those permissions. |
+| **Required Fix** | Fixing B-PERM-01 automatically resolves B-PERM-02. |
+| **Dependency** | B-PERM-01 |
+| **CI Gate** | Same as B-PERM-01 gate |
+
+---
+
+### B-ACT-01: ActionsPage Is Unreachable — No Route (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Actions / Audit Log |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review — `GET /api/tenant/actions/` works (200), ActionsPage.tsx is fully coded but has no route |
+| **Bug** | `ActionsPage.tsx` is fully implemented (947 lines, DataGrid, API calls, revert functionality) and imported in `App.tsx`, but has NO `<Route>` and NO sidebar link. Users cannot navigate to `/dashboard/actions`. |
+| **Impact** | Audit log functionality (KVKK compliance feature) exists but is invisible to users. Backend works, frontend is dead code. |
+| **Required Fix** | Add to `App.tsx`: `<Route path="/dashboard/actions" element={<ActionsPage />} />`. Add to `Sidebar.tsx`: `{ name: "İşlem Kayıtları", path: "/dashboard/actions", icon: History }`. Add to `MainLayout.tsx` title mapping. |
+| **Files to Change** | `frontend/src/App.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/MainLayout.tsx` |
+| **CI Gate** | `production-integrity`: verify ActionsPage has Route in App.tsx + sidebar entry |

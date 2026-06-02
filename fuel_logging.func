@@ -1,0 +1,51 @@
+# fuel_logging.func
+
+> Module: fuel_logging (Yakıt Takibi) | Category: FLEET
+
+## Purpose
+Fuel consumption tracking per vehicle. Record fuel purchases with volume, unit price, and total cost. Enables fuel efficiency analysis (L/100km) and automatic syncing to expense tracking.
+
+## Problems It Solves
+- Fuel is the #1 operating cost for trucking companies
+- Track fuel costs per truck for profitability analysis
+- Calculate L/100km efficiency to identify underperforming vehicles or drivers
+- Auto-sync fuel purchases to expense records (eliminates double entry)
+- Turkish fuel market uses domestic pricing (EPDK reference)
+
+## Technical Database Structure
+**Table:** `fuel_logs`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| arac_id | INTEGER FK | Linked to trucks.id |
+| tarih | DATE | Purchase date |
+| miktar_litre | DECIMAL(10,2) | Volume (liters) |
+| birim_fiyat | DECIMAL(10,4) | Price per liter |
+| toplam_tutar | DECIMAL(12,2) | Total cost (miktar * birim_fiyat) |
+| km | INTEGER | Odometer at fill-up |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Auto-sync to expenses:** Creates expense record in `expenses` table with category YAKIT on fuel log creation.
+
+## User Interface
+**FuelLogPage.tsx** — `/dashboard/fuel-logs`
+- DataGrid table: Araç, Tarih, Litre, Birim Fiyat, Toplam Tutar, KM
+- Add/Edit modal with truck selector
+- Auto-calculates toplam_tutar on frontend
+- Delete with confirmation
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/fuel-logs/` | Tenant JWT | List fuel logs |
+| POST | `/api/tenant/fuel-logs/` | Tenant JWT | Add log (auto-syncs to expenses) |
+| PUT | `/api/tenant/fuel-logs/{id}` | Tenant JWT | Edit log |
+| DELETE | `/api/tenant/fuel-logs/{id}` | Tenant JWT | Remove log |
+
+## Known Bugs
+- None reported (not individually QA tested yet)
+
+## Test Coverage
+- Not included in June 1 QA test run
+- Needs: CRUD cycle, auto-sync to expenses verification, L/100km calculation test

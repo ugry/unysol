@@ -561,5 +561,245 @@ These checks should be added to the `api-smoke` job:
 | B-SET-02 | Notification PUT response inconsistency | ⬜ |
 | B-SET-03 | Delete user button decorative (no handler) | ⬜ |
 | B-SET-04 | Notifications UI not wired to backend | ⬜ |
-| B-SET-05 | PRO upgrade button no visible response | ⬜ |
+| B-SET-05 | PRO upgrade button no visible response | ✅ |
+| B-SET-06 | Verify settings PUT works for real tenants | ✅ |
+
+---
+
+## Appendix B: Module-Level Bugs Found (June 2, 2026 Test Run)
+
+### Test Results: 29/35 passed (83%), 6 new bugs found
+
+| # | Test | Result | Detail |
+|---|------|:---:|------|
+| 1 | System health | ✅ | 200 |
+| 2 | Auth login (admin) | ✅ | Token obtained |
+| 3 | Auth login (ofis) | ✅ | Token obtained |
+| 4 | Dashboard summary | ✅ | 200 |
+| 5 | Trucks GET list | ✅ | 200 |
+| 6 | Trucks POST create | ✅ | 201 |
+| 7 | Trucks PUT update | ❌ | 404 with full body (B-TRK-01) |
+| 8 | Trucks DELETE | ✅ | 200 (soft delete) |
+| 9 | Trailers GET list | ✅ | 200 |
+| 10 | Trips GET list | ✅ | 200 |
+| 11 | Customers GET list | ✅ | 200 |
+| 12 | Invoices GET list | ✅ | 200 |
+| 13 | Invoices GET aging | ✅ | 200 |
+| 14 | Expenses GET list | ✅ | 200 |
+| 15 | Expenses GET categories | ❌ | 400 "invalid id" (B-EXP-01) |
+| 16 | CekSenet GET list | ✅ | 200 |
+| 17 | CekSenet GET summary | ✅ | 200 |
+| 18 | Employees GET list | ✅ | 200 |
+| 19 | Driver Leave GET list | ✅ | 200 |
+| 20 | Maintenance GET list | ✅ | 200 |
+| 21 | Fuel Logs GET list | ✅ | 200 |
+| 22 | Toll Logs GET list | ✅ | 200 |
+| 23 | Load Board GET list | ✅ | 200 |
+| 24 | Load Board GET stats | ✅ | 200 |
+| 25 | Predictions GET 12-months | ✅ | 200 |
+| 26 | Settings GET | ✅ | 200 |
+| 27 | Settings PUT | ❌ | 500 RLS issue (B-QA-01 — confirmed) |
+| 28 | User Management GET list | ✅ | 200 |
+| 29 | My Permissions GET | ✅ | 200 |
+| 30 | Notifications GET | ✅ | 200 |
+| 31 | Billing GET plans | ✅ | 200 |
+| 32 | Actions GET list | ✅ | 200 (backend works, frontend dead code: B-ACT-01) |
+| 33 | Permission: ofis → trucks (allowed) | ❌ | 403 — all permissions false (B-PERM-01) |
+| 34 | Permission: ofis → customers (denied) | ✅ | 403 (correct) |
+| 35 | Super admin rejection | ✅ | 403 (correct) |
+
+### New Bugs for CI/CD Registration
+
+| ID | Severity | Bug | CI Gate to Add |
+|----|:---:|------|----------------|
+| **B-TRK-01** | P2 | Truck PUT 404 with full body | `api-smoke`: verify truck PUT works with full object |
+| **B-TRK-02** | P3 | Truck POST yakit_tipi not persisted | `module-consistency`: schema check for yakit_tipi column |
+| **B-EXP-01** | P1 | Expense categories route not registered | `api-smoke`: verify categories returns 200 |
+| **B-PERM-01** | P1 | ofis user all permissions false | `api-smoke`: verify ofis can access trucks+expenses |
+| **B-PERM-02** | P1 | PermissionEnforcer blocks from B-PERM-01 | Resolved by B-PERM-01 fix |
+| **B-ACT-01** | P1 | ActionsPage unreachable (no route) | `production-integrity`: verify ActionsPage Route + sidebar |
+| **B-QA-01** | P2 | Settings PUT 500 (RLS) | `api-smoke`: verify settings PUT returns 200 |
+
+### CI Gate Additions for test.yml
+
+```yaml
+# In api-smoke job — add these steps:
+
+# B-EXP-01: Expense categories endpoint exists and returns 200
+- name: "Expense categories endpoint works"
+  run: |
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer $TOKEN" \
+      http://localhost:8080/api/tenant/expenses/categories)
+    [ "$STATUS" -eq 200 ] || { echo "❌ B-EXP-01: categories endpoint failed (got $STATUS)"; exit 1; }
+
+# B-TRK-01: Truck PUT works with full object
+- name: "Truck PUT works with full object"
+  run: |
+    # Create truck
+    TRUCK=$(curl -s -X POST http://localhost:8080/api/tenant/trucks/ \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"plaka":"CI-TRK-01","marka":"Test","model":"CI","yil":2024}')
+    TID=$(echo "$TRUCK" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+    # Update with full body (including id, aktif, tracking_source)
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+      "http://localhost:8080/api/tenant/trucks/$TID" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d "{\"id\":$TID,\"plaka\":\"CI-UPD-01\",\"marka\":\"Updated\",\"model\":\"CI\",\"yil\":2025,\"tracking_source\":\"MANUEL\",\"aktif\":true}")
+    [ "$STATUS" -eq 200 ] || { echo "❌ B-TRK-01: truck PUT failed with full body (got $STATUS)"; exit 1; }
+    # Cleanup
+    curl -s -X DELETE "http://localhost:8080/api/tenant/trucks/$TID" \
+      -H "Authorization: Bearer $TOKEN" > /dev/null
+
+# B-PERM-01: Ofis user can access allowed modules
+- name: "Ofis user permissions functional"
+  run: |
+    # Login as ofis user
+    OFIS_RESP=$(curl -s -X POST http://localhost:8080/api/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"email":"ofis@ofis.com","password":"REDACTED"}')
+    OFIS_TOKEN=$(echo "$OFIS_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))")
+    # Check truck_tracking (should be 200)
+    TRUCK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer $OFIS_TOKEN" \
+      http://localhost:8080/api/tenant/trucks/)
+    [ "$TRUCK_STATUS" -eq 200 ] || { echo "❌ B-PERM-01: ofis user denied truck_tracking (got $TRUCK_STATUS)"; exit 1; }
+    # Check expense_tracking (should be 200)
+    EXP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer $OFIS_TOKEN" \
+      http://localhost:8080/api/tenant/expenses/)
+    [ "$EXP_STATUS" -eq 200 ] || { echo "❌ B-PERM-01: ofis user denied expense_tracking (got $EXP_STATUS)"; exit 1; }
+
+# B-QA-01: Settings PUT works for real tenants
+- name: "Settings PUT returns 200"
+  run: |
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+      http://localhost:8080/api/tenant/settings \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"vergi_dairesi":"CI Test"}')
+    [ "$STATUS" -eq 200 ] || { echo "❌ B-QA-01: settings PUT failed (got $STATUS, expected 200)"; exit 1; }
+```
+
+```yaml
+# In production-integrity job — add these steps:
+
+# B-ACT-01: ActionsPage has Route in App.tsx and sidebar entry
+- name: "ActionsPage has route in App.tsx"
+  run: |
+    grep -q 'path="/dashboard/actions".*ActionsPage' frontend/src/App.tsx || \
+    { echo "❌ B-ACT-01: ActionsPage route missing in App.tsx"; exit 1; }
+
+- name: "ActionsPage has sidebar entry"
+  run: |
+    grep -q "İşlem Kayıtları\|actions" frontend/src/components/Sidebar.tsx || \
+    { echo "❌ B-ACT-01: ActionsPage missing from sidebar"; exit 1; }
+
+# B-TRK-02: trucks table has yakit_tipi column
+- name: "Trucks schema has yakit_tipi column"
+  run: |
+    grep -q "yakit_tipi" database/01-schema.sql || \
+    { echo "❌ B-TRK-02: yakit_tipi column missing from trucks schema"; exit 1; }
+```
+
+### Module Test Progress Tracker (June 2)
+
+| # | Bug | Status |
+|---|------|:---:|
+| B-TRK-01 | Truck PUT 404 with full body | ⬜ |
+| B-TRK-02 | Truck yakit_tipi not persisted | ⬜ |
+| B-EXP-01 | Expense categories route missing | ⬜ |
+| B-PERM-01 | ofis user all permissions false | ⬜ |
+| B-PERM-02 | PermissionEnforcer cascade block | ⬜ |
+| B-ACT-01 | ActionsPage unreachable (no route) | ⬜ |
+| B-QA-01 | Settings PUT 500 RLS issue | ⬜ |
+
+---
+
+## Appendix C: UI Module Test Results (June 2, 2026)
+
+### UI E2E Test: 92/106 passed (87%), 14 investigated, 7 real bugs found
+
+Tested all 18 functional modules via headless Chromium Playwright. 14 initial "failures" were false positives — buttons exist with different Turkish labels ("Yeni Sefer" not "Ekle", "Yeni Müşteri" not "Ekle", etc.).
+
+### Real UI Bugs Found
+
+| ID | Severity | Module | Bug |
+|----|:---:|--------|------|
+| **B-PRED-01** | P2 | Predictions | "Yeniden Hesapla" recalculate button missing |
+| **B-PRED-02** | P3 | Predictions | Page has no interactive elements (static view only) |
+| **B-LOAD-01** | P2 | Load Board | Missing "Tümü" filter tab |
+| **B-LOAD-02** | P3 | Load Board | Action buttons hidden in empty state |
+| **B-LOAD-03** | P3 | Load Board | No stats summary cards at top |
+| **B-CEK-01** | P3 | Cek/Senet | KPI labels differ from spec (3 cards vs 4) |
+| **B-AUTH-01** | P3 | Auth | Google OAuth button not visible (missing build-time env var) |
+| **B-ACT-01** | P1 | Actions | Confirmed: Actions link missing from sidebar |
+
+### UI Test Summary by Module
+
+| Module | Renders | Buttons | Content | JS Errors | Issues |
+|--------|:---:|:---:|:---:|:---:|---|
+| auth (login) | ✅ | ✅ Email/Pass | ✅ | ✅ | B-AUTH-01: no Google button |
+| dashboard | ✅ | ✅ | ✅ KPI cards + chart | ✅ | — |
+| truck_tracking | ✅ | ✅ "Yeni Kamyon" | ✅ DataGrid | ✅ | — |
+| trailer_mgmt | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| trip_mgmt | ✅ | ✅ "Yeni Sefer" | ✅ DataGrid | ✅ | — |
+| customer_mgmt | ✅ | ✅ "Yeni Müşteri" | ✅ DataGrid | ✅ | — |
+| invoice_mgmt | ✅ | ✅ "Yeni Fatura" | ✅ DataGrid | ✅ | — |
+| cek_senet | ✅ | ✅ "Yeni Kayıt" | ✅ DataGrid + KPIs | ✅ | B-CEK-01: KPI mismatch |
+| load_board | ✅ | ✅ "Yeni İlan" | ✅ DataGrid | ✅ | B-LOAD-01/02/03 |
+| expense_tracking | ✅ | ✅ "Yeni Gider" | ✅ DataGrid | ✅ | — |
+| employee_mgmt | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| fuel_logging | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| toll_tracking | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| maintenance | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| driver_leave | ✅ | ✅ | ✅ DataGrid | ✅ | — |
+| predictions | ✅ | ❌ No buttons | ✅ Chart + table | ✅ | B-PRED-01/02 |
+| settings | ✅ | ✅ 4 sections | ✅ All sections | ✅ | — |
+| actions | ❌ No route | — | — | — | B-ACT-01 |
+| landing | ✅ | ✅ CTA | ✅ Hero + pricing | ✅ | — |
+
+### CI Gate Additions for UI Bugs
+
+```yaml
+# In production-integrity job — add these UI verification steps:
+
+# B-PRED-01: PredictionsPage has recalculate button
+- name: "Predictions has recalculate button"
+  run: |
+    grep -q "Hesapla\|recalculate\|Recalculate" frontend/src/pages/PredictionsPage.tsx || \
+    { echo "❌ B-PRED-01: PredictionsPage missing recalculate button"; exit 1; }
+
+# B-LOAD-01: LoadBoard has "Tümü" filter tab
+- name: "LoadBoard has Tümü filter"
+  run: |
+    grep -q "Tümü" frontend/src/pages/LoadBoardPage.tsx || \
+    { echo "❌ B-LOAD-01: LoadBoard missing Tümü filter"; exit 1; }
+
+# B-AUTH-01: Login page has Google OAuth entry point
+- name: "Login page references Google OAuth"
+  run: |
+    grep -q "Google\|google" frontend/src/pages/LoginPage.tsx || \
+    { echo "❌ B-AUTH-01: LoginPage missing Google OAuth reference"; exit 1; }
+
+# B-LOAD-03: LoadBoard has stats summary
+- name: "LoadBoard uses stats endpoint"
+  run: |
+    grep -q "stats\|Stats\|istatistik" frontend/src/pages/LoadBoardPage.tsx || \
+    { echo "❌ B-LOAD-03: LoadBoard missing stats integration"; exit 1; }
+```
+
+### UI Test Progress Tracker (June 2)
+
+| # | Bug | Status |
+|---|------|:---:|
+| B-PRED-01 | Predictions recalculate button missing | ⬜ |
+| B-PRED-02 | Predictions no interactive elements | ⬜ |
+| B-LOAD-01 | Load board missing Tümü filter | ⬜ |
+| B-LOAD-02 | Load board empty state missing CTAs | ⬜ |
+| B-LOAD-03 | Load board no stats cards | ⬜ |
+| B-CEK-01 | CekSenet KPI labels mismatch | ⬜ |
+| B-AUTH-01 | Google OAuth button not visible | ⬜ |
 | B-SET-06 | Verify settings PUT works for real tenants | ✅ |

@@ -21,9 +21,10 @@ type ExpensesHandler struct {
 
 func (h *ExpensesHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
+	r.Get("/categories", h.Categories)
 	r.Get("/{id}", h.Get)
 	r.Put("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
@@ -209,4 +210,38 @@ func (h *ExpensesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, models.SuccessResponse{Success: true, Message: "expense deleted"})
+}
+
+func (h *ExpensesHandler) Categories(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT kategori, COUNT(*) as adet, COALESCE(SUM(tutar), 0) as toplam
+		 FROM expenses WHERE tenant_id = $1
+		 GROUP BY kategori ORDER BY toplam DESC`, tenantID)
+	if err != nil {
+		slog.Error("failed to get expense categories", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to get categories")
+		return
+	}
+	defer rows.Close()
+
+	type CategorySummary struct {
+		Kategori string  `json:"kategori"`
+		Adet     int     `json:"adet"`
+		Toplam   float64 `json:"toplam"`
+	}
+	var categories []CategorySummary
+	for rows.Next() {
+		var c CategorySummary
+		if err := rows.Scan(&c.Kategori, &c.Adet, &c.Toplam); err != nil {
+			slog.Error("failed to scan category row", "error", err)
+			continue
+		}
+		categories = append(categories, c)
+	}
+	if categories == nil {
+		categories = []CategorySummary{}
+	}
+	writeJSON(w, http.StatusOK, models.APIResponse{Success: true, Data: categories})
 }

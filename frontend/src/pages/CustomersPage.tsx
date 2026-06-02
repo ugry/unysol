@@ -179,7 +179,7 @@ export default function CustomersPage() {
           </select>
         </div>
         <button onClick={() => { setEditingId(null); setFormData({ firma_unvani: '', yetkili: '', telefon: '', email: '', adres: '', fatura_adresi: '', vergi_dairesi: '', vergi_no: '', kategori: 'GENEL', acik_hesap_limiti: 0, risk_skoru: 'DUSUK', vade_gun: 30, notlar: '' }); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm transition-all flex-shrink-0">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all flex-shrink-0">
           <Plus size={18} /> Yeni Müşteri
         </button>
       </div>
@@ -224,7 +224,7 @@ export default function CustomersPage() {
               <div><label className="block text-sm font-medium text-enterprise-text-secondary mb-1.5">Notlar</label><textarea value={formData.notlar} onChange={e => setFormData({...formData, notlar: e.target.value})} rows={2} className="w-full px-3.5 py-2.5 rounded-lg bg-gray-50 border border-enterprise-border-subtle text-enterprise-text text-sm outline-none focus:border-[#072C2C] resize-none" /></div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowModal(false); setEditingId(null); }} className="flex-1 py-2.5 rounded-lg border border-enterprise-border text-enterprise-text-secondary font-medium text-sm">İptal</button>
-                <button type="submit" disabled={submitting} className="flex-1 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm disabled:opacity-60 flex items-center justify-center gap-2">{submitting && <Loader2 size={16} className="animate-spin" />}{editingId ? 'Güncelle' : 'Kaydet'}</button>
+                <button type="submit" disabled={submitting} className="flex-1 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm disabled:opacity-60 flex items-center justify-center gap-2">{submitting && <Loader2 size={16} className="animate-spin" />}{editingId ? 'Güncelle' : 'Kaydet'}</button>
               </div>
             </form>
           </div>

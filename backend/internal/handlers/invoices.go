@@ -33,7 +33,7 @@ type InvoicesHandler struct {
 
 func (h *InvoicesHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 
 	r.Get("/", h.List)
 	r.Post("/", h.Create)

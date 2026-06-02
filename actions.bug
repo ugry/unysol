@@ -1,0 +1,20 @@
+# actions.bug
+
+> Module: actions (İşlem Kayıtları) | Category: CORE  
+> Last Tested: 02 June 2026
+
+---
+
+### B-ACT-01: ActionsPage Is Unreachable — No Route Registered
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review + testing — `GET /api/tenant/actions/` returns 200 and works correctly, but the frontend page is unreachable |
+| **Bug** | `ActionsPage.tsx` is fully implemented (DataGrid, API calls for list + revert, filters) and imported in `App.tsx` but has NO `<Route>` element assigned and NO sidebar navigation link. The component is dead code — users cannot navigate to `/dashboard/actions`. |
+| **Impact** | Audit log functionality exists but is invisible to users. KVKK compliance feature (audit trail access) is non-functional despite backend working perfectly. |
+| **Root Cause** | The route and sidebar entry were never added when the page was built. The component was imported in `App.tsx` but no `<Route>` was wired. |
+| **Required Fix** | 1) Add to `App.tsx`: `<Route path="/dashboard/actions" element={<ActionsPage />} />`. 2) Add to `Sidebar.tsx` navItems: `{ name: "İşlem Kayıtları", path: "/dashboard/actions", icon: History }`. 3) Add to `MainLayout.tsx` page title mapping: `"actions": "İşlem Kayıtları"`. |
+| **Files to Change** | `frontend/src/App.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/MainLayout.tsx` |
+| **CI Gate to Add** | `production-integrity`: verify ActionsPage route exists in App.tsx and sidebar |

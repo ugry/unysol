@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -51,23 +51,38 @@ const mockPredictions: Prediction[] = Array.from({ length: 12 }, (_, i) => {
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recalculating, setRecalculating] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchPredictions = () => {
     setLoading(true);
     api
       .get<Prediction[]>('/api/tenant/predictions/12-months')
       .then((res) => {
-        if (!cancelled) setPredictions(res.data);
+        setPredictions(res.data);
       })
       .catch(() => {
-        if (!cancelled) setPredictions(mockPredictions);
+        setPredictions(mockPredictions);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       });
-    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    fetchPredictions();
   }, []);
+
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    try {
+      await api.post('/api/tenant/predictions/recalculate');
+      fetchPredictions();
+    } catch {
+      fetchPredictions();
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -182,6 +197,18 @@ export default function PredictionsPage() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleRecalculate}
+          disabled={recalculating}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#FF5F03] hover:bg-[#e05502] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <RefreshCw size={16} className={recalculating ? 'animate-spin' : ''} />
+          {recalculating ? 'Hesaplanıyor...' : 'Yeniden Hesapla'}
+        </button>
       </div>
 
       {/* Table */}

@@ -26,7 +26,7 @@ type PermissionEntry struct {
 
 func (h *UserManagementHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.ListUsers)
 	r.Get("/permissions/{userId}", h.GetPermissions)
 	r.Put("/permissions/{userId}", h.SavePermissions)

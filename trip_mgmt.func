@@ -1,0 +1,65 @@
+# trip_mgmt.func
+
+> Module: trip_mgmt (Sefer Yönetimi) | Category: CRM
+
+## Purpose
+Trip (sefer) management — the core operational module for logistics companies. Plan, execute, and track cargo transport trips with route info, fees, payment status, and documentary support (irsaliye).
+
+## Problems It Solves
+- Every trucking company's primary operation is managing trips
+- Trip lifecycle: planned → in progress → completed → invoiced
+- Route tracking: origin → destination with cities
+- Revenue tracking per trip (fee, payment status)
+- Quick-create related entities: truck, driver, customer from trip form
+- Auto-generate invoice on trip completion
+- İrsaliye (waybill) number tracking for legal compliance
+
+## Technical Database Structure
+**Table:** `trips`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| kamyon_id | INTEGER FK | Truck |
+| sofor_id | INTEGER FK | Driver (FK to employees) |
+| musteri_id | INTEGER FK | Customer |
+| cikis_yeri | VARCHAR(200) | Origin |
+| varis_yeri | VARCHAR(200) | Destination |
+| cikis_tarihi | DATE | Departure date |
+| varis_tarihi | DATE | Arrival date |
+| ucret | DECIMAL(12,2) | Fee |
+| odeme_durumu | odeme_durumu_enum | Payment status |
+| durum | trip_durum_enum | Trip status |
+| irsaliye_no | VARCHAR(50) | Waybill number |
+| yuk_aciklamasi | TEXT | Cargo description |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Enums:**
+- `trip_durum_enum`: PLANLANDI, DEVAM_EDIYOR, TAMAMLANDI, IPTAL_EDILDI
+- `odeme_durumu_enum`: BEKLIYOR, KISMEN_ODENDI, ODENDI
+
+## User Interface
+**TripsPage.tsx** — `/dashboard/trips`
+- DataGrid table: Çıkış → Varış, Müşteri, Kamyon, Şoför, Tarih, Ücret, Durum, Ödeme
+- Status badges: blue (planned), orange (in progress), green (completed)
+- Add modal with: truck selector, driver selector, customer selector, origin/destination, dates, fee
+- Quick-create buttons: add truck/driver/customer inline
+- Auto-invoice: checkbox to generate invoice on completion
+- Filters: by status, truck, date range
+- Export to CSV/Excel/PDF
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/trips/` | Tenant JWT | List trips |
+| POST | `/api/tenant/trips/` | Tenant JWT | Create trip |
+| PUT | `/api/tenant/trips/{id}` | Tenant JWT | Update trip (status change) |
+| DELETE | `/api/tenant/trips/{id}` | Tenant JWT | Remove trip |
+
+## Known Bugs
+- Early bug (B2, fixed May 25): NULL time.Time scan on create — empty date strings caused panic
+- All known bugs fixed
+
+## Test Coverage
+- QA test: 2/2 passed (100%)
+- CI gate: handler + endpoint checks

@@ -141,7 +141,7 @@ export default function ActionsPage() {
         loading={loading}
         title="İşlem Kayıtları"
         emptyIcon={<Clock size={48} className="text-[#2a2a2a]" />}
-        emptyText="Henüz işlem kaydı bulunmuyor"
+        emptyText="Henüz işlem kaydı yok"
       />
     </div>
   );

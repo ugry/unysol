@@ -21,7 +21,7 @@ type ActionsHandler struct {
 
 func (h *ActionsHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
 	r.Post("/{id}/revert", h.Revert)

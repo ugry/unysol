@@ -19,7 +19,7 @@ type PredictionsHandler struct {
 
 func (h *PredictionsHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/12-months", h.TwelveMonthForecast)
 	r.Post("/recalculate", h.Recalculate)
 	return r

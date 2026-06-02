@@ -78,6 +78,12 @@ func main() {
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
 	demoHandler := &handlers.DemoHandler{DB: pool}
 	loadBoardHandler := &handlers.LoadBoardHandler{DB: pool}
+	reportsHandler := &handlers.ReportsHandler{DB: pool}
+	proposalsHandler := &handlers.ProposalsHandler{DB: pool}
+	contractsHandler := &handlers.ContractsHandler{DB: pool}
+	tiresHandler := &handlers.TiresHandler{DB: pool}
+	allowanceHandler := &handlers.AllowanceHandler{DB: pool}
+	payslipsHandler := &handlers.PayslipsHandler{DB: pool}
 	contactHandler := &handlers.ContactHandler{}
 	emailHandler := &handlers.EmailHandler{DB: pool}
 	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
@@ -138,6 +144,8 @@ func main() {
 	})
 
 	r.Get("/api/verify", authHandler.VerifyEmail)
+	r.Post("/api/auth/verify-code", authHandler.VerifyCode)
+	r.Post("/api/auth/resend-code", authHandler.ResendCode)
 
 	r.Post("/api/stripe/webhook", stripeHandler.Webhook)
 
@@ -158,7 +166,7 @@ func main() {
 		r.Use(middleware.PlanLimitsMiddleware(pool))
 
 		r.Route("/api/tenant", func(r chi.Router) {
-			r.Use(middleware.RequireTenant)
+			r.Use(middleware.RequireTenant(pool))
 			r.Use(middleware.PermissionEnforcer(pool))
 
 			r.Mount("/dashboard", dashboardHandler.Routes())
@@ -175,6 +183,12 @@ func main() {
 			r.Mount("/settings", settingsHandler.Routes())
 			r.Mount("/notifications", notificationsHandler.Routes())
 			r.Mount("/load-board", loadBoardHandler.Routes())
+			r.Mount("/reports", reportsHandler.Routes())
+			r.Mount("/proposals", proposalsHandler.Routes())
+			r.Mount("/contracts", contractsHandler.Routes())
+			r.Mount("/tires", tiresHandler.Routes())
+			r.Mount("/allowances", allowanceHandler.Routes())
+			r.Mount("/payslips", payslipsHandler.Routes())
 			r.Mount("/fuel-logs", fuelLogHandler.Routes())
 			r.Mount("/maintenance", maintenanceHandler.Routes())
 			r.Mount("/trailers", trailerHandler.Routes())

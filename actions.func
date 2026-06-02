@@ -1,0 +1,59 @@
+# actions.func
+
+> Module: actions (İşlem Kayıtları) | Category: CORE
+
+## Purpose
+Audit log for all CRUD operations across the platform. Records every create, update, delete, and bulk delete action with user identity, timestamp, module, and data snapshot. Required for KVKK compliance.
+
+**⚠️ STATUS: DEAD CODE** — ActionsPage.tsx is fully implemented (DataGrid, API calls, revert functionality) but has NO `<Route>` in App.tsx and NO sidebar entry. The component exists but cannot be reached by users.
+
+## Problems It Solves
+- KVKK (Turkish data protection law) requires audit trails
+- Trace who made what change and when
+- Revert accidental or malicious changes
+- Compliance reporting for auditors
+
+## Technical Database Structure
+**Table:** `actions`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| kullanici_id | INTEGER FK | User who performed action |
+| modul | VARCHAR(50) | Module name |
+| eylem | action_type_enum | CREATE / UPDATE / DELETE / BULK_DELETE |
+| kayit_id | INTEGER | Record ID affected |
+| onceki_veri | JSONB | Data BEFORE change |
+| sonraki_veri | JSONB | Data AFTER change |
+| created_at | TIMESTAMPTZ | Timestamp |
+
+**RLS:** Enabled (only shows actions for logged-in tenant)
+
+## User Interface
+**ActionsPage.tsx** — No route (dead code)
+- DataGrid table: Modül, Eylem, Kayıt ID, Kullanıcı, Tarih
+- Action type badges: green (create), blue (update), red (delete), orange (bulk delete)
+- "Geri Al" (Revert) button per row for CREATE/UPDATE/DELETE
+- Filter by module, action type, date
+- Export to CSV/Excel/PDF
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/actions/` | Tenant JWT | List audit log (limit 200) |
+| POST | `/api/tenant/actions/{id}/revert` | Tenant JWT | Revert action |
+
+## Known Bugs
+- **B-ACT-01 (P1):** ActionsPage component is unreachable — no `<Route>` and no sidebar entry. All code written but users cannot access it. Must add to App.tsx + Sidebar.tsx.
+
+## Fix Required
+```tsx
+// In App.tsx:
+<Route path="/dashboard/actions" element={<ActionsPage />} />
+
+// In Sidebar.tsx navItems:
+{ name: "İşlem Kayıtları", path: "/dashboard/actions", icon: History }
+```
+
+## Test Coverage
+- Not included in any QA test run (unreachable)

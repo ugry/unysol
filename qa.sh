@@ -104,6 +104,32 @@ case "$cmd" in
       docker exec -i unysol-qa-db psql -U unysol -d unysol < "$SCRIPT_DIR/database/02-seed-demo.sql"
       echo "Demo data seeded."
     fi
+    # Seed test user permissions (fixes B-PERM-01)
+    echo "Seeding QA test user permissions..."
+    docker exec -i unysol-qa-db psql -U unysol -d unysol <<'PERMEOF'
+DO $$
+DECLARE
+  v_user_id INTEGER;
+  v_tenant_id INTEGER;
+  mod RECORD;
+BEGIN
+  SELECT u.id, u.tenant_id INTO v_user_id, v_tenant_id FROM users u WHERE u.email = 'ofis@ofis.com';
+  IF v_user_id IS NULL THEN
+    RAISE NOTICE 'ofis@ofis.com not found — skipping permission seed';
+    RETURN;
+  END IF;
+  FOR mod IN SELECT module_key FROM modules WHERE is_core = FALSE LOOP
+    INSERT INTO user_permissions (user_id, tenant_id, module_key, can_view, can_create, can_edit, can_delete)
+    VALUES (v_user_id, v_tenant_id, mod.module_key, FALSE, FALSE, FALSE, FALSE)
+    ON CONFLICT (user_id, module_key) DO NOTHING;
+  END LOOP;
+  -- Grant truck_tracking and expense_tracking to ofis user
+  UPDATE user_permissions SET can_view = TRUE, can_create = TRUE, can_edit = TRUE
+    WHERE user_id = v_user_id AND module_key IN ('truck_tracking', 'expense_tracking');
+  RAISE NOTICE 'Seeded permissions for ofis@ofis.com (user_id=%)', v_user_id;
+END $$;
+PERMEOF
+    echo "✅ Test permissions seeded."
     ;;
   
   db-reset)
@@ -134,8 +160,13 @@ case "$cmd" in
     echo "  db-shell     Open PostgreSQL shell"
     echo "  db-seed      Apply schema + demo seed data"
     echo "  db-reset     Destroy and recreate database"
+    echo "  mail         Open Mailpit web UI (http://localhost:8025)"
     echo ""
-    echo "Environment file: .env.qa"
+    echo "Quick URLs:"
+    echo "  App:         http://localhost"
+    echo "  Mailpit:     http://localhost:8025"
+    echo "  API Health:  http://localhost/api/system/health"
+    echo "  DB:          postgres://unysol:unysol@localhost:5433/unysol"
     echo "Compose file:     docker-compose.qa.yml"
     echo ""
     echo "Production comparison:"

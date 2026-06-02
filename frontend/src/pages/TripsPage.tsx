@@ -33,7 +33,7 @@ interface CustomerOption { id: number; firma_unvani: string }
 interface DriverOption { id: number; ad_soyad: string }
 
 const durumConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  AKTIF: { label: 'Aktif', bg: 'bg-[#FF5F03]/15', text: 'text-enterprise-secondary', border: 'border-enterprise-secondary/30' },
+  AKTIF: { label: 'Aktif', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
   TAMAMLANDI: { label: 'Tamamlandı', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
   IPTAL: { label: 'İptal', bg: 'bg-[#DC2626]/15', text: 'text-[#DC2626]', border: 'border-[#DC2626]/30' },
 };
@@ -264,8 +264,8 @@ export default function TripsPage() {
             <option value="IPTAL">İptal</option>
           </select>
         </div>
-        <button onClick={() => { setEditingId(null); setFormData({ truck_id: 0, sofor: '', customer_id: 0, yukleme: '', teslimat: '', ucret: '', payment_method: 'havale', durum: 'aktif' }); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm transition-all flex-shrink-0">
+        <button onClick={() => { setEditingId(null); setFormData({ truck_id: 0, sofor: '', customer_id: 0, yukleme: '', teslimat: '', ucret: '', payment_method: 'havale', durum: 'AKTIF' }); setShowModal(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all flex-shrink-0">
           <Plus size={18} /> Yeni Sefer
         </button>
       </div>
@@ -302,7 +302,7 @@ export default function TripsPage() {
           setTrips((prev) => prev.filter((t) => !ids.includes(String(t.id))));
         }}
         emptyIcon={<MapPin size={48} className="text-gray-300" />}
-        emptyText={search || statusFilter ? 'Aramanızla eşleşen sefer bulunamadı' : 'Henüz sefer yok'} />
+        emptyText={search || statusFilter ? 'Aramanızla eşleşen sefer bulunamadı' : 'Henüz sefer kaydı yok'} />
 
       {/* Add/Edit Modal */}
       {showModal && (
@@ -424,7 +424,7 @@ export default function TripsPage() {
                 <button type="button" onClick={() => { setShowModal(false); setEditingId(null); setFormError(''); }}
                   className="flex-1 py-2.5 rounded-lg border border-enterprise-border text-enterprise-text-secondary hover:text-enterprise-text font-medium text-sm transition-all">İptal</button>
                 <button type="submit" disabled={submitting}
-                  className="flex-1 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   {editingId ? 'Güncelle' : 'Kaydet'}
                 </button>
@@ -451,7 +451,7 @@ export default function TripsPage() {
               <button onClick={() => { setShowInvoicePrompt(false); setLastCreatedTripId(null); }}
                 className="flex-1 py-2.5 rounded-lg border border-enterprise-border text-enterprise-text-secondary hover:text-enterprise-text font-medium text-sm transition-all">Hayır</button>
               <button onClick={handleAutoInvoice} disabled={creatingInvoice}
-                className="flex-1 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
                 {creatingInvoice && <Loader2 size={16} className="animate-spin" />}
                 Evet, Oluştur
               </button>

@@ -1,0 +1,51 @@
+# maintenance.func
+
+> Module: maintenance (Bakım Takvimi) | Category: FLEET
+
+## Purpose
+Maintenance scheduling and records for the vehicle fleet. Track all maintenance events per truck, set next-service reminders, and record costs. Critical for fleet reliability and legal compliance (periodic vehicle inspection is mandatory in Turkey).
+
+## Problems It Solves
+- Turkish law requires regular vehicle inspections (muayene, egzoz emisyon)
+- Fleet owners need to track maintenance costs per vehicle
+- Preventive maintenance scheduling prevents breakdowns
+- Cost tracking enables TCO (Total Cost of Ownership) per truck
+
+## Technical Database Structure
+**Table:** `maintenance_records`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| arac_id | INTEGER FK | Linked to trucks.id |
+| bakim_turu | bakim_turu_enum | Maintenance type |
+| aciklama | TEXT | Description |
+| tarih | DATE | Date performed |
+| km | INTEGER | Odometer at service |
+| tutar | DECIMAL(12,2) | Cost |
+| sonraki_bakim_km | INTEGER | Next service km |
+| sonraki_bakim_tarih | DATE | Next service date |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Enum:** `bakim_turu_enum` (12 types) — PERIYODIK_BAKIM, YAG_DEGISIMI, FREN_BAKIMI, LASTIK_DEGISIMI, MUAYENE, EGZOZ_EMISYON, ELEKTRIK_BAKIMI, KLIMA_BAKIMI, KAPORTA_BOYA, MOTOR_REVISION, SANZIMAN_BAKIMI, DIGER
+
+## User Interface
+**MaintenancePage.tsx** — `/dashboard/maintenance`
+- DataGrid table: Araç, Bakım Türü, Tarih, KM, Tutar, Sonraki Bakım
+- Add/Edit modal with truck selector, maintenance type dropdown, cost, next-service fields
+- Delete with confirmation
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/maintenance/` | Tenant JWT | List maintenance records |
+| POST | `/api/tenant/maintenance/` | Tenant JWT | Add record |
+| PUT | `/api/tenant/maintenance/{id}` | Tenant JWT | Edit record |
+| DELETE | `/api/tenant/maintenance/{id}` | Tenant JWT | Remove record |
+
+## Known Bugs
+- None reported (not individually QA tested yet)
+
+## Test Coverage
+- Not included in June 1 QA test run
+- Needs: CRUD cycle test, enum validation, next-service reminder logic test

@@ -21,7 +21,7 @@ type TrucksHandler struct {
 
 func (h *TrucksHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
 	r.Get("/{id}", h.Get)
@@ -134,6 +134,12 @@ func (h *TrucksHandler) Update(w http.ResponseWriter, r *http.Request) {
 		req.TrackingSource = strings.ToUpper(req.TrackingSource)
 	}
 
+	validSources := map[string]bool{"PHONE": true, "ESP32_LTE": true, "COMM_DEV": true, "OBD_ONLY": true, "MANUEL": true}
+	if req.TrackingSource != "" && !validSources[req.TrackingSource] {
+		writeError(w, http.StatusBadRequest, "invalid tracking_source: must be PHONE, ESP32_LTE, COMM_DEV, OBD_ONLY, or MANUEL")
+		return
+	}
+
 	var truck models.Truck
 	err = h.DB.QueryRow(r.Context(),
 		`UPDATE trucks SET
@@ -151,7 +157,7 @@ func (h *TrucksHandler) Update(w http.ResponseWriter, r *http.Request) {
 		&truck.TrackingSource, &truck.Aktif, &truck.CreatedAt, &truck.UpdatedAt)
 	if err != nil {
 		slog.Error("failed to update truck", "error", err, "id", id, "tenant_id", tenantID)
-		writeError(w, http.StatusNotFound, "truck not found")
+		writeError(w, http.StatusBadRequest, "failed to update truck: check that all values are valid (tracking_source must be PHONE, ESP32_LTE, COMM_DEV, OBD_ONLY, or MANUEL)")
 		return
 	}
 

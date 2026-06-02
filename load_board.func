@@ -1,0 +1,57 @@
+# load_board.func
+
+> Module: load_board (Yük Panosu) | Category: FLEET
+
+## Purpose
+Cross-tenant freight marketplace. Companies post available loads (YUK_VAR — I have cargo) or search for loads (YUK_ARA — I need cargo). Enables B2B matching between shippers and carriers within the Unysol platform. Added in v2.34.
+
+## Problems It Solves
+- Turkish trucking companies struggle to find return loads (backhaul)
+- Empty return trips waste fuel and revenue potential
+- No centralized marketplace for small/medium Turkish logistics firms
+- Real-time load matching reduces deadhead miles
+- WhatsApp sharing enables viral distribution of load postings
+
+## Technical Database Structure
+**Table:** `load_board`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Posting tenant |
+| yuk_tipi | VARCHAR(20) | YUK_VAR (have load) / YUK_ARA (need load) |
+| sehir | VARCHAR(100) | City |
+| ilce | VARCHAR(100) | District |
+| yuk_aciklamasi | TEXT | Cargo description |
+| yuk_miktari | VARCHAR(100) | Cargo quantity/weight |
+| teslim_tarihi | DATE | Delivery deadline |
+| iletisim | VARCHAR(100) | Contact info |
+| aktif | BOOLEAN | Active listing |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Cross-tenant visible** — loads from ALL tenants are visible (marketplace model).
+
+## User Interface
+**LoadBoardPage.tsx** — `/dashboard/load-board`
+- DataGrid table: Tip, Şehir, İlçe, Yük Açıklaması, Miktar, Teslim, İletişim
+- Filter tabs: Tümü / Yük Var / Yük Ara
+- "İlgileniyorum" button per row → POST interest notification
+- WhatsApp share button per listing
+- Add modal: type (var/ara), city dropdown, district, description, quantity, date, contact
+- Stats summary at top
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/load-board/` | Tenant JWT | List all loads (cross-tenant) |
+| POST | `/api/tenant/load-board/` | Tenant JWT | Post new load |
+| PUT | `/api/tenant/load-board/{id}` | Tenant JWT | Edit load |
+| DELETE | `/api/tenant/load-board/{id}` | Tenant JWT | Remove load |
+| POST | `/api/tenant/load-board/{id}/interest` | Tenant JWT | Express interest |
+| GET | `/api/tenant/load-board/stats` | Tenant JWT | Statistics |
+| GET | `/api/cities` | Public | City list for dropdowns |
+
+## Known Bugs
+- None reported
+
+## Test Coverage
+- QA test: 2/2 passed (100%)

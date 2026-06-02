@@ -1,0 +1,55 @@
+# employee_mgmt.func
+
+> Module: employee_mgmt (Personel Yönetimi) | Category: HR
+
+## Purpose
+Employee/driver personnel management. Track all staff with contact info, roles, and Turkish-required certifications (driver's license expiry, SRC certificate validity).
+
+## Problems It Solves
+- Logistics companies employ drivers, office staff, and accountants
+- Turkish law requires commercial drivers to have valid SRC (Professional Competence) certificates
+- Driver license (ehliyet) expiry tracking — legal requirement
+- Phone contact list for dispatch operations
+- Link employees to trips, driver leave, and fuel/maintenance records
+
+## Technical Database Structure
+**Table:** `employees`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| ad_soyad | VARCHAR(200) | Full name |
+| rol | employee_rol_enum | Role (SOFOR, OFIS, MUHASEBE, DIGER) |
+| telefon | VARCHAR(20) | Phone |
+| email | VARCHAR(200) | Email |
+| ehliyet_sinifi | VARCHAR(10) | License class (C, CE, D, DE) |
+| ehliyet_bitis | DATE | License expiry |
+| src_bitis | DATE | SRC certificate expiry |
+| aktif | BOOLEAN | Active status |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Enum:** `employee_rol_enum` — SOFOR, OFIS, MUHASEBE, DIGER
+
+## User Interface
+**EmployeesPage.tsx** — `/dashboard/employees`
+- DataGrid table: Ad Soyad, Rol, Telefon, Email, Ehliyet, SRC
+- Add/Edit modal: name, role dropdown, phone, email, license info
+- Expiry date highlights (red if expired, yellow if within 30 days)
+- Employee metrics: trip count, total revenue generated
+- Export to CSV/Excel/PDF
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/employees/` | Tenant JWT | List employees |
+| GET | `/api/tenant/employees/{id}` | Tenant JWT | Detail + metrics |
+| POST | `/api/tenant/employees/` | Tenant JWT | Add employee |
+| PUT | `/api/tenant/employees/{id}` | Tenant JWT | Edit employee |
+| DELETE | `/api/tenant/employees/{id}` | Tenant JWT | Remove employee |
+
+## Known Bugs
+- Early bug (B3, fixed May 25): empty date strings for ehliyet_bitis/src_bitis caused 500
+- All known bugs fixed
+
+## Test Coverage
+- QA test: 3/3 passed (100%)

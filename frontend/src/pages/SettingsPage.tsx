@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<{ id: string; ad_soyad: string; email: string; rol: string }[]>([]);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState({ plan: 'FREE', truckCount: 0, truckLimit: 5, userCount: 0, userLimit: 5 });
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState('');
@@ -114,14 +115,19 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+  const handleDeleteUser = (userId: string) => {
+    setDeleteUserId(userId);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUserId) return;
     try {
-      await api.delete(`/api/tenant/user-management/${userId}`);
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      await api.delete(`/api/tenant/user-management/${deleteUserId}`);
+      setUsers(prev => prev.filter(u => u.id !== deleteUserId));
     } catch {
       // silently fail
     }
+    setDeleteUserId(null);
   };
 
   const handleToggleNotification = async (key: string) => {
@@ -331,6 +337,19 @@ export default function SettingsPage() {
         }).catch(() => {});
       }} />}
       {showPermsFor !== null && <PermissionsModal userId={showPermsFor} onClose={() => setShowPermsFor(null)} />}
+
+      {deleteUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Kullanıcıyı Sil</h3>
+            <p className="text-sm text-gray-600 mb-6">Bu kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteUserId(null)} className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium text-sm hover:bg-gray-50">İptal</button>
+              <button onClick={confirmDeleteUser} className="flex-1 py-2.5 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white font-medium text-sm">Sil</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

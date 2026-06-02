@@ -1,0 +1,21 @@
+# expenses.bug
+
+> Module: expense_tracking (Gider Takibi) | Category: FINANCE  
+> Last Tested: 02 June 2026
+
+---
+
+### B-EXP-01: Expense Categories Endpoint Does Not Exist
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Status** | ⬜ **OPEN** |
+| **Found** | API testing — `GET /api/tenant/expenses/categories` returns `{"success":false,"error":"invalid id"}` (400) |
+| **Reproduced** | `curl -s http://localhost/api/tenant/expenses/categories` → 400 "invalid id" |
+| **Bug** | The `expenses.handler.go` Routes() function does NOT register a `/categories` route. The only routes are `GET /`, `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`. When the frontend calls `/categories`, it matches the `GET /{id}` route which tries to parse "categories" as an integer ID and fails with "invalid id". |
+| **Impact** | Frontend functionality that depends on category summary (category breakdown chart/pie in ExpensesPage) cannot work. The DataGrid may render but category statistics are unavailable. |
+| **Root Cause** | The `/categories` route was listed in the blueprint (BUILT.md, README.md) and the `expenses.func` documentation but was never implemented in the handler's Routes() function. The `Categories()` handler method may exist on the struct but is never wired to a route. |
+| **Required Fix** | 1) Add route registration: `r.Get("/categories", h.Categories)` BEFORE the `/{id}` route in `Routes()` function (important: routes are matched in order — static routes must come before parameterized routes). 2) Implement or wire the `Categories()` handler method. |
+| **Files to Change** | `backend/internal/handlers/expenses.go` |
+| **CI Gate to Add** | `api-smoke`: verify `GET /api/tenant/expenses/categories` returns 200 with category breakdown

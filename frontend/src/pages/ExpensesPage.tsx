@@ -49,8 +49,8 @@ const emptyForm: ExpenseFormData = {
 
 const kategoriConfig: Record<string, { label: string; icon: typeof Fuel; bg: string; text: string; border: string }> = {
   yakit: { label: 'Yakıt', icon: Fuel, bg: 'bg-[#FF5F03]/15', text: 'text-[#FF5F03]', border: 'border-[#FF5F03]/30' },
-  bakim: { label: 'Bakım', icon: Wrench, bg: 'bg-[#3b82f6]/15', text: 'text-blue-600', border: 'border-[#3b82f6]/30' },
-  lastik: { label: 'Lastik', icon: CircleDot, bg: 'bg-[#a855f7]/15', text: 'text-purple-600', border: 'border-[#a855f7]/30' },
+  bakim: { label: 'Bakım', icon: Wrench, bg: 'bg-[#3b82f6]/15', text: 'text-[#3b82f6]', border: 'border-[#3b82f6]/30' },
+  lastik: { label: 'Lastik', icon: CircleDot, bg: 'bg-[#a855f7]/15', text: 'text-[#a855f7]', border: 'border-[#a855f7]/30' },
   sigorta: { label: 'Sigorta', icon: Shield, bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
   mtv: { label: 'MTV', icon: FileText, bg: 'bg-[#71717a]/15', text: 'text-[#a1a1aa]', border: 'border-[#71717a]/30' },
   trafik_cezasi: { label: 'Trafik Cezası', icon: AlertTriangle, bg: 'bg-[#DC2626]/15', text: 'text-[#DC2626]', border: 'border-[#DC2626]/30' },

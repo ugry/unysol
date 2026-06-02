@@ -1,0 +1,20 @@
+# auth.bug
+
+> Module: auth (Kimlik Doğrulama) | Category: CORE  
+> Last UI Tested: 02 June 2026
+
+---
+
+### B-AUTH-01: Google OAuth Login Button Not Visible
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI testing — `/login` page has email/password form but NO Google OAuth button |
+| **Bug** | The `auth.func` specification says the login page should have a "Google OAuth button (Google icon + 'Google ile Giriş Yap')". The actual login page has only email/password form and "Hesap Oluştur" link. Searched for "Google", "oauth", "gmail" in body — none found. |
+| **Impact** | Users cannot sign in with Google accounts. Reduces signup conversion — many Turkish logistics professionals use Gmail. |
+| **Root Cause** | The Google OAuth button may only render when `VITE_GOOGLE_CLIENT_ID` environment variable is set at build time. In the QA Docker environment, this variable might not be injected. |
+| **Required Fix** | Verify `VITE_GOOGLE_CLIENT_ID` is passed as build arg in `docker-compose.qa.yml` or `.env.qa`. Alternatively, show the button with a disabled state when client ID is missing, so users know the feature exists. |
+| **Files to Change** | `docker-compose.qa.yml` or `frontend/src/pages/LoginPage.tsx` |
+| **CI Gate** | `production-integrity`: verify login page has Google button or disabled Google placeholder |

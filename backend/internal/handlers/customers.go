@@ -19,7 +19,7 @@ type CustomersHandler struct {
 
 func (h *CustomersHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
 	r.Put("/{id}", h.Update)

@@ -189,15 +189,15 @@ const mockCustomers = [
 ];
 
 const durumConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  BEKLIYOR: { label: 'Portföyde', bg: 'bg-[#3b82f6]/15', text: 'text-blue-600', border: 'border-[#3b82f6]/30' },
+  BEKLIYOR: { label: 'Portföyde', bg: 'bg-[#3b82f6]/15', text: 'text-[#3b82f6]', border: 'border-[#3b82f6]/30' },
   TAHSIL_EDILDI: { label: 'Tahsil Edildi', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', border: 'border-[#16A34A]/30' },
   KARSILIKSIZ: { label: 'Karşılıksız', bg: 'bg-[#DC2626]/15', text: 'text-[#DC2626]', border: 'border-[#DC2626]/30' },
-  IADE: { label: 'İade', bg: 'bg-[#a855f7]/15', text: 'text-purple-600', border: 'border-[#a855f7]/30' },
+  IADE: { label: 'İade', bg: 'bg-[#a855f7]/15', text: 'text-[#a855f7]', border: 'border-[#a855f7]/30' },
 };
 
 const tipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  cek: { label: 'Çek', bg: 'bg-[#3b82f6]/10', text: 'text-blue-600', border: 'border-[#3b82f6]/20' },
-  senet: { label: 'Senet', bg: 'bg-[#a855f7]/10', text: 'text-purple-600', border: 'border-[#a855f7]/20' },
+  cek: { label: 'Çek', bg: 'bg-[#3b82f6]/10', text: 'text-[#3b82f6]', border: 'border-[#3b82f6]/20' },
+  senet: { label: 'Senet', bg: 'bg-[#a855f7]/10', text: 'text-[#a855f7]', border: 'border-[#a855f7]/20' },
 };
 
 const durumSirasi: CekSenet['durum'][] = ['BEKLIYOR', 'TAHSIL_EDILDI', 'KARSILIKSIZ', 'IADE'];
@@ -520,7 +520,7 @@ export default function CekSenetPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-enterprise-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <CreditCard size={18} className="text-blue-600" />
+            <CreditCard size={18} className="text-[#3b82f6]" />
             <span className="text-xs text-enterprise-text-muted uppercase tracking-wider">Toplam Portföy</span>
           </div>
           <p className="text-2xl font-bold text-enterprise-text">

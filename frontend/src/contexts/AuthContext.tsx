@@ -27,13 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Auto-recover user if token exists but user is null (e.g., Google login)
+  // Auto-recover user if token exists but user is null (e.g., after email verification)
   useEffect(() => {
     if (!user && authLib.isAuthenticated()) {
       const stored = authLib.getStoredUser();
       if (stored) setUser(stored);
     }
-  }, [user, loading]);
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     const u = await authLib.login(email, password);

@@ -12,6 +12,17 @@ import ExpensesPage from '@/pages/ExpensesPage';
 import CekSenetPage from '@/pages/CekSenetPage';
 import EmployeesPage from '@/pages/EmployeesPage';
 import PredictionsPage from '@/pages/PredictionsPage';
+import TiresPage from '@/pages/TiresPage';
+import AllowancesPage from '@/pages/AllowancesPage';
+import CustomerPortalPage from '@/pages/CustomerPortalPage';
+import CarbonTrackingPage from '@/pages/CarbonTrackingPage';
+import KvkkPage from '@/pages/KvkkPage';
+import ExportPage from '@/pages/ExportPage';
+import PayslipsPage from '@/pages/PayslipsPage';
+import DriverPerfPage from '@/pages/DriverPerfPage';
+import ContractsPage from '@/pages/ContractsPage';
+import ProposalsPage from '@/pages/ProposalsPage';
+import ReportsPage from '@/pages/ReportsPage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminLoginPage from '@/pages/AdminLoginPage';
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -26,7 +37,6 @@ import TrailersPage from '@/pages/TrailersPage';
 import TollLogsPage from '@/pages/TollLogsPage';
 import DriverLeavePage from '@/pages/DriverLeavePage';
 import LoadBoardPage from '@/pages/LoadBoardPage';
-import KvkkPage from '@/pages/KvkkPage';
 import TermsPage from '@/pages/TermsPage';
 import PrivacyPage from '@/pages/PrivacyPage';
 
@@ -110,7 +120,18 @@ export default function App() {
         <Route path="/dashboard/maintenance" element={<MaintenancePage />} />
         <Route path="/dashboard/driver-leave" element={<DriverLeavePage />} />
         <Route path="/dashboard/predictions" element={<PredictionsPage />} />
+        <Route path="/dashboard/tires" element={<TiresPage />} />
+        <Route path="/dashboard/allowances" element={<AllowancesPage />} />
+        <Route path="/dashboard/customer-portal" element={<CustomerPortalPage />} />
+        <Route path="/dashboard/carbon" element={<CarbonTrackingPage />} />
+        <Route path="/dashboard/export" element={<ExportPage />} />
+        <Route path="/dashboard/payslips" element={<PayslipsPage />} />
+        <Route path="/dashboard/driver-performance" element={<DriverPerfPage />} />
+        <Route path="/dashboard/contracts" element={<ContractsPage />} />
+        <Route path="/dashboard/proposals" element={<ProposalsPage />} />
+        <Route path="/dashboard/reports" element={<ReportsPage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
+        <Route path="/dashboard/actions" element={<ActionsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

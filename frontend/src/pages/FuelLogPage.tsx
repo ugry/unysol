@@ -49,7 +49,7 @@ export default function FuelLogPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div />
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Yakıt Ekle</button>
+        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm"><Plus size={18} /> Yakıt Ekle</button>
       </div>
       <DataGrid columns={columns} data={data} loading={loading} title="Yakıt Takip" emptyIcon={<Fuel size={48} className="text-gray-300" />} emptyText="Henüz yakıt kaydı yok"
         onEdit={(row) => { setEditingId(row.id); setForm({ truck_id: row.truck_id, tarih: (row.tarih || '').substring(0,10), miktar_litre: String(row.miktar_litre || ''), birim_fiyat: String(row.birim_fiyat || ''), toplam_tutar: String(row.toplam_tutar || ''), alinan_yer: row.alinan_yer || '', km_okuma: String(row.km_okuma || '') }); setShowModal(true); }}

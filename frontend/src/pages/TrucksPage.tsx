@@ -61,7 +61,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  true: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
+  true: 'border-[#16A34A]/30 text-[#16A34A] bg-[#16A34A]/10',
   false: 'border-gray-500/30 text-gray-400 bg-gray-500/10',
 };
 
@@ -146,7 +146,7 @@ export default function TrucksPage() {
     ), exportRender: (t) => trackingLabels[t.tracking_source] || t.tracking_source },
     { key: 'aktif', header: 'Durum', align: 'center', render: (t) => (
       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md border ${statusColors[String(t.aktif)] || statusColors['false']}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${t.aktif ? 'bg-emerald-400' : 'bg-gray-400'}`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${t.aktif ? 'bg-[#16A34A]' : 'bg-gray-400'}`} />
         {statusLabels[String(t.aktif)] || 'Pasif'}
       </span>
     ), exportRender: (t) => t.aktif ? 'Aktif' : 'Pasif' },
@@ -213,7 +213,7 @@ export default function TrucksPage() {
         }}
         onBulkDelete={handleBulkDeleteTrucks}
         emptyIcon={<Truck size={48} className="text-[#2a2a2a]" />}
-        emptyText={search ? 'Aramanızla eşleşen kamyon bulunamadı' : 'Henüz kayıtlı kamyon bulunmuyor'}
+        emptyText={search ? 'Aramanızla eşleşen kamyon bulunamadı' : 'Henüz kamyon kaydı yok'}
       />
       
       {showModal && (
@@ -358,7 +358,7 @@ export default function TrucksPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   {editingId ? 'Güncelle' : 'Kaydet'}

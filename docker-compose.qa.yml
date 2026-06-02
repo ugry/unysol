@@ -34,6 +34,10 @@ services:
       JWT_SECRET: "REDACTED"
       REDIS_URL: "redis://redis:6379/0"
       ENVIRONMENT: "qa"
+      SMTP_HOST: "mailpit"
+      SMTP_PORT: "1025"
+      SMTP_FROM: "noreply@unysol.test"
+      SMTP_FROM_NAME: "Unysol QA"
     expose:
       - "8080"
     volumes:
@@ -43,6 +47,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     restart: unless-stopped
 
   # ============================================================
@@ -53,6 +59,7 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: "http://localhost"
+        VITE_GOOGLE_CLIENT_ID: "1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com"
     container_name: unysol-qa-frontend
     expose:
       - "5173"
@@ -95,7 +102,27 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # ============================================================
+  # Mailpit — Local SMTP test mail server
+  # SMTP: 1025 | Web UI: http://localhost:8025
+  # ============================================================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: unysol-qa-mailpit
+    expose:
+      - "1025"
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATA_FILE: /data/mailpit.db
+    volumes:
+      - mailpit_data:/data
+    restart: unless-stopped
+
 volumes:
   qa_pgdata:
+  mailpit_data:
   caddy_data:
   caddy_config:

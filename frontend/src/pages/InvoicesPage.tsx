@@ -819,7 +819,7 @@ function RecurrencesView() {
       {records.length === 0 ? (
         <div className="bg-white border border-enterprise-border rounded-xl p-10 text-center text-gray-400">
           <Clock size={48} className="mx-auto mb-3" />
-          <p className="text-sm">Henüz tekrarlayan fatura tanımlanmadı</p>
+          <p className="text-sm">Henüz tekrarlayan fatura kaydı yok</p>
         </div>
       ) : records.map(rec => (
         <div key={rec.id} className="bg-white border border-enterprise-border rounded-xl p-4 flex items-center justify-between">

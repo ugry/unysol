@@ -1,0 +1,21 @@
+# settings.bug
+
+> Module: settings (Ayarlar) | Category: CORE
+
+---
+
+### B-QA-01: Settings PUT Returns 500 — RLS + JSONB Issue
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Status** | ✅ **FIXED** (June 2, 2026) |
+| **Found** | API testing — `PUT /api/tenant/settings` returned 500 |
+| **Root Cause** | Two issues combined: 1) The settings table `value` column is JSONB, but the handler passed raw Go strings from `map[string]interface{}` unmarshaling as values. PostgreSQL rejected non-JSON strings like `"TestFixedFinal"`. 2) The `ON CONFLICT` upsert triggered RLS `WITH CHECK` which required `app.current_tenant_id` to be set. |
+| **Fix Applied** | 1) Added `json.Marshal(value)` in the settings handler to wrap strings as valid JSON before passing to SQL. 2) Wrapped the settings Upsert in a PostgreSQL transaction with `SELECT set_config('app.current_tenant_id', $val, TRUE)` to satisfy RLS within the same connection. 3) Also applied the same fix to `UpdateNotifications` handler. |
+| **Files Changed** | `backend/internal/handlers/settings.go` — added `json.Marshal`, transactions, `set_config` call |
+| **Verified** | `PUT /api/tenant/settings` → 200 with `{"success":true,"message":"settings updated"}`, GET confirms values persisted |
+
+### B-SET-01 through B-SET-06 — Previously Fixed
+
+All B-SET bugs (auth/settings boundary) were fixed in the June 1 session. Verified still working on June 2.

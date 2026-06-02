@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -86,13 +87,38 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if key == "notification_prefs" {
 			continue
 		}
-		_, err := h.DB.Exec(r.Context(),
+		tx, err := h.DB.Begin(r.Context())
+		if err != nil {
+			slog.Error("failed to begin transaction for settings update", "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to update settings")
+			return
+		}
+		if _, err := tx.Exec(r.Context(), fmt.Sprintf("SELECT set_config('app.current_tenant_id', '%s', TRUE)", tenantID)); err != nil {
+			slog.Error("failed to set tenant context", "error", err)
+			tx.Rollback(r.Context())
+			writeError(w, http.StatusInternalServerError, "failed to update settings")
+			return
+		}
+		jsonValue, err := json.Marshal(value)
+		if err != nil {
+			slog.Error("failed to marshal setting value", "error", err)
+			tx.Rollback(r.Context())
+			writeError(w, http.StatusInternalServerError, "failed to update settings")
+			return
+		}
+		_, err = tx.Exec(r.Context(),
 			`INSERT INTO settings (tenant_id, key, value)
 			 VALUES ($1, $2, $3)
 			 ON CONFLICT (tenant_id, key) DO UPDATE SET value = $3, updated_at = $4`,
-			tenantID, key, value, time.Now())
+			 tenantID, key, string(jsonValue), time.Now())
 		if err != nil {
 			slog.Error("failed to update setting", "error", err, "tenant_id", tenantID, "key", key)
+			tx.Rollback(r.Context())
+			writeError(w, http.StatusInternalServerError, "failed to update settings")
+			return
+		}
+		if err := tx.Commit(r.Context()); err != nil {
+			slog.Error("failed to commit settings transaction", "error", err)
 			writeError(w, http.StatusInternalServerError, "failed to update settings")
 			return
 		}
@@ -116,13 +142,29 @@ func (h *SettingsHandler) UpdateNotifications(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	_, err = h.DB.Exec(r.Context(),
+	tx, err := h.DB.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update notification preferences")
+		return
+	}
+	if _, err := tx.Exec(r.Context(), fmt.Sprintf("SELECT set_config('app.current_tenant_id', '%s', TRUE)", tenantID)); err != nil {
+		slog.Error("failed to set tenant context for notifications", "error", err)
+		tx.Rollback(r.Context())
+		writeError(w, http.StatusInternalServerError, "failed to update notification preferences")
+		return
+	}
+	_, err = tx.Exec(r.Context(),
 		`INSERT INTO settings (tenant_id, key, value)
 		 VALUES ($1, 'notification_prefs', $2)
 		 ON CONFLICT (tenant_id, key) DO UPDATE SET value = $2, updated_at = $3`,
 		tenantID, string(prefsJSON), time.Now())
 	if err != nil {
 		slog.Error("failed to update notification preferences", "error", err, "tenant_id", tenantID)
+		tx.Rollback(r.Context())
+		writeError(w, http.StatusInternalServerError, "failed to update notification preferences")
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update notification preferences")
 		return
 	}

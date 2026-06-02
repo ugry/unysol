@@ -1,0 +1,44 @@
+# load_board.bug
+
+> Module: load_board (Yük Panosu) | Category: FLEET  
+> Last UI Tested: 02 June 2026
+
+---
+
+### B-LOAD-01: Missing "Tümü" Filter Tab
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI testing — `/dashboard/load-board` page shows "Yük Var" and "Yük Ara" but no "Tümü" tab |
+| **Bug** | The `load_board.func` specification says the page should have 3 filter tabs: Tümü / Yük Var / Yük Ara. Only "Yük Var" and "Yük Ara" are visible. Users cannot see all loads at once without a filter. |
+| **Impact** | Users must toggle between "Yük Var" and "Yük Ara" separately. No ability to view the full marketplace at a glance. Reduces discovery of matching loads. |
+| **Required Fix** | Add "Tümü" as the default/active tab with all loads unfiltered. Three tabs: Tümü | Yük Var | Yük Ara. |
+| **Files to Change** | `frontend/src/pages/LoadBoardPage.tsx` |
+| **CI Gate** | `production-integrity`: verify LoadBoardPage has "Tümü" filter text |
+
+### B-LOAD-02: Action Buttons Hidden in Empty State
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI testing — no "İlgileniyorum" or WhatsApp share buttons visible when load board is empty |
+| **Bug** | The `.func` specification says each row should have an "İlgileniyorum" button and WhatsApp share button. Since the load board is empty (0 loads), these action buttons don't appear. This is expected behavior (no rows = no action buttons) but the initial empty state lacks guidance. |
+| **Impact** | New users see an empty page with no onboarding guidance. They need to know they can post their first load. |
+| **Required Fix** | Add empty state message: "Henüz yük ilanı bulunmuyor. İlk ilanı siz oluşturun!" with a prominent "Yeni İlan" CTA. Verify that with data rows, the action buttons (İlgileniyorum, WhatsApp) appear correctly. |
+| **Files to Change** | `frontend/src/pages/LoadBoardPage.tsx` |
+| **CI Gate** | Use API to create test load, then verify action buttons visible in UI test |
+
+### B-LOAD-03: No Stats Summary Visible
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI testing — no statistics summary visible at top of load board |
+| **Bug** | The `.func` specification says there should be a "Stats summary at top" and `GET /api/tenant/load-board/stats` is an available endpoint. However, the UI shows no stats cards (total loads, active loads, etc.) at the top of the page. |
+| **Impact** | Users lack a quick overview of marketplace activity. |
+| **Required Fix** | Add stats bar at top: Toplam İlan, Aktif Yük Var, Aktif Yük Ara, Bugünkü İlanlar — using the `/stats` endpoint. |
+| **Files to Change** | `frontend/src/pages/LoadBoardPage.tsx` |

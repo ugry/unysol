@@ -43,14 +43,14 @@ export default function MaintenancePage() {
     { key: 'toplam_tutar', header: 'Tutar', render: r => r.toplam_tutar ? `₺${r.toplam_tutar.toFixed(2)}` : '-' },
     { key: 'servis_adi', header: 'Servis' },
     { key: 'sonraki_bakim_km', header: 'Sonraki Bakım KM', render: r => r.sonraki_bakim_km > 0 ? r.sonraki_bakim_km.toLocaleString('tr') : '-' },
-    { key: 'sonraki_bakim_tarih', header: 'Sonraki Bakım Tarih' },
+    { key: 'sonraki_bakim_tarih', header: 'Sonraki Bakım Tarihi' },
   ];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div />
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Bakım Ekle</button>
+        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm"><Plus size={18} /> Bakım Ekle</button>
       </div>
       <DataGrid columns={columns} data={data} loading={loading} title="Bakım Kayıtları" emptyIcon={<Wrench size={48} className="text-gray-300" />} emptyText="Henüz bakım kaydı yok"
         onEdit={(row) => { setEditingId(row.id); setForm({ truck_id: row.truck_id, tarih: (row.tarih || '').substring(0,10), km: String(row.km || ''), turu: row.turu || 'PERIYODIK_BAKIM', yapilan_islemler: row.yapilan_islemler || '', toplam_tutar: String(row.toplam_tutar || ''), fatura_no: row.fatura_no || '', servis_adi: row.servis_adi || '', sonraki_bakim_km: String(row.sonraki_bakim_km || ''), sonraki_bakim_tarih: (row.sonraki_bakim_tarih || '').substring(0,10) }); setShowModal(true); }}
@@ -84,7 +84,7 @@ export default function MaintenancePage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-sm font-medium mb-1.5">Sonraki Bakım KM</label><input type="number" value={form.sonraki_bakim_km} onChange={e => setForm(f => ({ ...f, sonraki_bakim_km: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-gray-50 border text-sm" /></div>
-                <div><label className="block text-sm font-medium mb-1.5">Sonraki Bakım Tarih</label><input type="date" value={form.sonraki_bakim_tarih} onChange={e => setForm(f => ({ ...f, sonraki_bakim_tarih: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-gray-50 border text-sm" /></div>
+                <div><label className="block text-sm font-medium mb-1.5">Sonraki Bakım Tarihi</label><input type="date" value={form.sonraki_bakim_tarih} onChange={e => setForm(f => ({ ...f, sonraki_bakim_tarih: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-gray-50 border text-sm" /></div>
               </div>
               <button type="submit" disabled={submitting} className="w-full py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm">{submitting ? <Loader2 size={16} className="animate-spin inline" /> : 'Kaydet'}</button>
             </form>

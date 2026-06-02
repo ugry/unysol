@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type contextKey string
@@ -70,15 +71,24 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	}
 }
 
-func RequireTenant(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tid := GetTenantID(r.Context())
-		if tid == "" || tid == "0" {
-			http.Error(w, `{"error":"tenant context required"}`, http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func RequireTenant(pool *pgxpool.Pool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tid := GetTenantID(r.Context())
+			if tid == "" || tid == "0" {
+				http.Error(w, `{"error":"tenant context required"}`, http.StatusForbidden)
+				return
+			}
+			if pool != nil {
+				_, err := pool.Exec(r.Context(), fmt.Sprintf("SET LOCAL app.current_tenant_id = '%s'", tid))
+				if err != nil {
+					http.Error(w, `{"error":"failed to set tenant context"}`, http.StatusInternalServerError)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func RequireRole(roles ...string) func(http.Handler) http.Handler {

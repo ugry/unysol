@@ -3,6 +3,7 @@ package email
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
 	"strings"
 )
@@ -42,26 +43,38 @@ func Send(to string, subject string, body string) error {
 	msg := buildMessage(cfg.From, to, subject, body)
 
 	addr := cfg.Host + ":" + cfg.Port
-	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 
-	tlsConfig := &tls.Config{
-		ServerName: cfg.Host,
-	}
-
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("SMTP bağlantı hatası: %w", err)
-	}
-	defer conn.Close()
-
-	client, err := smtp.NewClient(conn, cfg.Host)
-	if err != nil {
-		return fmt.Errorf("SMTP client hatası: %w", err)
+	var client *smtp.Client
+	if cfg.Port == "1025" || cfg.Port == "25" || (cfg.Username == "" && cfg.Password == "") {
+		conn, err := net.Dial("tcp", addr)
+		if err != nil {
+			return fmt.Errorf("SMTP bağlantı hatası: %w", err)
+		}
+		client, err = smtp.NewClient(conn, cfg.Host)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("SMTP client hatası: %w", err)
+		}
+	} else {
+		tlsConfig := &tls.Config{ServerName: cfg.Host}
+		conn, err := tls.Dial("tcp", addr, tlsConfig)
+		if err != nil {
+			return fmt.Errorf("SMTP bağlantı hatası: %w", err)
+		}
+		client, err = smtp.NewClient(conn, cfg.Host)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("SMTP client hatası: %w", err)
+		}
 	}
 	defer client.Close()
 
-	if err := client.Auth(auth); err != nil {
-		return fmt.Errorf("SMTP kimlik doğrulama hatası: %w", err)
+	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
+
+	if cfg.Username != "" || cfg.Password != "" {
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("SMTP kimlik doğrulama hatası: %w", err)
+		}
 	}
 
 	if err := client.Mail(cfg.From); err != nil {
@@ -97,25 +110,29 @@ func buildMessage(from, to, subject, body string) string {
 	return msg.String()
 }
 
-func SendVerificationEmail(to string, token string) error {
-	subject := "Unysol — E-posta Doğrulama"
+func SendVerificationEmail(to string, code string, token string) error {
+	subject := fmt.Sprintf("Unysol — Doğrulama Kodunuz: %s", code)
 	body := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #FF5F03;">Unysol'a Hoş Geldiniz!</h2>
-  <p>Hesabınızı aktifleştirmek için aşağıdaki linke tıklayın:</p>
+  <p>Hesabınızı aktifleştirmek için doğrulama kodunuz:</p>
+  <div style="background: #FFF3E0; border: 2px dashed #FF5F03; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+    <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #FF5F03;">%s</span>
+  </div>
+  <p>Veya aşağıdaki linke tıklayarak doğrulayabilirsiniz:</p>
   <p>
-    <a href="https://unysolar.com/verify?token=%s" 
+    <a href="http://localhost/verify?token=%s&code=%s"
        style="background: #FF5F03; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
       Hesabımı Doğrula
     </a>
   </p>
   <p style="color: #666; font-size: 14px;">
-    Bu link 24 saat geçerlidir. Eğer bu kaydı siz yapmadıysanız, bu e-postayı görmezden gelin.
+    Bu kod 1 saat süreyle geçerlidir. Eğer bu kaydı siz yapmadıysanız, bu e-postayı görmezden gelin.
   </p>
   <hr style="border: 1px solid #eee; margin: 20px 0;">
   <p style="color: #999; font-size: 12px;">Unysol — Kamyoncular için yük bulma, takip ve fatura platformu</p>
 </body>
-</html>`, token)
+</html>`, code, token, code)
 	return Send(to, subject, body)
 }

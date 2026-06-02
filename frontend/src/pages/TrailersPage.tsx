@@ -41,7 +41,7 @@ export default function TrailersPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between"><div /><button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> Dorse Ekle</button></div>
+      <div className="flex items-center justify-between"><div /><button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm"><Plus size={18} /> Dorse Ekle</button></div>
       <DataGrid columns={columns} data={data} loading={loading} title="Dorse Yönetimi" emptyIcon={<Truck size={48} className="text-gray-300" />} emptyText="Henüz dorse kaydı yok"
         onEdit={(row) => { setEditingId(row.id); setForm({ plaka: row.plaka, marka: row.marka || '', model: row.model || '', yil: String(row.yil || ''), tip: row.tip }); setShowModal(true); }}
         onDelete={(row) => { api.delete(`/api/tenant/trailers/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />

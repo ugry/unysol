@@ -19,7 +19,7 @@ type DashboardHandler struct {
 
 func (h *DashboardHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/summary", h.Summary)
 	return r
 }

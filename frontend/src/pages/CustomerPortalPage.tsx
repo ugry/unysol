@@ -1,0 +1,5 @@
+import { useState, useEffect } from 'react';import api from '@/lib/api';import DataGrid,{type Column} from '@/components/DataGrid';
+export default function CustomerPortalPage(){const[data,setData]=useState<any[]>([]);const[loading,setLoading]=useState(true);
+useEffect(()=>{setLoading(true);api.get('/api/tenant/customers/').then(r=>setData(Array.isArray(r.data?.data)?r.data.data:[])).finally(()=>setLoading(false))},[]);
+const cols:Column<any>[]=[{key:'firma_unvani',header:'Firma',render:r=><span className="text-sm font-medium">{r.firma_unvani}</span>},{key:'vergi_no',header:'Vergi No'},{key:'telefon',header:'Telefon'},{key:'email',header:'Email'}];
+return(<div className="max-w-7xl mx-auto space-y-6"><h2 className="text-lg font-semibold">Müşteri Portalı</h2><p className="text-sm text-gray-500">Müşterilerinize özel portal üzerinden sefer ve fatura bilgilerini paylaşın.</p><DataGrid columns={cols} data={data} loading={loading} emptyText="Henüz müşteri kaydı yok"/></div>)}

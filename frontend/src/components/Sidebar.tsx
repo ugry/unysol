@@ -14,11 +14,15 @@ import {
   UserCheck,
   TrendingUp,
   Settings,
+  BarChart3,
   Package,
   Globe,
   LogOut,
   Fuel,
   Wrench,
+  History,
+  FileDown,
+  LeafyGreen,
 } from 'lucide-react';
 
 const navItems = [
@@ -37,7 +41,18 @@ const navItems = [
   { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck, moduleKey: 'driver_leave' },
   { path: '/dashboard/employees', label: 'Personel', icon: UserCheck, moduleKey: 'employee_mgmt' },
   { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp, moduleKey: 'predictions' },
+  { path: '/dashboard/reports', label: 'Raporlar', icon: BarChart3, moduleKey: 'reports' },
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings, moduleKey: 'settings' },
+  { path: '/dashboard/proposals', label: 'Teklifler', icon: FileText, moduleKey: 'proposal_system' },
+  { path: '/dashboard/contracts', label: 'Sözleşmeler', icon: FileText, moduleKey: 'contract_mgmt' },
+  { path: '/dashboard/tires', label: 'Lastikler', icon: Wrench, moduleKey: 'tire_tracking' },
+  { path: '/dashboard/allowances', label: 'Harcırah', icon: DollarSign, moduleKey: 'driver_allowance' },
+  { path: '/dashboard/driver-performance', label: 'Şoför Perf.', icon: TrendingUp, moduleKey: 'driver_performance' },
+  { path: '/dashboard/payslips', label: 'Bordro', icon: FileText, moduleKey: 'payslip' },
+  { path: '/dashboard/customer-portal', label: 'Müşteri Portalı', icon: Users, moduleKey: 'customer_portal' },
+  { path: '/dashboard/carbon', label: 'Karbon Takip', icon: LeafyGreen, moduleKey: 'carbon_tracking' },
+  { path: '/dashboard/export', label: 'Dışa Aktar', icon: FileDown, moduleKey: 'export' },
+  { path: '/dashboard/actions', label: 'İşlem Kayıtları', icon: History, moduleKey: 'actions' },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {

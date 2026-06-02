@@ -59,7 +59,7 @@ export default function DriverLeavePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between"><div /><button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#072C2C] hover:bg-[#0A4545] text-white font-medium text-sm"><Plus size={18} /> İzin Ekle</button></div>
+      <div className="flex items-center justify-between"><div /><button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm"><Plus size={18} /> İzin Ekle</button></div>
       <DataGrid columns={columns} data={data} loading={loading} title="İzin Takvimi" emptyIcon={<Calendar size={48} className="text-gray-300" />} emptyText="Henüz izin kaydı yok"
         onEdit={(row) => { setEditingId(row.id); setForm({ user_id: row.user_id, baslangic: (row.baslangic || '').substring(0,10), bitis: (row.bitis || '').substring(0,10), turu: row.turu, aciklama: row.aciklama || '' }); setShowModal(true); }}
         onDelete={row => { api.delete(`/api/tenant/driver-leave/${row.id}`).then(() => setData(prev => prev.filter(i => i.id !== row.id))); }} />

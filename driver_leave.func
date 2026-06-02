@@ -1,0 +1,56 @@
+# driver_leave.func
+
+> Module: driver_leave (İzin Takvimi) | Category: HR
+
+## Purpose
+Driver leave (izin) calendar and approval workflow. Track all employee time-off requests with Turkish leave types, approval states, and date ranges. Added in v2.34.
+
+## Problems It Solves
+- Turkish labor law mandates specific leave types (annual, weekly rest, sick, bereavement)
+- Fleet owners need to plan driver availability around leave schedules
+- Approval workflow: pending → approved/rejected
+- Prevent scheduling conflicts (two drivers on leave same day)
+- Link to trip planning (don't assign trip to driver on leave)
+
+## Technical Database Structure
+**Table:** `driver_leave`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tenant_id | INTEGER FK | Tenant isolation |
+| personel_id | INTEGER FK | Linked to employees.id |
+| izin_turu | izin_turu_enum | Leave type |
+| baslangic_tarihi | DATE | Start date |
+| bitis_tarihi | DATE | End date |
+| onay_durumu | izin_onay_enum | Approval status |
+| aciklama | TEXT | Notes |
+| created_at, updated_at | TIMESTAMPTZ | Timestamps |
+
+**Enums:**
+- `izin_turu_enum`: YILLIK_IZIN, HAFTALIK_IZIN, UCRETSIZ_IZIN, SAGLIK_IZNI, MAZERET_IZNI
+- `izin_onay_enum`: BEKLIYOR, ONAYLANDI, REDDEDILDI
+
+## User Interface
+**DriverLeavePage.tsx** — `/dashboard/driver-leave`
+- DataGrid table: Personel, İzin Türü, Başlangıç, Bitiş, Onay Durumu, Açıklama
+- Approval status badges: yellow (pending), green (approved), red (rejected)
+- Add modal: employee selector, leave type, date range, description
+- Approval buttons per row (approve/reject)
+- Calendar view (date overlap detection)
+- Export to CSV/Excel/PDF
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| GET | `/api/tenant/driver-leave/` | Tenant JWT | List leave records |
+| POST | `/api/tenant/driver-leave/` | Tenant JWT | Create leave request |
+| PUT | `/api/tenant/driver-leave/{id}` | Tenant JWT | Edit |
+| PUT | `/api/tenant/driver-leave/{id}/status` | Tenant JWT | Approve/reject |
+| DELETE | `/api/tenant/driver-leave/{id}` | Tenant JWT | Remove |
+
+## Known Bugs
+- None reported (not individually QA tested yet)
+
+## Test Coverage
+- Not included in June 1 QA test run
+- Needs: CRUD cycle, approval workflow, date overlap detection, employee link test

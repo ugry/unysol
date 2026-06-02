@@ -21,7 +21,7 @@ type CekSenetHandler struct {
 
 func (h *CekSenetHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Use(middleware.RequireTenant)
+	r.Use(middleware.RequireTenant(h.DB))
 	r.Get("/summary", h.Summary)
 	r.Get("/", h.List)
 	r.Post("/", h.Create)

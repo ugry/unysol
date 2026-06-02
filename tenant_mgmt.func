@@ -1,0 +1,60 @@
+# tenant_mgmt.func
+
+> Module: tenant_mgmt (Firma Yönetimi) | Category: CORE | is_core: TRUE
+
+## Purpose
+Multi-tenant company management. Handles company registration during signup, plan subscription assignment, and the module feature flag resolution chain that determines which features each tenant can access.
+
+## Problems It Solves
+- SaaS multi-tenancy: each Turkish trucking company gets its own isolated data space
+- Feature gating: different plans (FREE/PRO/PREMIUM) unlock different modules
+- Country-specific features: modules can be enabled/disabled per country
+- Onboarding: automatic FREE plan assignment on signup
+
+## Technical Database Structure
+**Tables involved:**
+- `tenants` — Company records (id, name, slug, plan, locale, country_code, subdomain, aktif)
+- `subscriptions` — Plan assignment history
+- `modules` — Module registry
+- `country_modules` — Modules enabled per country
+- `plan_modules` — Modules enabled per plan tier
+- `tenant_modules` — Per-tenant module overrides
+
+**Module Resolution Chain (override priority):**
+```
+1. tenant_modules  →  Per-tenant override (highest priority)
+2. plan_modules    →  Tenant's plan tier (FREE/PRO/PREMIUM)
+3. country_modules →  Tenant's country (TR)
+4. modules.default_enabled  →  Fallback
+5. modules.is_core  →  ALWAYS ENABLED (forced)
+```
+
+**RLS (Row-Level Security):**
+Every tenant-scoped table has RLS policy:
+```sql
+tenant_id = current_setting('app.current_tenant_id')
+```
+Backend sets this via middleware → JWT tenant_id claim → PostgreSQL session variable.
+
+## User Interface
+No dedicated page. Tenant management is embedded in:
+- **Signup flow** (LoginPage.tsx) — company name + email → creates tenant + user
+- **Super Admin Dashboard** (AdminDashboard.tsx) — tenant list, plan changes, suspension
+- **Plan info** displayed in SettingsPage → "Paket Bilgisi" section
+
+## API Endpoints
+| Method | Path | Auth | Description |
+|--------|------|:---:|-------------|
+| POST | `/api/auth/signup` | Public | Creates tenant + user + FREE subscription |
+| GET | `/api/admin/tenants` | Super Admin | List all tenants |
+| GET | `/api/admin/tenants/{id}` | Super Admin | Tenant detail |
+| PUT | `/api/admin/tenants/{id}/plan` | Super Admin | Change plan tier |
+| POST | `/api/admin/tenants/{id}/suspend` | Super Admin | Suspend/reactivate tenant |
+
+## Known Bugs
+- B-QA-01 (OPEN): `app.current_tenant_id` PostgreSQL variable not set by middleware → RLS in settings table fails → PUT returns 500. Root cause is in the connection/session management layer, not in tenant_mgmt directly, but affects all tenant-scoped queries.
+
+## Test Coverage
+- No dedicated QA tests for tenant_mgmt
+- Indirect coverage through signup flow tests in auth module
+- CI gate: tenant_id isolation via RLS is verified in security-checks job

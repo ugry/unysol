@@ -15,7 +15,18 @@ const pageTitles: Record<string, string> = {
   '/dashboard/expenses': 'Giderler',
   '/dashboard/employees': 'Personel',
   '/dashboard/predictions': 'Tahminler',
+  '/dashboard/reports': 'Raporlar',
   '/dashboard/settings': 'Ayarlar',
+  '/dashboard/proposals': 'Teklifler',
+  '/dashboard/contracts': 'Sözleşmeler',
+  '/dashboard/tires': 'Lastikler',
+  '/dashboard/allowances': 'Harcırah',
+  '/dashboard/driver-performance': 'Şoför Performans',
+  '/dashboard/payslips': 'Bordro',
+  '/dashboard/customer-portal': 'Müşteri Portalı',
+  '/dashboard/carbon': 'Karbon Takip',
+  '/dashboard/export': 'Dışa Aktarım',
+  '/dashboard/actions': 'İşlem Kayıtları',
 };
 
 export default function MainLayout() {
