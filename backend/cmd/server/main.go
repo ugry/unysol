@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,6 +25,9 @@ import (
 )
 
 func main() {
+	migrateOnly := flag.Bool("migrate-only", false, "Run migrations and exit")
+	flag.Parse()
+
 	// Init enterprise logging with category separation
 	logs := logging.Init("logs")
 	defer logs.Close()
@@ -45,7 +49,16 @@ func main() {
 	logging.System(logging.LevelInfo, "database connected", map[string]interface{}{"url": maskPassword(cfg.DatabaseURL)})
 
 	if err := database.RunMigrations(ctx, "internal/database/migrations"); err != nil {
-		logging.System(logging.LevelWarn, "migration warning", map[string]interface{}{"error": err.Error()})
+		logging.System(logging.LevelError, "migration failed", map[string]interface{}{"error": err.Error()})
+		os.Exit(1)
+	}
+
+	if *migrateOnly {
+		logging.System(logging.LevelInfo, "migrate-only complete, exiting", nil)
+		if logs != nil {
+			logs.Close()
+		}
+		os.Exit(0)
 	}
 
 	redisClient, err := cache.NewRedisClient(cfg.RedisURL)

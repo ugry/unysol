@@ -43,6 +43,15 @@ CREATE TYPE yakit_tipi_enum AS ENUM ('DIZEL', 'EURO_DIZEL');
 CREATE TYPE trailer_tip_enum AS ENUM ('TENTELI_PERDELI', 'FRIGO', 'SAL', 'LOWBED', 'TANKER');
 
 -- ============================================================
+-- MIGRATION TRACKING
+-- ============================================================
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id          SERIAL PRIMARY KEY,
+    filename    VARCHAR(255) UNIQUE NOT NULL,
+    applied_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
 -- 1. TENANTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS tenants (

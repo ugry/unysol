@@ -27,8 +27,8 @@ resource "aws_ecs_task_definition" "backend" {
   task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
-    name  = "backend"
-    image = "${aws_ecr_repository.backend.repository_url}:latest"
+    name         = "backend"
+    image        = "${aws_ecr_repository.backend.repository_url}:latest"
     portMappings = [{ containerPort = 8080, protocol = "tcp" }]
     environment = [
       { name = "PORT", value = "8080" },
@@ -58,8 +58,8 @@ resource "aws_ecs_task_definition" "frontend" {
   task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
-    name  = "frontend"
-    image = "${aws_ecr_repository.frontend.repository_url}:latest"
+    name         = "frontend"
+    image        = "${aws_ecr_repository.frontend.repository_url}:latest"
     portMappings = [{ containerPort = 5173, protocol = "tcp" }]
     environment = [
       { name = "VITE_API_URL", value = "https://${var.domain_name}" },
@@ -82,6 +82,15 @@ resource "aws_ecs_service" "backend" {
   desired_count   = var.backend_desired_count
   launch_type     = "FARGATE"
 
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]
@@ -94,7 +103,7 @@ resource "aws_ecs_service" "backend" {
     container_port   = 8080
   }
 
-  depends_on = [aws_lb_listener.https]
+  depends_on = [aws_lb_listener.https, aws_codedeploy_deployment_group.backend]
 }
 
 resource "aws_ecs_service" "frontend" {
@@ -103,6 +112,15 @@ resource "aws_ecs_service" "frontend" {
   task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = var.frontend_desired_count
   launch_type     = "FARGATE"
+
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   network_configuration {
     subnets          = aws_subnet.public[*].id
@@ -116,5 +134,5 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 5173
   }
 
-  depends_on = [aws_lb_listener.https]
+  depends_on = [aws_lb_listener.https, aws_codedeploy_deployment_group.frontend]
 }

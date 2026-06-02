@@ -37,10 +37,48 @@ func GetPool() *pgxpool.Pool {
 	return pool
 }
 
+func ensureMigrationTracking(ctx context.Context, p *pgxpool.Pool) error {
+	_, err := p.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			id         SERIAL PRIMARY KEY,
+			filename   VARCHAR(255) UNIQUE NOT NULL,
+			applied_at TIMESTAMPTZ DEFAULT NOW()
+		)
+	`)
+	return err
+}
+
+func isMigrationApplied(ctx context.Context, p *pgxpool.Pool, filename string) bool {
+	var count int
+	err := p.QueryRow(ctx, `SELECT COUNT(*) FROM schema_migrations WHERE filename = $1`, filename).Scan(&count)
+	if err != nil {
+		logging.System(logging.LevelWarn, "migration check failed", map[string]interface{}{
+			"file":  filename,
+			"error": err.Error(),
+		})
+		return false
+	}
+	return count > 0
+}
+
+func recordMigration(ctx context.Context, p *pgxpool.Pool, filename string) {
+	_, err := p.Exec(ctx, `INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING`, filename)
+	if err != nil {
+		logging.System(logging.LevelWarn, "failed to record migration", map[string]interface{}{
+			"file":  filename,
+			"error": err.Error(),
+		})
+	}
+}
+
 func RunMigrations(ctx context.Context, migrationsDir string) error {
 	p := GetPool()
 	if p == nil {
 		return fmt.Errorf("database pool not initialized")
+	}
+
+	if err := ensureMigrationTracking(ctx, p); err != nil {
+		return fmt.Errorf("failed to create migration tracking table: %w", err)
 	}
 
 	entries, err := os.ReadDir(migrationsDir)
@@ -52,22 +90,42 @@ func RunMigrations(ctx context.Context, migrationsDir string) error {
 		return entries[i].Name() < entries[j].Name()
 	})
 
+	applied := 0
+	skipped := 0
+	failed := 0
+
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+
+		if isMigrationApplied(ctx, p, entry.Name()) {
+			skipped++
 			continue
 		}
 
 		path := filepath.Join(migrationsDir, entry.Name())
 		sql, err := os.ReadFile(path)
 		if err != nil {
+			applied = failed + applied // prevent double-count
 			return fmt.Errorf("unable to read migration file %s: %w", entry.Name(), err)
 		}
 
 		logging.System(logging.LevelInfo, "running migration", map[string]interface{}{"file": entry.Name()})
 		if _, err := p.Exec(ctx, string(sql)); err != nil {
+			failed++
 			return fmt.Errorf("migration %s failed: %w", entry.Name(), err)
 		}
+
+		recordMigration(ctx, p, entry.Name())
+		applied++
 	}
+
+	logging.System(logging.LevelInfo, "migrations complete", map[string]interface{}{
+		"applied": applied,
+		"skipped": skipped,
+		"failed":  failed,
+	})
 
 	return nil
 }
