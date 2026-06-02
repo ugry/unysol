@@ -1,0 +1,15 @@
+title = "Unysol Gitleaks Config"
+
+[allowlist]
+  description = "Excluded files with test credentials"
+  paths = [
+    '''milestone.md''',
+    '''milestone1june.md''',
+    '''milestonejune2.md''',
+    '''milestonemay28.md''',
+    '''testusernamesandpasswords.md''',
+    '''dummyaccountsemailnamepassword.md''',
+    '''TEST_CREDENTIALS.md''',
+    '''.env.example''',
+    '''.env.qa.example''',
+  ]
