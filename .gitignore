@@ -7,3 +7,10 @@ backend/server
 /tmp/
 /dist/
 infra/terraform/tfplan
+
+# QA-only files (excluded from production)
+milestone.md
+testusernamesandpasswords.md
+dummyaccountsemailnamepassword.md
+TEST_CREDENTIALS.md
+.env.qa
