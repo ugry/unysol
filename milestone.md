@@ -10,7 +10,7 @@
 
 | Resource | Detail |
 |----------|--------|
-| **Production VPS** | `ssh root@212.224.88.47` (pass: `VQp4dK6BWr`) |
+| **Production VPS** | `ssh root@<VPS_IP>` (credentials in password manager) |
 | **Project path** | `/root/unysol` on VPS |
 | **Local project** | `/home/ugur/unysol` |
 | **GitHub** | `ugry/unysol` (private) |
@@ -25,16 +25,16 @@
 
 | Service | User | Password/Key |
 |---------|------|-------------|
-| Super admin | `ugur.yardimci@unygms.com` | `1Tq|zl>L` |
-| Test user | `cinar@test.com` | `Cinarnak2026!` |
+| Super admin | `ugur.yardimci@unygms.com` | `[in password manager]` |
+| Test user | `cinar@test.com` | `[in password manager]` |
 | Google test | `uguryardimci82@gmail.com` | tenant_id=28 |
-| JWT secret (prod) | `86231f75dff1603630377d4a34b12a374343988ec33b2a82e56f79fe4ae74e6d` |
-| Google Client ID | `1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com` |
-| Stripe Publishable | `REDACTED` |
-| Stripe Secret | `REDACTED` |
-| exa.ai API key | `97f0f8cd-6f42-45d7-972b-026144cf22f0` |
+| JWT secret (prod) | `[in GitHub Secrets]` |
+| Google Client ID | `[in GitHub Secrets]` |
+| Stripe Publishable | `[in GitHub Secrets]` |
+| Stripe Secret | `[in GitHub Secrets]` |
+| exa.ai API key | `[in GitHub Secrets]` |
 | GitHub SSH deploy key | `/tmp/gh-actions-key` (ed25519) |
-| VPS root pass | `VQp4dK6BWr` |
+| VPS root pass | `[in password manager]` |
 | SMTP email | `ugur.yardimci@unygms.com` (Hostinger) |
 | SMTP server | `smtp.hostinger.com:587` |
 
@@ -47,15 +47,13 @@
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/unysol-server ./cmd/server
 
 # Build frontend (from frontend/)
-VITE_GOOGLE_CLIENT_ID="1035565362038-l1rqb16ot54ufln1rt94ktrfbabskpog.apps.googleusercontent.com" npm run build
+VITE_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" npm run build
 
-# Deploy to VPS
-sshpass -p 'VQp4dK6BWr' scp /tmp/unysol-server root@212.224.88.47:/root/unysol/backend/server
-sshpass -p 'VQp4dK6BWr' rsync -avz dist/ root@212.224.88.47:/root/unysol/frontend/dist/
-sshpass -p 'VQp4dK6BWr' ssh root@212.224.88.47 'cd /root/unysol && docker compose build --no-cache backend frontend && docker compose up -d && docker compose restart caddy'
+# Deploy to VPS (credentials in GitHub Secrets)
+# ssh root@<VPS_IP> ...
 
-# Generate admin JWT token
-python3 -c "import jwt,time,subprocess; r=subprocess.run(['sshpass','-p','VQp4dK6BWr','ssh','-o','StrictHostKeyChecking=no','root@212.224.88.47','grep JWT_SECRET /root/unysol/.env | cut -d= -f2'],capture_output=True,text=True); token=jwt.encode({'user_id':24,'tenant_id':0,'email':'ugur.yardimci@unygms.com','role':'SUPER_ADMIN','exp':int(time.time())+3600,'iat':int(time.time())},r.stdout.strip(),algorithm='HS256'); print(token)"
+# Generate admin JWT token (use GitHub Secrets for JWT_SECRET)
+# python3 -c "..."
 
 # Git push via SSH (when HTTPS token lacks workflow scope)
 git remote set-url origin git@github.com:ugry/unysol.git
