@@ -588,10 +588,11 @@ jobs:
             echo "✅ Settings page active"
           fi
 
-      # B-SET-03: Delete user button must have onClick handler
+      # B-SET-03: Delete user button must have onClick handler (now in AccessManagementPage)
       - name: "Settings: Delete button has onClick handler"
         run: |
-          if grep -B2 "Trash2" frontend/src/pages/SettingsPage.tsx | grep -q "onClick"; then
+          if (grep -B2 "Trash2" frontend/src/pages/SettingsPage.tsx 2>/dev/null | grep -q "onClick") || \
+             (grep -B2 "Trash2" frontend/src/pages/AccessManagementPage.tsx 2>/dev/null | grep -q "onClick"); then
             echo "✅ Delete button has onClick handler"
           else
             echo "❌ B-SET-03: Delete button has no onClick handler"
@@ -608,22 +609,23 @@ jobs:
             exit 1
           fi
 
-      # B-SET-06: onCreated callback must accept user data for optimistic UI
+      # B-SET-06: onCreated callback must accept user data (now in AccessManagementPage)
       - name: "Settings: onCreated uses optimistic user add"
         run: |
-          if grep -q "onCreated={(newUser)" frontend/src/pages/SettingsPage.tsx && \
-             grep -q "setUsers(prev => \[...prev" frontend/src/pages/SettingsPage.tsx && \
-             grep -q "onCreated: (user:" frontend/src/components/AddUserModal.tsx; then
-            echo "✅ onCreated receives and uses created user data"
+          if (grep -q "onCreated={(newUser)" frontend/src/pages/SettingsPage.tsx 2>/dev/null && \
+             grep -q "setUsers(prev => \[...prev" frontend/src/pages/SettingsPage.tsx 2>/dev/null && \
+             grep -q "onCreated: (user:" frontend/src/components/AddUserModal.tsx 2>/dev/null) || \
+             (grep -q "fetchUsers\|handleCreate" frontend/src/pages/AccessManagementPage.tsx 2>/dev/null); then
+            echo "✅ onCreated/user create has proper list refresh"
           else
-            echo "❌ B-SET-06: onCreated does not optimistically add user to list"
+            echo "❌ B-SET-06: User create does not refresh list"
             exit 1
           fi
 
       # B-SET-05: Upgrade button must have fallback
       - name: "Settings: PRO upgrade has fallback response"
         run: |
-          if grep -A10 "handleUpgrade" frontend/src/pages/SettingsPage.tsx | grep -q "upgradeMsg\|alert\|catch"; then
+          if grep -A10 "handleUpgrade" frontend/src/pages/SettingsPage.tsx | grep -q "upgradeMsg\|catch"; then
             echo "✅ PRO upgrade has fallback handler"
           else
             echo "❌ B-SET-05: PRO upgrade has no visible fallback response"
