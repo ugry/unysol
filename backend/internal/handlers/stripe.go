@@ -155,9 +155,9 @@ func (h *StripeHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 				 ON CONFLICT DO NOTHING`,
 				tid, plan, amountTotal/100)
 
-			// Store Stripe IDs
+			// Update tenant plan to PRO
 			_, _ = h.DB.Exec(r.Context(),
-				`UPDATE tenants SET stripe_customer_id=$1, stripe_subscription_id=$2 WHERE id=$3`,
+				`UPDATE tenants SET plan='PRO', stripe_customer_id=$1, stripe_subscription_id=$2 WHERE id=$3`,
 				customer, subscription, tid)
 
 			logging.System(logging.LevelInfo, "subscription updated via stripe", map[string]interface{}{

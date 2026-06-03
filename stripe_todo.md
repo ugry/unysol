@@ -1,81 +1,57 @@
-# Unysol — Stripe Payment Integration TODO
+# Unysol — Stripe Payment Integration
 
-> **Status:** Backend deployed, waiting for Stripe Dashboard configuration
+> **Status:** ✅ Configured and working (test mode)
 > **Environment:** Test mode (`sk_test_...`, `pk_test_...`)
+> **PRO Monthly:** `price_1TeBY6KWLIMlTHZnLitJ9nqz` (200 TL/ay)
+> **PRO Yearly:** `price_1TeBYGKWLIMlTHZnOP2sgrEL` (2000 TL/yıl)
 
 ---
 
-## 1. Stripe Dashboard — Products Oluşturma
+## Test Cards (No Real Money)
 
-### 1.1 Git: [Stripe Dashboard → Products](https://dashboard.stripe.com/test/products)
+| Card Number | Expiry | CVC | Result |
+|-------------|--------|-----|--------|
+| `4242 4242 4242 4242` | Any future | Any | ✅ Payment succeeds |
+| `4000 0000 0000 0002` | Any future | Any | ❌ Declined |
+| `4000 0025 0000 3155` | Any future | Any | 🔐 3D Secure required |
+| `4000 0000 0000 3220` | Any future | Any | 🔐 3D Secure (all auth attempts) |
 
-İki ürün oluşturun:
-
-| Product | Price | Interval | Price ID (sonra buraya yaz) |
-|---------|-------|----------|------------------------------|
-| **PRO Aylık** | 200 TL | monthly | `price_xxxxxxxxxxxxx` |
-| **PRO Yıllık** | 2.000 TL | yearly | `price_xxxxxxxxxxxxx` |
-
-Her ürün oluşturulduktan sonra Price ID'yi kopyalayın (`price_...` formatında).
+> All fields accept any values: name, address, postal code. Only card number matters.
 
 ---
 
-## 2. Admin Panel — Price ID'leri Girme
+## Where to Test
 
-1. `https://unysolar.com/admin` adresine gidin
-2. Giriş: `ugur.yardimci@unygms.com` / `1Tq|zl>L`
-3. **Sistem Ayarları** sekmesine tıklayın
-4. Aşağı kaydırın → **Stripe Ödeme Ayarları** bölümü
-5. **Price ID (Aylık)** → PRO Aylık Price ID'sini yapıştırın
-6. **Price ID (Yıllık)** → PRO Yıllık Price ID'sini yapıştırın
-7. **Kaydet** butonuna tıklayın
+1. Go to `https://unysolar.com/dashboard/billing`
+2. Click **"PRO'ya Yükselt"** → Stripe Checkout opens
+3. Enter test card `4242 4242 4242 4242` + any future date + any CVC
+4. After payment, verify in [Stripe Dashboard → Payments](https://dashboard.stripe.com/test/payments)
 
 ---
 
-## 3. Stripe Dashboard — Webhook
+## Price IDs
 
-### 3.1 Git: [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/test/webhooks)
-
-1. **Add endpoint** butonuna tıklayın
-2. **Endpoint URL:** `https://unysolar.com/api/stripe/webhook`
-3. **Events to send:** Aşağıdakileri seçin:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-4. **Add endpoint** butonuna tıklayın
-5. **Signing secret** (`whsec_...`) — şimdilik gerek yok, sonra ekleriz
+| Product | Price | Price ID |
+|---------|-------|----------|
+| PRO Aylık | 200 TL/month | `price_1TeBY6KWLIMlTHZnLitJ9nqz` |
+| PRO Yıllık | 2,000 TL/year | `price_1TeBYGKWLIMlTHZnOP2sgrEL` |
 
 ---
 
-## 4. Test Etme
+## Webhook
 
-Her şey yapılandırıldıktan sonra:
-
-1. `https://unysolar.com/dashboard/settings` adresine gidin
-2. "PRO'ya Yükselt" butonu görünecek (şu an eklenmedi, Price ID'ler girildikten sonra eklenecek)
-3. Test kartı kullanın: `4242 4242 4242 4242` / herhangi bir gelecek tarih / herhangi bir CVC
-4. Başarılı ödeme sonrası abonelik otomatik aktifleşir
+| Detail | Value |
+|--------|-------|
+| URL | `https://unysolar.com/api/stripe/webhook` |
+| Events | `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` |
 
 ---
 
-## 5. Canlıya Geçiş (Production)
+## Canlıya Geçiş (Production)
 
-Canlı ortama geçmek için:
-
-| Değişiklik | Nerede |
-|------------|--------|
-| `sk_test_...` → `sk_live_...` | Sunucu `.env` ve Stripe Dashboard |
-| `pk_test_...` → `pk_live_...` | Admin panel Sistem Ayarları |
-| Webhook URL | Aynı kalır (`https://unysolar.com/api/stripe/webhook`) |
+| Change | Where |
+|--------|-------|
+| `sk_test_...` → `sk_live_...` | `email_config.stripe_secret_key` via admin API |
+| `pk_test_...` → `pk_live_...` | `email_config.stripe_pub_key` via admin API |
 | Live Products | Stripe Dashboard'da yeni Products oluşturun (live mode) |
-| Live Price IDs | Admin panelde güncelleyin |
-
----
-
-## Mevcut Anahtarlar (Test)
-
-| Key | Value |
-|-----|-------|
-| Publishable | `REDACTED` |
-| Secret | `REDACTED` |
-| Webhook URL | `https://unysolar.com/api/stripe/webhook` |
+| Live Price IDs | Admin panelden güncelleyin |

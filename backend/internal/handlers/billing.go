@@ -18,11 +18,46 @@ type BillingHandler struct {
 
 func (h *BillingHandler) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/status", h.GetStatus)
 	r.Get("/plans", h.GetPlans)
 	r.Get("/invoices", h.GetInvoices)
 	r.Post("/upgrade", h.Upgrade)
 	r.Post("/cancel", h.Cancel)
 	return r
+}
+
+func (h *BillingHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+
+	var plan string
+	var baslangic, bitis string
+	var ucret float64
+
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT COALESCE(s.plan::text, t.plan::text, 'FREE'),
+		        COALESCE(s.baslangic::text, ''),
+		        COALESCE(s.bitis::text, ''),
+		        COALESCE(s.ucret, 0)
+		 FROM tenants t
+		 LEFT JOIN subscriptions s ON s.tenant_id = t.id AND s.status = 'AKTIF'
+		 WHERE t.id = $1
+		 ORDER BY s.created_at DESC LIMIT 1`, tenantID,
+	).Scan(&plan, &baslangic, &bitis, &ucret)
+
+	if err != nil {
+		plan = "FREE"
+		baslangic = ""
+		bitis = ""
+		ucret = 0
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"plan":      plan,
+		"baslangic": baslangic,
+		"bitis":     bitis,
+		"ucret":     ucret,
+		"is_pro":    plan == "PRO" || plan == "PREMIUM",
+	})
 }
 
 func (h *BillingHandler) GetPlans(w http.ResponseWriter, r *http.Request) {

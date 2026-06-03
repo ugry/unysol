@@ -7,6 +7,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
+  const [subStatus, setSubStatus] = useState<any>(null);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
   useEffect(() => {
@@ -14,9 +15,11 @@ export default function BillingPage() {
     Promise.all([
       api.get('/api/tenant/billing/plans'),
       api.get('/api/tenant/billing/invoices'),
-    ]).then(([p, i]) => {
+      api.get('/api/tenant/billing/status'),
+    ]).then(([p, i, s]) => {
       setPlans(Array.isArray(p.data) ? p.data : []);
       setInvoices(Array.isArray(i.data) ? i.data : []);
+      setSubStatus(s.data);
     }).catch(() => setMsg({ text: 'Fatura bilgileri yüklenemedi', type: 'error' }))
     .finally(() => setLoading(false));
   }, []);
@@ -52,6 +55,20 @@ export default function BillingPage() {
         </div>
       )}
 
+      {subStatus?.is_pro && (
+        <div className="bg-[#FF5F03]/10 border border-[#FF5F03]/20 rounded-xl p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle size={24} className="text-[#FF5F03]" />
+            <div>
+              <h3 className="font-semibold text-[#f7f8f8]">PRO Plan — Aktif</h3>
+              <p className="text-sm text-[#8a8f98] mt-0.5">
+                Abonelik bitiş: {subStatus.bitis ? new Date(subStatus.bitis).toLocaleDateString('tr-TR', {year:'numeric',month:'long',day:'numeric'}) : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="text-lg font-semibold mb-4">Plan Seçimi</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -68,6 +85,8 @@ export default function BillingPage() {
               <div className="mt-6">
                 {plan.name === 'FREE' ? (
                   <span className="block text-center py-2.5 rounded-lg bg-[#08090a] border border-[rgba(255,255,255,0.08)] text-[#8a8f98] text-sm font-medium">Mevcut Plan</span>
+                ) : subStatus?.is_pro && plan.name === 'PRO' ? (
+                  <span className="block text-center py-2.5 rounded-lg bg-[#FF5F03]/10 border border-[#FF5F03]/20 text-[#FF5F03] text-sm font-medium">Zaten PRO</span>
                 ) : (
                   <button onClick={() => handleCheckout(plan.name)} disabled={upgrading}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm disabled:opacity-60">
