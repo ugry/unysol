@@ -2,9 +2,9 @@
 
 > **Canonical bug database.** All other files reference this one.
 > **Last Updated:** 03 June 2026
-> **Total Bugs Found:** 51  
+> **Total Bugs Found:** 57  
 > **Total Bugs Fixed:** 31  
-> **Open:** 20  
+> **Open:** 26  
 
 ---
 
@@ -64,6 +64,12 @@
 | B-LOAD-03 | P3 | Load Board | No stats summary cards at top of page | ⬜ Open |
 | B-CEK-01 | P3 | Cek/Senet | KPI card labels differ from spec (3 cards instead of 4) | ⬜ Open |
 | B-AUTH-01 | P3 | Auth | Google OAuth login button not visible (missing build-time env var) | ✅ Fixed |
+| B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback "info@unysolar.com" on production — STRIPE_SECRET_KEY missing from AWS ECS env vars | ⬜ Open |
+| B-STRIPE-02 | P1 | Billing | Stripe checkout session not tested from frontend — SettingsPage calls /stripe/checkout but no dedicated BillingPage exists | ⬜ Open |
+| B-PORTAL-01 | P2 | CRM | CustomerPortalPage has no dedicated backend endpoint — page reuses /api/tenant/customers/ with no portal-specific features | ⬜ Open |
+| B-CARBON-01 | P2 | ANALYTICS | CarbonTrackingPage has zero API calls — purely static page with hardcoded CO2/trees | ⬜ Open |
+| B-BILLING-01 | P2 | Finance | No BillingPage.tsx or subscription management UI — Stripe checkout only accessible via Settings→PRO Upgrade | ⬜ Open |
+| B-EXPORT-01 | P2 | ANALYTICS | ExportPage has no dedicated backend handler — relies on per-module DataGrid CSV export | ⬜ Open |
 
 ---
 
@@ -827,3 +833,78 @@ moduletestrunQAjune1observations.md — QA test results
 | **Required Fix** | Add to `App.tsx`: `<Route path="/dashboard/actions" element={<ActionsPage />} />`. Add to `Sidebar.tsx`: `{ name: "İşlem Kayıtları", path: "/dashboard/actions", icon: History }`. Add to `MainLayout.tsx` title mapping. |
 | **Files to Change** | `frontend/src/App.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/MainLayout.tsx` |
 | **CI Gate** | `production-integrity`: verify ActionsPage has Route in App.tsx + sidebar entry |
+
+### B-STRIPE-01: PRO Upgrade Shows Fallback on Production (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Billing / Stripe |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Full module API/UI test — June 3, 2026 |
+| **Bug** | "PRO'ya Yükselt" button on SettingsPage shows fallback message "info@unysolar.com adresine yazabilirsiniz" instead of redirecting to Stripe Checkout. Root cause: `STRIPE_SECRET_KEY` environment variable not set in AWS ECS task definition. Added to `terraform.tfvars` + `ecs.tf` but needs `terraform apply` to take effect on AWS. |
+| **Impact** | Users cannot purchase PRO subscriptions. Revenue blocked. |
+| **Fix** | Apply Terraform changes: `cd infra/terraform && terraform apply`. Verify via curl: `POST /api/tenant/stripe/checkout` returns `url`. |
+| **Files** | `infra/terraform/ecs.tf`, `infra/terraform/variables.tf`, `infra/terraform/terraform.tfvars` |
+| **CI Gate** | `security-checks`: verify STRIPE_SECRET_KEY variable exists in ecs.tf |
+
+### B-STRIPE-02: No Dedicated Billing Page or Subscription Management UI (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Billing / Frontend |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Full module API/UI test — June 3, 2026 |
+| **Bug** | No `BillingPage.tsx` exists. Stripe checkout is only accessible from Settings→PRO Upgrade. No UI to: view subscription history, cancel subscription, change plan, see invoice history, download billing receipts. Backend billing.go + stripe.go fully functional but frontend missing entirely. |
+| **Impact** | Users cannot manage their subscriptions. Increased support tickets for plan changes. |
+| **Fix** | Create `BillingPage.tsx` with: current plan display, Stripe checkout button, subscription history, cancel/downgrade flow. Add Route + sidebar entry. |
+| **Files** | Create `frontend/src/pages/BillingPage.tsx`, update `App.tsx`, `Sidebar.tsx`, `MainLayout.tsx` |
+
+### B-PORTAL-01: Customer Portal Has No Dedicated Backend (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | CRM / Customer Portal |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Full module API/UI test — June 3, 2026 |
+| **Bug** | `CustomerPortalPage.tsx` renders and calls `api.get('/api/tenant/customers/')` which is the standard customers endpoint. No dedicated customer portal features exist: no customer login, no customer-facing invoice view, no customer-facing trip tracking, no self-service. The frontend page exists but provides no additional functionality beyond the regular CustomersPage. |
+| **Impact** | Customer self-service portal (planned blueprint feature) is non-functional. Customers cannot view their own deliveries/invoices independently. |
+| **Fix** | Either: 1) Remove CustomerPortalPage and route, OR 2) Add portal-specific backend endpoints for customer self-service. |
+
+### B-CARBON-01: Carbon Tracking Is a Static Page (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | ANALYTICS / Carbon Tracking |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review during full module test — June 3, 2026 |
+| **Bug** | `CarbonTrackingPage.tsx` has NO API calls — zero. The page only imports `{ useState }` and `lucide-react` icons. It renders a static UI with hardcoded CO2/trees values. No backend handler exists for carbon tracking data. |
+| **Impact** | Users see fake data. No actual CO2 calculations from trip/fuel data. EU compliance feature is non-functional. |
+| **Fix** | Either: 1) Add backend carbon handler that calculates real CO2 from fuel_logs + trips, OR 2) Mark page as placeholder with "Yakında" notice. |
+
+### B-BILLING-01: No Subscription Management UI (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Finance / Billing |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review during full module test — June 3, 2026 |
+| **Bug** | `BillingPage.tsx` does not exist. Backend `billing.go` has full endpoints (plans, invoices, upgrade, cancel, checkout) but zero frontend pages connect to them. The only Stripe integration is the SettingsPage PRO Upgrade button. |
+| **Impact** | Users cannot view SaaS billing history, upgrade plans with card, cancel subscriptions, or see billing invoices. |
+| **Fix** | Same as B-STRIPE-02 — create `BillingPage.tsx` wired to all billing API endpoints. |
+
+### B-EXPORT-01: Export Has No Dedicated Backend Handler (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | ANALYTICS / Export |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Code review during full module test — June 3, 2026 |
+| **Bug** | `ExportPage.tsx` exists (1 API call) but no `handlers/export.go` exists. Export functionality relies on per-module DataGrid `onExport` handler (CSV/Excel/PDF generation in `lib/export.ts`). No centralized export backend. |
+| **Impact** | Cross-module exports (export all data at once) not possible. Each module exports independently from frontend. |
+| **Fix** | Either: 1) Document that export is per-module only (DataGrid feature), OR 2) Add `handlers/export.go` with centralized multi-module export. |

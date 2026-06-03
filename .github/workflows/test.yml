@@ -224,6 +224,44 @@ jobs:
           grep -q "PermissionEnforcer" backend/cmd/server/main.go || { echo "❌ B-SET-10: PermissionEnforcer not wired in main.go"; exit 1; }
           echo "✅ Permission enforcement middleware wired"
 
+      # B-STRIPE-01: Stripe env vars must be in ECS task definition (Terraform)
+      - name: "Infra: STRIPE_SECRET_KEY in ECS task definition"
+        run: |
+          grep -q "STRIPE_SECRET_KEY" infra/terraform/ecs.tf || { echo "❌ B-STRIPE-01: STRIPE_SECRET_KEY missing from ecs.tf"; exit 1; }
+          grep -q "STRIPE_PUBLISHABLE_KEY" infra/terraform/ecs.tf || { echo "❌ B-STRIPE-01: STRIPE_PUBLISHABLE_KEY missing from ecs.tf"; exit 1; }
+          echo "✅ Stripe env vars defined in ECS task definition"
+
+      # B-STRIPE-02: SettingsPage must call /stripe/checkout with real API
+      - name: "Frontend: SettingsPage calls Stripe checkout API"
+        run: |
+          grep -q "stripe/checkout" frontend/src/pages/SettingsPage.tsx || { echo "❌ B-STRIPE-02: SettingsPage missing Stripe checkout call"; exit 1; }
+          grep -q "window.location.href" frontend/src/pages/SettingsPage.tsx || { echo "❌ B-STRIPE-02: SettingsPage missing redirect on checkout success"; exit 1; }
+          echo "✅ SettingsPage wired to Stripe checkout"
+
+      # B-BILLING-01: BillingPage must exist
+      - name: "Frontend: BillingPage.tsx exists"
+        run: |
+          [ -f frontend/src/pages/BillingPage.tsx ] && echo "✅ BillingPage exists" || echo "⚠ B-BILLING-01: BillingPage not yet created (non-blocking)"
+
+      # B-CARBON-01: CarbonTrackingPage must have API calls
+      - name: "Frontend: CarbonTrackingPage has API calls"
+        run: |
+          if grep -q "api\.\|axios\|fetch" frontend/src/pages/CarbonTrackingPage.tsx 2>/dev/null; then
+            echo "✅ CarbonTrackingPage has API calls"
+          else
+            echo "⚠ B-CARBON-01: CarbonTrackingPage has no API calls (placeholder page)"
+          fi
+
+      # B-PORTAL-01: Customer portal must have dedicated backend
+      - name: "Backend: Customer portal handler exists"
+        run: |
+          [ -f backend/internal/handlers/customer_portal.go ] && echo "✅ Customer portal handler exists" || echo "⚠ B-PORTAL-01: No dedicated customer portal backend handler"
+
+      # B-EXPORT-01: Export handler exists
+      - name: "Backend: Export handler exists"
+        run: |
+          [ -f backend/internal/handlers/export.go ] && echo "✅ Export handler exists" || echo "⚠ B-EXPORT-01: No dedicated export backend handler"
+
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
   # ============================================================
