@@ -90,6 +90,27 @@ jobs:
           
           echo "✅ Stripe env vars added to ECS task definition"
 
+      - name: Add www → non-www redirect on ALB
+        run: |
+          HTTPS_LISTENER_ARN=$(aws elbv2 describe-listeners \
+            --load-balancer-arn $(aws elbv2 describe-load-balancers --names unysol-alb --query 'LoadBalancers[0].LoadBalancerArn' --output text) \
+            --query 'Listeners[?Port==`443`].ListenerArn' --output text)
+          
+          # Check if www redirect rule already exists
+          EXISTING=$(aws elbv2 describe-rules --listener-arn $HTTPS_LISTENER_ARN --query "Rules[?Conditions[0].Values[0]=='www.unysolar.com'].RuleArn" --output text)
+          
+          if [ "$EXISTING" = "None" ] || [ -z "$EXISTING" ]; then
+            echo "Creating www → unysolar.com redirect..."
+            aws elbv2 create-rule \
+              --listener-arn $HTTPS_LISTENER_ARN \
+              --priority 50 \
+              --conditions Field=host-header,Values=www.unysolar.com \
+              --actions Type=redirect,RedirectConfig="{Protocol=HTTPS,Host='unysolar.com',Port='443',StatusCode='HTTP_301'}"
+            echo "✅ www redirect rule created"
+          else
+            echo "✅ www redirect rule already exists: $EXISTING"
+          fi
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2

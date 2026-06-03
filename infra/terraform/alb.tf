@@ -126,6 +126,26 @@ resource "aws_lb_listener_rule" "api_https" {
   }
 }
 
+# Redirect www.unysolar.com → unysolar.com (fixes Google OAuth origin_mismatch)
+resource "aws_lb_listener_rule" "www_redirect" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 50
+
+  action {
+    type = "redirect"
+    redirect {
+      protocol    = "HTTPS"
+      host        = var.domain_name
+      port        = "443"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    host_header { values = ["www.${var.domain_name}"] }
+  }
+}
+
 resource "aws_lb_listener" "test" {
   load_balancer_arn = aws_lb.main.arn
   port              = 8443
