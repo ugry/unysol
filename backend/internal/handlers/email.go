@@ -88,9 +88,7 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	if passwordVal == "********" {
 		_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(password,'') FROM email_config WHERE id=1`).Scan(&passwordVal)
 	}
-
-	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
-
+	host := req.SmtpAddress
 	_, err := h.DB.Exec(r.Context(), `
 		INSERT INTO email_config (id, email_method, email_address, password, smtp_address, imap_address,
 			port, imap_port, host, username, from_email, aws_region,
@@ -144,7 +142,7 @@ func (h *EmailHandler) TestConfig(w http.ResponseWriter, r *http.Request) {
 		req.AwsRegion = "eu-central-1"
 	}
 
-	host := strings.TrimPrefix(req.SmtpAddress, "smtp.")
+	host := req.SmtpAddress
 	pass := req.EmailPass
 	if pass == "********" {
 		_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(password,'') FROM email_config WHERE id=1`).Scan(&pass)
