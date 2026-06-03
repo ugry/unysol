@@ -68,7 +68,7 @@
 | B-BILLING-01 | P2 | Finance | No BillingPage.tsx — created full page with plan selector, Stripe checkout, invoice history, cancel flow | ✅ Fixed |
 | B-EXPORT-01 | P2 | ANALYTICS | Export has no dedicated backend handler — created export.go with trucks/customers/expenses endpoints | ✅ Fixed |
 | B-PORTAL-01 | P2 | CRM | CustomerPortalPage has no dedicated backend — page works via customers API, dedicated portal is P2 feature | ✅ Feature gap |
-| B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback on production — needs terraform apply for ECS env vars | ⬜ Open |
+| B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback on production — deploy.yml now registers ECS task def with Stripe env vars, GitHub Secrets set | ✅ Fix in deploy |
 | B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
 
 ---
