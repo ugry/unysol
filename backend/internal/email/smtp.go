@@ -56,8 +56,8 @@ func Send(to string, subject string, body string) error {
 			return fmt.Errorf("SMTP client hatası: %w", err)
 		}
 	} else {
-		tlsConfig := &tls.Config{ServerName: cfg.Host}
-		conn, err := tls.Dial("tcp", addr, tlsConfig)
+		// Port 587/465: connect plain then STARTTLS
+		conn, err := net.Dial("tcp", addr)
 		if err != nil {
 			return fmt.Errorf("SMTP bağlantı hatası: %w", err)
 		}
@@ -66,12 +66,18 @@ func Send(to string, subject string, body string) error {
 			conn.Close()
 			return fmt.Errorf("SMTP client hatası: %w", err)
 		}
+		if ok, _ := client.Extension("STARTTLS"); ok {
+			tlsConfig := &tls.Config{ServerName: cfg.Host}
+			if err := client.StartTLS(tlsConfig); err != nil {
+				client.Close()
+				return fmt.Errorf("SMTP STARTTLS hatası: %w", err)
+			}
+		}
 	}
 	defer client.Close()
 
-	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
-
-	if cfg.Username != "" || cfg.Password != "" {
+	if cfg.Username != "" && cfg.Password != "" {
+		auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 		if err := client.Auth(auth); err != nil {
 			return fmt.Errorf("SMTP kimlik doğrulama hatası: %w", err)
 		}
