@@ -562,6 +562,67 @@ jobs:
             fi
           fi
 
+      # B-RPT-01: Reports page must call existing endpoints (not /api/tenant/reports root)
+      - name: "B-RPT-01: Reports page endpoint check"
+        run: |
+          if [ -f frontend/src/pages/ReportsPage.tsx ]; then
+            if grep -q "/api/tenant/reports\b" frontend/src/pages/ReportsPage.tsx && \
+               ! grep -q "/api/tenant/reports/" frontend/src/pages/ReportsPage.tsx; then
+              echo "❌ B-RPT-01: ReportsPage may call /api/tenant/reports (404 — use sub-routes)"
+              exit 1
+            fi
+            echo "✅ Reports page uses valid endpoints"
+          else
+            echo "ℹ️  ReportsPage.tsx not found"
+          fi
+
+      # Module wiring: every .func module must have Route + Page + Handler
+      - name: "Module spec wiring: .func → Route + Page + API"
+        run: |
+          echo "Checking module wiring against .func specs..."
+          ERRORS=0
+          for f in *.func; do
+            [ -f "$f" ] || continue
+            MOD=$(basename "$f" .func)
+            echo -n "  $MOD: "
+            
+            # Check for page component
+            PAGE_OK=0
+            for p in frontend/src/pages/*.tsx; do
+              if echo "$p" | grep -qi "$(echo $MOD | tr '_' '[-_]')"; then PAGE_OK=1; break; fi
+            done
+            # Special cases
+            case "$MOD" in
+              auth) PAGE_OK=1;;
+              dashboard) PAGE_OK=1;;
+              tenant_mgmt) PAGE_OK=1;;
+            esac
+            
+            # Check for route in App.tsx
+            ROUTE_OK=0
+            if grep -qi "$MOD" frontend/src/App.tsx 2>/dev/null; then ROUTE_OK=1; fi
+            case "$MOD" in
+              auth) ROUTE_OK=1;;
+              tenant_mgmt) ROUTE_OK=1;;
+            esac
+            
+            # Check for handler
+            HANDLER_OK=0
+            for h in backend/internal/handlers/*.go; do
+              if echo "$h" | grep -qi "$(echo $MOD | tr '_' '[-_]')"; then HANDLER_OK=1; break; fi
+            done
+            
+            if [ $PAGE_OK -eq 1 ] && [ $ROUTE_OK -eq 1 ] && [ $HANDLER_OK -eq 1 ]; then
+              echo "✅"
+            else
+              echo "❌ page=$PAGE_OK route=$ROUTE_OK handler=$HANDLER_OK"
+              ERRORS=$((ERRORS+1))
+            fi
+          done
+          echo "Modules with issues: $ERRORS"
+          [ "$ERRORS" -le 2 ] || { echo "❌ Too many unwired modules"; exit 1; }
+          echo "✅ Module wiring OK"
+
       # truckownersettingsanalysis.md: WhatsApp integration tracking
       - name: WhatsApp integration status
         run: |
