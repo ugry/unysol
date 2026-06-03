@@ -10,7 +10,6 @@ import CustomersPage from '@/pages/CustomersPage';
 import InvoicesPage from '@/pages/InvoicesPage';
 import ExpensesPage from '@/pages/ExpensesPage';
 import CekSenetPage from '@/pages/CekSenetPage';
-import EmployeesPage from '@/pages/EmployeesPage';
 import PredictionsPage from '@/pages/PredictionsPage';
 import TiresPage from '@/pages/TiresPage';
 import AllowancesPage from '@/pages/AllowancesPage';
@@ -114,7 +113,7 @@ export default function App() {
         <Route path="/dashboard/cek-senet" element={<CekSenetPage />} />
         <Route path="/dashboard/load-board" element={<LoadBoardPage />} />
         <Route path="/dashboard/expenses" element={<ExpensesPage />} />
-        <Route path="/dashboard/employees" element={<EmployeesPage />} />
+        <Route path="/dashboard/employees" element={<SettingsPage />} />
         <Route path="/dashboard/fuel-logs" element={<FuelLogPage />} />
         <Route path="/dashboard/toll-logs" element={<TollLogsPage />} />
         <Route path="/dashboard/maintenance" element={<MaintenancePage />} />

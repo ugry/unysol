@@ -13,7 +13,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/cek-senet': 'Çek/Senet',
   '/dashboard/load-board': 'Yük Panosu',
   '/dashboard/expenses': 'Giderler',
-  '/dashboard/employees': 'Personel',
+  '/dashboard/employees': 'Ayarlar',
   '/dashboard/predictions': 'Tahminler',
   '/dashboard/reports': 'Raporlar',
   '/dashboard/settings': 'Ayarlar',

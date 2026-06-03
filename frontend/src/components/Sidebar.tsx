@@ -39,7 +39,6 @@ const navItems = [
   { path: '/dashboard/toll-logs', label: 'HGS Takip', icon: CreditCard, moduleKey: 'toll_tracking' },
   { path: '/dashboard/maintenance', label: 'Bakım', icon: Wrench, moduleKey: 'maintenance' },
   { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck, moduleKey: 'driver_leave' },
-  { path: '/dashboard/employees', label: 'Personel', icon: UserCheck, moduleKey: 'employee_mgmt' },
   { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp, moduleKey: 'predictions' },
   { path: '/dashboard/reports', label: 'Raporlar', icon: BarChart3, moduleKey: 'reports' },
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings, moduleKey: 'settings' },
@@ -100,7 +99,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     ? [] // loading — show nothing until permissions loaded
     : permittedModules === null
       ? navItems
-      : navItems.filter(item => item.moduleKey === 'dashboard' || permittedModules.has(item.moduleKey));
+      : navItems.filter(item => item.moduleKey === 'dashboard' || item.moduleKey === 'settings' || permittedModules.has(item.moduleKey));
 
   const toggleLanguage = () => {
     const next = i18n.language === 'tr' ? 'en' : 'tr';

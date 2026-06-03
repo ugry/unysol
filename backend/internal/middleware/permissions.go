@@ -40,6 +40,8 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 	// Paths always allowed regardless of permissions
 	alwaysAllowed := map[string]bool{
 		"/api/tenant/my-permissions": true,
+		"/api/tenant/settings":       true,
+		"/api/tenant/notifications":  true,
 	}
 
 	var mu sync.RWMutex
