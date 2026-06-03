@@ -18,12 +18,18 @@ type ReportsHandler struct {
 
 func (h *ReportsHandler) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/", h.Root)
 	r.Get("/summary", h.Summary)
 	r.Get("/revenue-expenses", h.RevenueExpenses)
 	r.Get("/profit-per-truck", h.ProfitPerTruck)
 	r.Get("/profit-per-driver", h.ProfitPerDriver)
 	r.Get("/category-breakdown", h.CategoryBreakdown)
 	return r
+}
+
+func (h *ReportsHandler) Root(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"endpoints":["/summary","/revenue-expenses","/profit-per-truck","/profit-per-driver","/category-breakdown"]}`))
 }
 
 func getDateRange(r *http.Request) (string, string) {
