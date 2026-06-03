@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"unysol/internal/logging"
@@ -113,6 +114,12 @@ func RunMigrations(ctx context.Context, migrationsDir string) error {
 
 		logging.System(logging.LevelInfo, "running migration", map[string]interface{}{"file": entry.Name()})
 		if _, err := p.Exec(ctx, string(sql)); err != nil {
+			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
+				recordMigration(ctx, p, entry.Name())
+				skipped++
+				logging.System(logging.LevelInfo, "migration skipped (already applied)", map[string]interface{}{"file": entry.Name()})
+				continue
+			}
 			failed++
 			return fmt.Errorf("migration %s failed: %w", entry.Name(), err)
 		}
