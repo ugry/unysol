@@ -262,6 +262,24 @@ jobs:
         run: |
           [ -f backend/internal/handlers/export.go ] && echo "✅ Export handler exists" || echo "⚠ B-EXPORT-01: No dedicated export backend handler"
 
+      # B-ADMIN-01: Module seed migration must exist (for production RDS)
+      - name: "DB: Module seed migration exists"
+        run: |
+          grep -q "INSERT INTO modules" backend/internal/database/migrations/012_seed_modules.sql || { echo "❌ B-ADMIN-01: Module seed migration (012) missing or incomplete"; exit 1; }
+          echo "✅ Module seed migration exists"
+
+      # B-ADMIN-02: Dashboard must query real paket_dagilimi from DB
+      - name: "Backend: Dashboard queries real paket_dagilimi"
+        run: |
+          grep -q "paketDagilimi\|paket_dagilimi.*SELECT\|GROUP BY plan" backend/internal/handlers/admin.go || { echo "❌ B-ADMIN-02: Dashboard paket_dagilimi not queried from DB"; exit 1; }
+          echo "✅ Dashboard paket_dagilimi uses real DB query"
+
+      # B-ADMIN-03: Dashboard must query real son_kayitlar from DB
+      - name: "Backend: Dashboard queries real son_kayitlar"
+        run: |
+          grep -q "sonKayitlar\|son_kayitlar.*SELECT\|firma_unvani.*plan.*created_at.*LIMIT" backend/internal/handlers/admin.go || { echo "❌ B-ADMIN-03: Dashboard son_kayitlar not queried from DB"; exit 1; }
+          echo "✅ Dashboard son_kayitlar uses real DB query"
+
       # B-TRK-02: yakit_tipi column must exist in trucks table
       - name: "DB: trucks table has yakit_tipi column"
         run: |

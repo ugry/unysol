@@ -28,15 +28,44 @@ func (h *AdminHandler) DashboardSummary(w http.ResponseWriter, r *http.Request) 
 	var newThisMonth int
 	_ = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE created_at >= date_trunc('month', CURRENT_DATE)`).Scan(&newThisMonth)
 
+	// Real package distribution from tenants table
+	pkgRows, _ := h.DB.Query(r.Context(),
+		`SELECT COALESCE(plan::text,'FREE'), COUNT(*) FROM tenants GROUP BY plan ORDER BY COUNT(*) DESC`)
+	paketDagilimi := make([]map[string]interface{}, 0)
+	if pkgRows != nil {
+		defer pkgRows.Close()
+		for pkgRows.Next() {
+			var pkg string; var cnt int
+			pkgRows.Scan(&pkg, &cnt)
+			paketDagilimi = append(paketDagilimi, map[string]interface{}{"paket": pkg, "sayi": cnt})
+		}
+	}
+	if len(paketDagilimi) == 0 {
+		paketDagilimi = append(paketDagilimi, map[string]interface{}{"paket": "FREE", "sayi": total})
+	}
+
+	// Real recent registrations (last 5)
+	recRows, _ := h.DB.Query(r.Context(),
+		`SELECT firma_unvani, plan, created_at FROM tenants ORDER BY created_at DESC LIMIT 5`)
+	sonKayitlar := make([]map[string]interface{}, 0)
+	if recRows != nil {
+		defer recRows.Close()
+		for recRows.Next() {
+			var unvan, plan string; var createdAt interface{}
+			recRows.Scan(&unvan, &plan, &createdAt)
+			sonKayitlar = append(sonKayitlar, map[string]interface{}{
+				"firma": unvan, "plan": plan, "tarih": createdAt,
+			})
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"toplam_firma":      total,
 		"aktif_firma":       active,
 		"mrr":               mrr,
 		"bu_ay_yeni_kayit":  newThisMonth,
-		"paket_dagilimi": []map[string]interface{}{
-			{"paket": "FREE", "sayi": total - active + (active)},
-		},
-		"son_kayitlar": []map[string]interface{}{},
+		"paket_dagilimi":     paketDagilimi,
+		"son_kayitlar":       sonKayitlar,
 	})
 }
 

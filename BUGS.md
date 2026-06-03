@@ -2,9 +2,9 @@
 
 > **Canonical bug database.** All other files reference this one.
 > **Last Updated:** 03 June 2026
-> **Total Bugs Found:** 63  
-> **Total Bugs Fixed:** 31  
-> **Open:** 32  
+> **Total Bugs Found:** 67  
+> **Total Bugs Fixed:** 39  
+> **Open:** 28  
 
 ---
 
@@ -69,6 +69,9 @@
 | B-EXPORT-01 | P2 | ANALYTICS | Export has no dedicated backend handler — created export.go with trucks/customers/expenses endpoints | ✅ Fixed |
 | B-PORTAL-01 | P2 | CRM | CustomerPortalPage has no dedicated backend — page works via customers API, dedicated portal is P2 feature | ✅ Feature gap |
 | B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback on production — deploy.yml now registers ECS task def with Stripe env vars, GitHub Secrets set | ✅ Fix in deploy |
+| B-ADMIN-01 | P1 | Admin | Modules table empty on production — seed data (21 modules) never ran on RDS, migration 012 added | ✅ Fixed |
+| B-ADMIN-02 | P1 | Admin | Dashboard paket_dagilimi hardcoded — showed fake FREE-only distribution instead of real DB counts | ✅ Fixed |
+| B-ADMIN-03 | P1 | Admin | Dashboard son_kayitlar hardcoded empty [] — not queried from DB, showed empty list | ✅ Fixed |
 | B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
 
 ---
