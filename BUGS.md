@@ -73,6 +73,7 @@
 | B-ADMIN-02 | P1 | Admin | Dashboard paket_dagilimi hardcoded — showed fake FREE-only distribution instead of real DB counts | ✅ Fixed |
 | B-ADMIN-03 | P1 | Admin | Dashboard son_kayitlar hardcoded empty [] — not queried from DB, showed empty list | ✅ Fixed |
 | B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
+| B-AUTH-02 | P2 | Auth | Forgot password missing — users locked out without recovery option | ✅ Fixed |
 
 ---
 

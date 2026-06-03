@@ -224,6 +224,17 @@ jobs:
           grep -q "PermissionEnforcer" backend/cmd/server/main.go || { echo "❌ B-SET-10: PermissionEnforcer not wired in main.go"; exit 1; }
           echo "✅ Permission enforcement middleware wired"
 
+      # B-AUTH-02: Forgot password option must exist on login page + backend endpoints
+      - name: "Auth: Forgot password flow exists"
+        run: |
+          grep -q "forgot-password" backend/cmd/server/main.go || { echo "❌ B-AUTH-02: /api/auth/forgot-password route missing"; exit 1; }
+          grep -q "reset-password" backend/cmd/server/main.go || { echo "❌ B-AUTH-02: /api/auth/reset-password route missing"; exit 1; }
+          grep -q "ForgotPassword" backend/internal/handlers/auth.go || { echo "❌ B-AUTH-02: ForgotPassword handler missing"; exit 1; }
+          grep -q "ResetPassword" backend/internal/handlers/auth.go || { echo "❌ B-AUTH-02: ResetPassword handler missing"; exit 1; }
+          grep -q "SendPasswordReset" backend/internal/email/smtp.go || { echo "❌ B-AUTH-02: SendPasswordReset function missing"; exit 1; }
+          grep -q "Şifrenizi mi unuttunuz" frontend/src/pages/LoginPage.tsx || { echo "❌ B-AUTH-02: Forgot password link missing from LoginPage"; exit 1; }
+          echo "✅ Forgot password flow complete"
+
       # B-STRIPE-01: Stripe env vars must be in ECS task definition (Terraform)
       - name: "Infra: STRIPE_SECRET_KEY in ECS task definition"
         run: |

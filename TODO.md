@@ -11,7 +11,7 @@
 | ID | Task | Why | Effort | Status |
 |----|------|-----|:---:|:---:|
 | IMP-001 | Stripe checkout — wire frontend button to backend (Settings + Billing pages) | PRO revenue blocked without payment flow | ✅ Done |
-| IMP-002 | SMTP/Email connectivity — verification emails actually send to users | Users cannot verify email, blocked from login | ⬜ |
+| IMP-002 | SMTP/Email connectivity — verification emails actually send to users | Switched from SES to Hostinger SMTP (smtp.hostinger.com:587). Working in QA. Needs deploy. | ✅ Done |
 | IMP-003 | WhatsApp notification integration — truckers live on WhatsApp | #1 competitor differentiator (FiloAsistan, Filojistik) | ⬜ |
 
 ## 🟠 P1 — High Impact
@@ -29,22 +29,11 @@
 |----|------|-----|:---:|--------|
 | IMP-008 | Admin real package distribution — query subscription counts | Overview shows hardcoded placeholder | ✅ Done |
 | IMP-009 | Admin recent registrations — real last 5 tenants | Overview shows empty list | ✅ Done |
+| IMP-012 | Password reset flow — forgot password + email recovery | Backend endpoints + frontend modal + email template. Tested 6/6 QA. | ✅ Done |
 | IMP-051 | **FREE plan enforcement** — backend checks plan_modules for module access | 33/33 test passed: FREE blocked from 10 modules, PRO has 31 | ✅ Done |
-
-## IMP-051 Sub-Tasks (All Done)
-
-| # | Task | Effort | Status |
-|---|------|:---:|:---:|
-| IMP-051a | Add `GetTenantModules(plan)` to read plan_modules into JWT on login | 30m | ✅ |
-| IMP-051b | Add `allowed_modules` claim to JWT token in auth handler | 15m | ✅ |
-| IMP-051c | Add middleware check: reject 403 if module not in JWT claims | 30m | ✅ |
-| IMP-051d | Sidebar filters by `allowed_modules` (already reads my-permissions) | 15m | ✅ |
-| IMP-051e | After PRO upgrade, settings page shows PRO Aktif badge | 15m | ✅ |
-| IMP-051f | Tested: 21/21 FREE vs PRO module access | 15m | ✅ |
+| IMP-052 | **Access Management module** — user CRUD + permissions moved from Settings to PRO-only module | FREE blocked, PRO allowed via plan_modules | ✅ Done |
 | IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
 | IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
-| IMP-012 | Password reset flow — forgot password + email recovery | Users locked out without Google login | 2h | Testing |
-| IMP-052 | **Access Management module** — user CRUD + permissions moved from Settings to PRO-only module | FREE blocked, PRO allowed via plan_modules | ✅ Done |
 | IMP-013 | Fuel price tracking widget — compare to EPDK prices | #1 Turkish trucker pain point (exa.ai research) | 2h | Testing |
 | IMP-014 | SMS notifications — trip status, invoice reminders | FiloMetrik & Filojistik have this | 4h | FiloMetrik |
 | IMP-015 | Bulk CSV import — migrate data from Excel/competitors | FiloMetrik has this; critical for onboarding | 3h | FiloMetrik |
@@ -109,11 +98,11 @@
 
 | Priority | Count | Done |
 |:---:|:---:|:---:|
-| P0 | 3 | 1 |
+| P0 | 3 | 2 |
 | P1 | 5 | 0 |
-| P2 | 18 | 3 |
+| P2 | 16 | 5 |
 | P3 | 25 | 0 |
-| **Total** | **51** | **4** |
+| **Total** | **49** | **7** |
 
 ## By Source
 
