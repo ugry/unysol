@@ -102,45 +102,29 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tenantID int
-	err = h.DB.QueryRow(r.Context(),
-		`INSERT INTO tenants (slug, firma_unvani) VALUES ($1, $2) RETURNING id`,
-		slug, req.TenantName,
-	).Scan(&tenantID)
-	if err != nil {
-		recordSignupFailedAttempt(ip)
-		logging.Auth(logging.LevelError, "signup failed — tenant create error", "", "", "", r.RemoteAddr,
-			map[string]interface{}{"email": req.Email, "error": err.Error()})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Firma oluşturulamadı. Lütfen tekrar deneyin."})
+	// Check pending_registrations too
+	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM pending_registrations WHERE email=$1`, req.Email).Scan(&existing)
+	if err == nil && existing > 0 {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu e-posta adresi için doğrulama bekleniyor. Lütfen e-postanızı kontrol edin."})
 		return
 	}
 
-	var userID int
-	err = h.DB.QueryRow(r.Context(),
-		`INSERT INTO users (tenant_id, email, password_hash, ad_soyad, rol, telefon, aktif) 
-		 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5, false) RETURNING id`,
-		tenantID, req.Email, string(passwordHash), req.TenantName, req.Telefon,
-	).Scan(&userID)
-	if err != nil {
-		recordSignupFailedAttempt(ip)
-		logging.Error(logging.LevelError, err, itoa(tenantID), "", "", "", "auth", "signup user create failed", nil)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create user"})
-		return
-	}
-
-	_, _ = h.DB.Exec(r.Context(), `INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret) VALUES ($1, 'FREE', CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', 0)`, tenantID)
-
-	resetSignupLockout(ip)
-
-	// Generate verification token + 6-digit code
+	// Generate verification code
 	verificationCode := generateVerificationCode()
 	verificationToken := generateVerificationToken()
-	_, _ = h.DB.Exec(r.Context(), `
-		INSERT INTO email_verification_tokens (user_id, token, code, expires_at)
-		VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')
-	`, userID, verificationToken, verificationCode)
 
-	// Send verification email (non-blocking) with code in subject
+	// Store in pending_registrations (tenant+user created only after verification)
+	_, err = h.DB.Exec(r.Context(),
+		`INSERT INTO pending_registrations (email, password_hash, tenant_name, telefon, code, token, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '1 hour')
+		 ON CONFLICT (email) DO UPDATE SET code=$5, token=$6, expires_at=NOW() + INTERVAL '1 hour'`,
+		req.Email, string(passwordHash), req.TenantName, req.Telefon, verificationCode, verificationToken)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Kayıt oluşturulamadı"})
+		return
+	}
+
+	// Send verification email
 	go func() {
 		if err := email.SendVerificationEmail(req.Email, verificationCode, verificationToken); err != nil {
 			logging.System(logging.LevelWarn, "verification email failed", map[string]interface{}{
@@ -149,15 +133,13 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	logging.Auth(logging.LevelInfo, "signup pending verification", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
+	logging.Auth(logging.LevelInfo, "signup pending verification", "", "", "", r.RemoteAddr,
 		map[string]interface{}{"email": req.Email, "tenant_name": req.TenantName})
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
-		"success":      true,
-		"message":      "Hesabınız oluşturuldu. Giriş yapmak için e-posta adresinizi doğrulayın.",
-		"user_id":      userID,
-		"tenant_id":    tenantID,
-		"email":        req.Email,
+		"success":              true,
+		"message":              "Doğrulama kodu e-posta adresinize gönderildi. Hesabınızı aktifleştirmek için kodu girin.",
+		"email":                req.Email,
 		"requires_verification": true,
 	})
 }
@@ -398,39 +380,79 @@ func (h *AuthHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// First check pending_registrations (new signup, tenant+user not created yet)
+	var pendingEmail, pendingPass, pendingName, pendingPhone string
+	var pendingExpires time.Time
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT email, password_hash, tenant_name, telefon, expires_at FROM pending_registrations WHERE code=$1`, req.Code,
+	).Scan(&pendingEmail, &pendingPass, &pendingName, &pendingPhone, &pendingExpires)
+
+	if err == nil && time.Now().Before(pendingExpires) {
+		// Create tenant + user from pending registration
+		slug := cleanSlug(pendingName)
+		if slug == "" { slug = "user" + pendingEmail[:4] }
+
+		var tenantID int
+		err = h.DB.QueryRow(r.Context(),
+			`INSERT INTO tenants (slug, firma_unvani) VALUES ($1, $2) RETURNING id`, slug, pendingName,
+		).Scan(&tenantID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Firma oluşturulamadı. Lütfen tekrar deneyin."})
+			return
+		}
+
+		var userID int
+		err = h.DB.QueryRow(r.Context(),
+			`INSERT INTO users (tenant_id, email, password_hash, ad_soyad, rol, telefon, aktif) 
+			 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5, true) RETURNING id`,
+			tenantID, pendingEmail, pendingPass, pendingName, pendingPhone,
+		).Scan(&userID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Kullanıcı oluşturulamadı"})
+			return
+		}
+
+		// Create subscription
+		h.DB.Exec(r.Context(), `INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret) VALUES ($1, 'FREE', CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', 0)`, tenantID)
+
+		// Clean up pending registration
+		h.DB.Exec(r.Context(), `DELETE FROM pending_registrations WHERE email=$1`, pendingEmail)
+
+		logging.Auth(logging.LevelInfo, "signup verified — account created", itoa(tenantID), itoa(userID), "TENANT_OWNER", r.RemoteAddr,
+			map[string]interface{}{"email": pendingEmail})
+
+		jwtToken, _ := h.generateToken(userID, tenantID, pendingEmail, "TENANT_OWNER")
+		writeJSON(w, http.StatusOK, AuthResponse{
+			Token: jwtToken, TokenType: "bearer", UserID: userID,
+			TenantID: tenantID, Email: pendingEmail, Role: "TENANT_OWNER",
+		})
+		return
+	}
+
+	// Fallback: check email_verification_tokens (old flow for existing users)
 	var userID, tenantID int
 	var emailAddr, role string
 	var expiresAt time.Time
 	var used bool
-	err := h.DB.QueryRow(r.Context(), `
+	err = h.DB.QueryRow(r.Context(), `
 		SELECT v.user_id, v.expires_at, v.used, u.email, u.tenant_id, u.rol
 		FROM email_verification_tokens v
 		JOIN users u ON u.id = v.user_id
-		WHERE v.code = $1
-		ORDER BY v.created_at DESC LIMIT 1
+		WHERE v.code = $1 ORDER BY v.created_at DESC LIMIT 1
 	`, req.Code).Scan(&userID, &expiresAt, &used, &emailAddr, &tenantID, &role)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz doğrulama kodu"})
 		return
 	}
-	if used {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu kod zaten kullanılmış"})
-		return
-	}
-	if time.Now().After(expiresAt) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Doğrulama kodunun süresi doldu. Lütfen yeni bir kod isteyin."})
+	if used || time.Now().After(expiresAt) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu kod geçersiz veya süresi dolmuş"})
 		return
 	}
 
-	_, _ = h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used = true WHERE code = $1 AND user_id = $2`, req.Code, userID)
-	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET aktif = true WHERE id = $1 AND aktif = false`, userID)
+	h.DB.Exec(r.Context(), `UPDATE email_verification_tokens SET used=true WHERE code=$1 AND user_id=$2`, req.Code, userID)
+	h.DB.Exec(r.Context(), `UPDATE users SET aktif=true WHERE id=$1`, userID)
 
-	jwtToken, err := h.generateToken(userID, tenantID, emailAddr, role)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Doğrulandı! Şimdi giriş yapabilirsiniz."})
-		return
-	}
-
+	jwtToken, _ := h.generateToken(userID, tenantID, emailAddr, role)
 	writeJSON(w, http.StatusOK, AuthResponse{
 		Token: jwtToken, TokenType: "bearer", UserID: userID,
 		TenantID: tenantID, Email: emailAddr, Role: role,
@@ -446,9 +468,25 @@ func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check pending_registrations first
+	var pendingID int
+	err := h.DB.QueryRow(r.Context(), `SELECT id FROM pending_registrations WHERE email=$1`, req.Email).Scan(&pendingID)
+	if err == nil {
+		// Generate new code for pending registration
+		code := generateVerificationCode()
+		token := generateVerificationToken()
+		h.DB.Exec(r.Context(), `UPDATE pending_registrations SET code=$1, token=$2, expires_at=NOW() + INTERVAL '1 hour' WHERE id=$3`, code, token, pendingID)
+		go func() {
+			email.SendVerificationEmail(req.Email, code, token)
+		}()
+		writeJSON(w, http.StatusOK, map[string]string{"success": "true", "message": "Yeni doğrulama kodu gönderildi"})
+		return
+	}
+
+	// Fallback: existing user flow
 	var userID int
 	var aktif bool
-	err := h.DB.QueryRow(r.Context(), `SELECT id, COALESCE(aktif, false) FROM users WHERE email = $1`, req.Email).Scan(&userID, &aktif)
+	err = h.DB.QueryRow(r.Context(), `SELECT id, COALESCE(aktif, false) FROM users WHERE email = $1`, req.Email).Scan(&userID, &aktif)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bu e-posta adresiyle kayıtlı hesap bulunamadı"})
 		return
