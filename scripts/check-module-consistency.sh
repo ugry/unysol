@@ -13,11 +13,11 @@ echo "=== MODULE CONSISTENCY ==="
 # =====================================================
 KNOWN_MODULES=(
     auth tenant_mgmt dashboard settings actions
-    truck_tracking maintenance fuel_logging trailer_mgmt toll_tracking load_board
+    truck_tracking maintenance fuel_logging trailer_mgmt toll_tracking load_board tire_tracking
     invoice_mgmt expense_tracking billing cek_senet
-    customer_mgmt trip_mgmt
-    employee_mgmt driver_leave
-    predictions reports
+    customer_mgmt trip_mgmt proposal_system contract_mgmt customer_portal
+    employee_mgmt driver_leave driver_allowance driver_performance payslip
+    predictions reports carbon_tracking export
 )
 
 # =====================================================
@@ -41,12 +41,28 @@ PAGE_MOD[LandingPage]=auth
 PAGE_MOD[AdminDashboard]=tenant_mgmt
 PAGE_MOD[HelpPage]=auth
 PAGE_MOD[VerifyEmailPage]=auth
+PAGE_MOD[TrailersPage]=trailer_mgmt
+PAGE_MOD[FuelLogPage]=fuel_logging
+PAGE_MOD[TollLogsPage]=toll_tracking
+PAGE_MOD[MaintenancePage]=maintenance
+PAGE_MOD[DriverLeavePage]=driver_leave
+PAGE_MOD[TiresPage]=tire_tracking
+PAGE_MOD[AllowancesPage]=driver_allowance
+PAGE_MOD[DriverPerfPage]=driver_performance
+PAGE_MOD[PayslipsPage]=payslip
+PAGE_MOD[ProposalsPage]=proposal_system
+PAGE_MOD[ContractsPage]=contract_mgmt
+PAGE_MOD[CustomerPortalPage]=customer_portal
+PAGE_MOD[ReportsPage]=reports
+PAGE_MOD[CarbonTrackingPage]=carbon_tracking
+PAGE_MOD[ExportPage]=export
 
 # =====================================================
 # BACKEND HANDLERS → module map
 # =====================================================
 declare -A HANDLER_MOD
 HANDLER_MOD[trucks]=truck_tracking
+HANDLER_MOD[trailers]=trailer_mgmt
 HANDLER_MOD[trips]=trip_mgmt
 HANDLER_MOD[customers]=customer_mgmt
 HANDLER_MOD[invoices]=invoice_mgmt
@@ -61,14 +77,24 @@ HANDLER_MOD[auth]=auth
 HANDLER_MOD[dashboard]=dashboard
 HANDLER_MOD[billing]=billing
 HANDLER_MOD[notifications]=notifications
+HANDLER_MOD[fuel_log]=fuel_logging
+HANDLER_MOD[toll_logs]=toll_tracking
+HANDLER_MOD[maintenance]=maintenance
+HANDLER_MOD[driver_leave]=driver_leave
+HANDLER_MOD[tires]=tire_tracking
+HANDLER_MOD[allowances]=driver_allowance
+HANDLER_MOD[payslips]=payslip
+HANDLER_MOD[proposals]=proposal_system
+HANDLER_MOD[contracts]=contract_mgmt
+HANDLER_MOD[reports]=reports
 
 # =====================================================
 # CORE MODULES (no dedicated page, always active)
 # =====================================================
 CORE_NO_PAGE=(
     auth tenant_mgmt settings notifications countries modules_mgmt
-    maintenance fuel_logging trailer_mgmt toll_tracking
-    driver_leave reports billing
+    billing tire_tracking driver_allowance driver_performance payslip
+    proposal_system contract_mgmt customer_portal carbon_tracking export
 )
 
 # =====================================================
