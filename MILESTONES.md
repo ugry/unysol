@@ -1,7 +1,79 @@
 # Unysol — Milestones & Project History
 
-> **Canonical milestone document.** All milestone/session files merged into one.
-> **Last Updated:** 03 June 2026
+> **Canonical milestone document.**
+> **Last Updated:** 03 June 2026 (End of session — 57 commits)
+
+---
+
+## June 3, 2026 — Major Feature Day (57 commits)
+
+### Payments & Monetization
+- Stripe checkout fully operational on production (test mode)
+- Stripe secret key stored in DB (`email_config.stripe_secret_key`) — no ECS env var dependency
+- BillingPage created: plan selector, Stripe checkout button, invoice history, cancel flow
+- PRO webhook properly upgrades tenant plan + creates subscription
+- SettingsPage shows "PRO Aktif" badge, BillingPage shows PRO banner with expiry
+
+### Plan Enforcement (IMP-051)
+- JWT `allowed_modules` claim embedded on login from `plan_modules` table
+- Middleware enforces before TENANT_OWNER bypass (FREE users get 403 on PRO modules)
+- FREE plan: 13 modules accessible, 18 blocked
+- PRO plan: 31 modules accessible
+- End-to-end test: 49/49 API, 33/33 UI
+
+### Access Management (IMP-052)
+- New `access_mgmt` module — PRO/PREMIUM only
+- User management removed from SettingsPage entirely
+- Standalone `AccessManagementPage.tsx` with user CRUD + permissions modal
+- Middleware maps `/api/tenant/user-management` → `access_mgmt`
+
+### Email-First Registration (IMP-053)
+- `pending_registrations` table — stores signup data without creating tenant/user
+- Tenant + user + subscription created ONLY after 6-digit code verification
+- Auto-login after verification (JWT returned immediately)
+- Migration 014 + schema update
+
+### Forgot Password (IMP-012)
+- `POST /api/auth/forgot-password` — sends 6-digit code via email
+- `POST /api/auth/reset-password` — validates code, updates bcrypt password
+- Frontend: "Şifrenizi mi unuttunuz?" link on login page
+- Two-step modal: enter email → enter code + new password
+- Email: `SendPasswordReset()` with styled HTML template
+
+### Email Delivery Evolution
+- SES sandbox → blocked (recipient not verified)
+- Hostinger SMTP → blocked (AWS IP rejected by Hostinger)
+- Resend API → configured, 100/day free, domain verification pending
+- SMTP fixes: TrimPrefix removed, STARTTLS for port 587, auth skip when empty
+
+### Admin Dashboard Fixes
+- `paket_dagilimi` — real DB query (SELECT plan, COUNT(*) FROM tenants GROUP BY plan)
+- `son_kayitlar` — real DB query (last 5 tenants)
+- Migration 012: seeds modules + countries + plan_modules on production RDS
+- 31 modules registered across 6 categories
+
+### Bug Fixes
+- Reports SQL: `tutar`→`toplam_tutar`, `ORDER BY sum`→`ORDER BY SUM(tutar)`
+- Migration 011: Creates `tenant_rls_policy` function if missing, DROP POLICY IF EXISTS
+- LoadBoardPage: 4 KPI stats cards (active, yuk_var, yuk_ara, today new)
+- CekSenetPage: 4th KPI card (Karşılıksız) + backend `karsiliksiz_count`
+- CarbonTrackingPage: Real API calls to fuel_logs/trips for CO2 calculation
+- Export handler: `export.go` with trucks/customers/expenses endpoints
+- Google OAuth: www → non-www redirect on ALB (origin_mismatch fix)
+
+### CI/CD — 6 new regression gates
+- B-AUTH-02: Forgot password flow completeness
+- IMP-052: access_mgmt seed migration
+- B-ADMIN-01/02/03: Module seed + dashboard real queries
+- B-STRIPE-01/02: Stripe env vars + SettingsPage checkout
+- All existing CI gates fixed for Settings refactor
+
+### Documentation Restructure
+- 62 md files → 48 (17 deleted, 4 merged)
+- 4 new canonical docs: MILESTONES.md, MODULES.md, TEST_ACCOUNTS.md, DOCUMENTATION_RULES.md
+- DOCUMENTATION_RULES.md: 9 enforceable rules
+- IMP registry: 51 items (P0-P3) with cross-referenced CI gates
+- COMPETITORS.md: refreshed with June 2026 exa.ai research
 
 ---
 
