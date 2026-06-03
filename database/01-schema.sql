@@ -943,10 +943,17 @@ CREATE INDEX IF NOT EXISTS idx_payslips_tenant ON payslips(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_payslips_employee ON payslips(employee_id);
 CREATE INDEX IF NOT EXISTS idx_payslips_donem ON payslips(tenant_id, donem);
 
--- RLS on new module tables
-SELECT tenant_rls_policy('proposals');
-SELECT tenant_rls_policy('contracts');
-SELECT tenant_rls_policy('tire_records');
-SELECT tenant_rls_policy('driver_allowances');
-SELECT tenant_rls_policy('payslips');
+-- RLS on new module tables (idempotent)
+DO $$
+DECLARE
+    pol_name TEXT;
+    tbl TEXT;
+BEGIN
+    FOREACH tbl IN ARRAY ARRAY['proposals','contracts','tire_records','driver_allowances','payslips'] LOOP
+        pol_name := tbl || '_tenant_isolation';
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = pol_name AND tablename = tbl) THEN
+            PERFORM tenant_rls_policy(tbl);
+        END IF;
+    END LOOP;
+END $$;
 

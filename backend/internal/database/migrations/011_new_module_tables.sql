@@ -110,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_payslips_donem ON payslips(tenant_id, donem);
 
 -- ============================================================
 -- RLS: Enable row-level security on all new tables
+-- (idempotent — skips if policy already exists)
 -- ============================================================
 ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
@@ -118,10 +119,14 @@ ALTER TABLE driver_allowances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payslips ENABLE ROW LEVEL SECURITY;
 
 DO $$
+DECLARE
+    pol_name TEXT;
+    tbl TEXT;
 BEGIN
-    PERFORM tenant_rls_policy('proposals');
-    PERFORM tenant_rls_policy('contracts');
-    PERFORM tenant_rls_policy('tire_records');
-    PERFORM tenant_rls_policy('driver_allowances');
-    PERFORM tenant_rls_policy('payslips');
+    FOREACH tbl IN ARRAY ARRAY['proposals','contracts','tire_records','driver_allowances','payslips'] LOOP
+        pol_name := tbl || '_tenant_isolation';
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = pol_name AND tablename = tbl) THEN
+            PERFORM tenant_rls_policy(tbl);
+        END IF;
+    END LOOP;
 END $$;
