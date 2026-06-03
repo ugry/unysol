@@ -1,0 +1,105 @@
+name: One-Time Stripe Env Var Setup
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: stripe-setup
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  AWS_REGION: eu-central-1
+  ECS_CLUSTER: unysol-cluster
+  ECS_SERVICE: unysol-backend
+  TASK_FAMILY: unysol-backend
+
+jobs:
+  setup:
+    name: Add STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get current task definition
+        id: get-td
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.TASK_FAMILY }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition' \
+            --output json > /tmp/current-td.json
+          echo "Current task definition saved"
+          jq '.family' /tmp/current-td.json
+
+      - name: Check if Stripe env vars already exist
+        id: check
+        run: |
+          HAS_KEY=$(jq -r '.containerDefinitions[0].environment[] | select(.name=="STRIPE_SECRET_KEY") | .name' /tmp/current-td.json 2>/dev/null || echo "")
+          if [ -n "$HAS_KEY" ]; then
+            echo "✅ STRIPE_SECRET_KEY already exists — nothing to do"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Need to add Stripe env vars"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Register new task definition with Stripe env vars
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          jq -c \
+            --arg sk '${{ secrets.STRIPE_SECRET_KEY }}' \
+            --arg pk '${{ secrets.STRIPE_PUBLISHABLE_KEY }}' \
+            '.containerDefinitions[0].environment += [
+              {"name":"STRIPE_SECRET_KEY","value":$sk},
+              {"name":"STRIPE_PUBLISHABLE_KEY","value":$pk}
+            ]' /tmp/current-td.json > /tmp/new-containers.json
+          
+          FAMILY=$(jq -r '.family' /tmp/current-td.json)
+          TASK_ROLE=$(jq -r '.taskRoleArn' /tmp/current-td.json)
+          EXEC_ROLE=$(jq -r '.executionRoleArn' /tmp/current-td.json)
+          CPU=$(jq -r '.cpu' /tmp/current-td.json)
+          MEMORY=$(jq -r '.memory' /tmp/current-td.json)
+          
+          echo "Registering new task definition..."
+          NEW_ARN=$(aws ecs register-task-definition \
+            --family "$FAMILY" \
+            --task-role-arn "$TASK_ROLE" \
+            --execution-role-arn "$EXEC_ROLE" \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu "$CPU" \
+            --memory "$MEMORY" \
+            --container-definitions "file:///tmp/new-containers.json" \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          echo "new_td=$NEW_ARN" >> $GITHUB_OUTPUT
+          echo "✅ New task definition: $NEW_ARN"
+
+      - name: Update ECS service to use new task definition
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.register.outputs.new_td }} \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ Service updated"
+
+      - name: Wait for tasks to stabilize
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ ECS service is stable with Stripe env vars"
