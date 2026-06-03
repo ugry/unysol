@@ -1,0 +1,60 @@
+name: Force ECS Service Update (latest task def)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: force-update
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  AWS_REGION: eu-central-1
+
+jobs:
+  update:
+    name: Update ECS service to latest task definition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update backend service
+        run: |
+          LATEST_TD=$(aws ecs describe-task-definition \
+            --task-definition unysol-backend \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          CURRENT_TD=$(aws ecs describe-services \
+            --cluster unysol-cluster \
+            --services unysol-backend \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          
+          echo "Latest task def:  $LATEST_TD"
+          echo "Current service:  $CURRENT_TD"
+          
+          if [ "$LATEST_TD" = "$CURRENT_TD" ]; then
+            echo "✅ Service already using latest task definition. Forcing redeploy anyway..."
+          fi
+          
+          aws ecs update-service \
+            --cluster unysol-cluster \
+            --service unysol-backend \
+            --task-definition "$LATEST_TD" \
+            --force-new-deployment
+
+      - name: Wait for stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster unysol-cluster \
+            --services unysol-backend
+
+      - name: Verify
+        run: |
+          sleep 10
+          curl -s https://unysolar.com/api/system/health
