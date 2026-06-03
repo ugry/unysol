@@ -110,23 +110,30 @@ CREATE INDEX IF NOT EXISTS idx_payslips_donem ON payslips(tenant_id, donem);
 
 -- ============================================================
 -- RLS: Enable row-level security on all new tables
--- (idempotent — skips if policy already exists)
--- ============================================================
-ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tire_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE driver_allowances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payslips ENABLE ROW LEVEL SECURITY;
-
 DO $$
 DECLARE
-    pol_name TEXT;
     tbl TEXT;
 BEGIN
-    FOREACH tbl IN ARRAY ARRAY['proposals','contracts','tire_records','driver_allowances','payslips'] LOOP
-        pol_name := tbl || '_tenant_isolation';
-        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = pol_name AND tablename = tbl) THEN
-            PERFORM tenant_rls_policy(tbl);
-        END IF;
+    -- Create the RLS function if missing (production RDS may not have it)
+    IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'tenant_rls_policy') THEN
+        CREATE FUNCTION tenant_rls_policy(table_name TEXT) RETURNS VOID AS $func$
+        DECLARE
+            pol_name TEXT;
+        BEGIN
+            pol_name := table_name || '_tenant_isolation';
+            EXECUTE format('
+                CREATE POLICY %I ON %I
+                    FOR ALL
+                    USING (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
+                    WITH CHECK (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
+            ', pol_name, table_name);
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
+        END;
+        $func$ LANGUAGE plpgsql;
+    END IF;
+
+    FOR tbl IN SELECT unnest(ARRAY['proposals','contracts','tire_records','driver_allowances','payslips'])
+    LOOP
+        PERFORM tenant_rls_policy(tbl);
     END LOOP;
 END $$;
