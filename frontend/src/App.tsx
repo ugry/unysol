@@ -22,6 +22,7 @@ import DriverPerfPage from '@/pages/DriverPerfPage';
 import ContractsPage from '@/pages/ContractsPage';
 import ProposalsPage from '@/pages/ProposalsPage';
 import ReportsPage from '@/pages/ReportsPage';
+import EmployeesPage from '@/pages/EmployeesPage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminLoginPage from '@/pages/AdminLoginPage';
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -113,7 +114,7 @@ export default function App() {
         <Route path="/dashboard/cek-senet" element={<CekSenetPage />} />
         <Route path="/dashboard/load-board" element={<LoadBoardPage />} />
         <Route path="/dashboard/expenses" element={<ExpensesPage />} />
-        <Route path="/dashboard/employees" element={<SettingsPage />} />
+        <Route path="/dashboard/employees" element={<EmployeesPage />} />
         <Route path="/dashboard/fuel-logs" element={<FuelLogPage />} />
         <Route path="/dashboard/toll-logs" element={<TollLogsPage />} />
         <Route path="/dashboard/maintenance" element={<MaintenancePage />} />
