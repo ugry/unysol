@@ -50,6 +50,7 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 		"/api/tenant/my-permissions": true,
 		"/api/tenant/settings":       true,
 		"/api/tenant/notifications":  true,
+		"/api/tenant/billing/status": true,
 	}
 
 	var mu sync.RWMutex
@@ -70,6 +71,12 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role := GetRole(r.Context())
 			userID := GetUserID(r.Context())
+
+			// Always-allowed paths bypass plan check
+			if alwaysAllowed[r.URL.Path] {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			// Plan module check: resolve module_key and verify against JWT allowed_modules
 			// Applies to ALL users including TENANT_OWNER (blocks FREE plan from PRO modules)
@@ -113,12 +120,6 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 			}
 
 			// Module key already resolved above
-			// Some paths are always allowed (e.g., my-permissions)
-			if alwaysAllowed[r.URL.Path] {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			// If no module mapping, allow (e.g., /api/system/health)
 			if moduleKey == "" {
 				next.ServeHTTP(w, r)
