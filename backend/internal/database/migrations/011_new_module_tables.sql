@@ -113,27 +113,32 @@ CREATE INDEX IF NOT EXISTS idx_payslips_donem ON payslips(tenant_id, donem);
 DO $$
 DECLARE
     tbl TEXT;
+    pol_name TEXT;
 BEGIN
-    -- Create the RLS function if missing (production RDS may not have it)
-    IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'tenant_rls_policy') THEN
-        CREATE FUNCTION tenant_rls_policy(table_name TEXT) RETURNS VOID AS $func$
-        DECLARE
-            pol_name TEXT;
-        BEGIN
-            pol_name := table_name || '_tenant_isolation';
-            EXECUTE format('
-                CREATE POLICY %I ON %I
-                    FOR ALL
-                    USING (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
-                    WITH CHECK (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
-            ', pol_name, table_name);
-            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
-        END;
-        $func$ LANGUAGE plpgsql;
-    END IF;
+    -- Always recreate the RLS function with DROP POLICY IF EXISTS support
+    DROP FUNCTION IF EXISTS tenant_rls_policy(text) CASCADE;
+    CREATE FUNCTION tenant_rls_policy(table_name TEXT) RETURNS VOID AS $func$
+    DECLARE
+        _pol_name TEXT;
+    BEGIN
+        _pol_name := table_name || '_tenant_isolation';
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', _pol_name, table_name);
+        EXECUTE format('
+            CREATE POLICY %I ON %I
+                FOR ALL
+                USING (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
+                WITH CHECK (tenant_id = COALESCE(NULLIF(current_setting(''app.current_tenant_id'', TRUE), ''''), ''0'')::INTEGER)
+        ', _pol_name, table_name);
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
+    END;
+    $func$ LANGUAGE plpgsql;
 
     FOR tbl IN SELECT unnest(ARRAY['proposals','contracts','tire_records','driver_allowances','payslips'])
     LOOP
+        -- Drop existing policy before recreating (fully idempotent)
+        pol_name := tbl || '_tenant_isolation';
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol_name, tbl);
+        -- Create RLS policy
         PERFORM tenant_rls_policy(tbl);
     END LOOP;
 END $$;
