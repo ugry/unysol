@@ -54,6 +54,14 @@ variable "backend_desired_count" {
   default = 1
 }
 
+variable "stripe_secret_key" {
+  sensitive = true
+}
+
+variable "stripe_publishable_key" {
+  sensitive = true
+}
+
 variable "frontend_desired_count" {
   default = 1
 }

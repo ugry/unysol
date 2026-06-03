@@ -35,6 +35,8 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "DATABASE_URL", value = "postgres://${var.db_username}:${var.db_password}@${aws_db_instance.main.endpoint}/${var.db_name}?sslmode=require" },
       { name = "REDIS_URL", value = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:6379/0" },
       { name = "JWT_SECRET", value = var.jwt_secret },
+      { name = "STRIPE_SECRET_KEY", value = var.stripe_secret_key },
+      { name = "STRIPE_PUBLISHABLE_KEY", value = var.stripe_publishable_key },
       { name = "ENVIRONMENT", value = "production" },
     ]
     logConfiguration = {

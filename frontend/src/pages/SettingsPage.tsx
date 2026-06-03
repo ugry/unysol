@@ -100,10 +100,20 @@ export default function SettingsPage() {
     setUpgrading(true); setUpgradeMsg('');
     try {
       const res = await api.post('/api/tenant/stripe/checkout', { plan: 'PRO' });
-      if (res.data?.url) window.open(res.data.url, '_blank');
-      else setUpgradeMsg('PRO plana yükseltmek için info@unysolar.com adresine yazabilirsiniz.');
-    } catch {
-      setUpgradeMsg('PRO plana yükseltmek için info@unysolar.com adresine yazabilirsiniz.');
+      const checkoutUrl = res.data?.url;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        const errMsg = res.data?.error || '';
+        setUpgradeMsg(errMsg === 'Stripe yapılandırılmamış'
+          ? 'Ödeme sistemi henüz aktif değil. Lütfen daha sonra tekrar deneyin.'
+          : 'Ödeme sayfası açılamadı. Lütfen info@unysolar.com adresine yazın.');
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error || '';
+      setUpgradeMsg(errMsg === 'Stripe yapılandırılmamış'
+        ? 'Ödeme sistemi henüz aktif değil. Lütfen daha sonra tekrar deneyin.'
+        : 'Bağlantı hatası. Lütfen info@unysolar.com adresine yazın.');
     } finally { setUpgrading(false); }
   };
 
