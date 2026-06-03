@@ -51,29 +51,36 @@ jobs:
           echo "Adding STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY to ECS task definition..."
           
           # Get current task definition
-          TASK_DEF=$(aws ecs describe-task-definition \
+          TASK_DEF_JSON=$(aws ecs describe-task-definition \
             --task-definition unysol-backend \
             --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition')
+            --query 'taskDefinition' \
+            --output json)
           
-          # Build new container definition with Stripe env vars added
-          NEW_CONTAINER_DEF=$(echo "$TASK_DEF" | jq \
-            --arg stripe_sk "${{ secrets.STRIPE_SECRET_KEY }}" \
-            --arg stripe_pk "${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
+          # Extract container definitions and add Stripe env vars
+          NEW_CONTAINER_DEF=$(echo "$TASK_DEF_JSON" | jq -c \
+            --arg sk "${{ secrets.STRIPE_SECRET_KEY }}" \
+            --arg pk "${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
             '.containerDefinitions[0].environment += [
-              {"name": "STRIPE_SECRET_KEY", "value": $stripe_sk},
-              {"name": "STRIPE_PUBLISHABLE_KEY", "value": $stripe_pk}
+              {"name":"STRIPE_SECRET_KEY","value":$sk},
+              {"name":"STRIPE_PUBLISHABLE_KEY","value":$pk}
             ] | .containerDefinitions')
           
-          # Register new task definition revision
+          # Use existing family, role arns, cpu, memory from current definition
+          FAMILY=$(echo "$TASK_DEF_JSON" | jq -r '.family')
+          TASK_ROLE=$(echo "$TASK_DEF_JSON" | jq -r '.taskRoleArn')
+          EXEC_ROLE=$(echo "$TASK_DEF_JSON" | jq -r '.executionRoleArn')
+          CPU=$(echo "$TASK_DEF_JSON" | jq -r '.cpu')
+          MEMORY=$(echo "$TASK_DEF_JSON" | jq -r '.memory')
+          
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --family unysol-backend \
-            --task-role-arn $(echo "$TASK_DEF" | jq -r '.taskRoleArn') \
-            --execution-role-arn $(echo "$TASK_DEF" | jq -r '.executionRoleArn') \
+            --family "$FAMILY" \
+            --task-role-arn "$TASK_ROLE" \
+            --execution-role-arn "$EXEC_ROLE" \
             --network-mode awsvpc \
             --requires-compatibilities FARGATE \
-            --cpu $(echo "$TASK_DEF" | jq -r '.cpu') \
-            --memory $(echo "$TASK_DEF" | jq -r '.memory') \
+            --cpu "$CPU" \
+            --memory "$MEMORY" \
             --container-definitions "$NEW_CONTAINER_DEF" \
             --region ${{ env.AWS_REGION }} \
             --query 'taskDefinition.taskDefinitionArn' \
