@@ -38,6 +38,8 @@ services:
       SMTP_PORT: "1025"
       SMTP_FROM: "noreply@unysol.test"
       SMTP_FROM_NAME: "Unysol QA"
+      STRIPE_SECRET_KEY: "REDACTED"
+      STRIPE_PUBLISHABLE_KEY: "REDACTED"
     expose:
       - "8080"
     volumes:

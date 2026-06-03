@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -66,26 +67,22 @@ func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	// Create Stripe checkout session
-	payload := map[string]interface{}{
-		"mode":                "subscription",
-		"customer_email":      userEmail,
-		"line_items": []map[string]interface{}{
-			{"price": req.PriceID, "quantity": 1},
-		},
-		"success_url": "https://unysolar.com/dashboard/settings?session_id={CHECKOUT_SESSION_ID}",
-		"cancel_url":  "https://unysolar.com/dashboard/settings?canceled=true",
-		"metadata": map[string]string{
-			"tenant_id": tenantID,
-			"user_id":   userID,
-			"plan":      req.Plan,
-		},
-	}
+	// Create Stripe checkout session via form-encoded
+	formData := url.Values{
+		"mode":                     {"subscription"},
+		"customer_email":           {userEmail},
+		"line_items[0][price]":     {req.PriceID},
+		"line_items[0][quantity]":  {"1"},
+		"success_url":              {"https://unysolar.com/dashboard/settings?session_id={CHECKOUT_SESSION_ID}"},
+		"cancel_url":               {"https://unysolar.com/dashboard/settings?canceled=true"},
+		"metadata[tenant_id]":      {tenantID},
+		"metadata[user_id]":        {userID},
+		"metadata[plan]":           {req.Plan},
+	}.Encode()
 
-	body, _ := json.Marshal(payload)
-	stripeReq, _ := http.NewRequest("POST", "https://api.stripe.com/v1/checkout/sessions", bytes.NewReader(body))
+	stripeReq, _ := http.NewRequest("POST", "https://api.stripe.com/v1/checkout/sessions", bytes.NewReader([]byte(formData)))
 	stripeReq.SetBasicAuth(sk, "")
-	stripeReq.Header.Set("Content-Type", "application/json")
+	stripeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(stripeReq)
 	if err != nil {
