@@ -22,30 +22,58 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update backend service
+      - name: Register new revision from current one + Stripe env vars
         run: |
-          LATEST_TD=$(aws ecs describe-task-definition \
-            --task-definition unysol-backend \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          
-          CURRENT_TD=$(aws ecs describe-services \
+          # Get the CURRENTLY RUNNING task definition (not latest registered)
+          CURRENT_ARN=$(aws ecs describe-services \
             --cluster unysol-cluster \
             --services unysol-backend \
             --query 'services[0].taskDefinition' \
             --output text)
           
-          echo "Latest task def:  $LATEST_TD"
-          echo "Current service:  $CURRENT_TD"
+          echo "Current service uses: $CURRENT_ARN"
           
-          if [ "$LATEST_TD" = "$CURRENT_TD" ]; then
-            echo "✅ Service already using latest task definition. Forcing redeploy anyway..."
-          fi
+          # Get that exact task definition
+          aws ecs describe-task-definition \
+            --task-definition "$CURRENT_ARN" \
+            --query 'taskDefinition' \
+            --output json > /tmp/current-td.json
           
+          FAMILY=$(jq -r '.family' /tmp/current-td.json)
+          TASK_ROLE=$(jq -r '.taskRoleArn' /tmp/current-td.json)
+          EXEC_ROLE=$(jq -r '.executionRoleArn' /tmp/current-td.json)
+          CPU=$(jq -r '.cpu' /tmp/current-td.json)
+          MEMORY=$(jq -r '.memory' /tmp/current-td.json)
+          
+          # Add Stripe env vars to the container definitions
+          jq -c \
+            --arg sk '${{ secrets.STRIPE_SECRET_KEY }}' \
+            --arg pk '${{ secrets.STRIPE_PUBLISHABLE_KEY }}' \
+            '.containerDefinitions[0].environment += [
+              {"name":"STRIPE_SECRET_KEY","value":$sk},
+              {"name":"STRIPE_PUBLISHABLE_KEY","value":$pk}
+            ]' /tmp/current-td.json > /tmp/new-containers.json
+          
+          # Register as new revision
+          NEW_ARN=$(aws ecs register-task-definition \
+            --family "$FAMILY" \
+            --task-role-arn "$TASK_ROLE" \
+            --execution-role-arn "$EXEC_ROLE" \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu "$CPU" \
+            --memory "$MEMORY" \
+            --container-definitions "file:///tmp/new-containers.json" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          echo "New revision: $NEW_ARN"
+          
+          # Update service
           aws ecs update-service \
             --cluster unysol-cluster \
             --service unysol-backend \
-            --task-definition "$LATEST_TD" \
+            --task-definition "$NEW_ARN" \
             --force-new-deployment
 
       - name: Wait for stable
