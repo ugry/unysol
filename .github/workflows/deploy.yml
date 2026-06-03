@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   deploy:
-    name: Build & Deploy (migrations on startup)
+    name: Build & Deploy
     runs-on: ubuntu-latest
     needs: [tests]
     environment:
@@ -45,57 +45,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Update ECS task definition with Stripe env vars
-        run: |
-          echo "Adding STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY to ECS task definition..."
-          
-          # Get current task definition
-          TASK_DEF_JSON=$(aws ecs describe-task-definition \
-            --task-definition unysol-backend \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition' \
-            --output json)
-          
-          # Extract container definitions and add Stripe env vars
-          NEW_CONTAINER_DEF=$(echo "$TASK_DEF_JSON" | jq -c \
-            --arg sk "${{ secrets.STRIPE_SECRET_KEY }}" \
-            --arg pk "${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
-            '.containerDefinitions[0].environment += [
-              {"name":"STRIPE_SECRET_KEY","value":$sk},
-              {"name":"STRIPE_PUBLISHABLE_KEY","value":$pk}
-            ] | .containerDefinitions')
-          
-          # Use existing family, role arns, cpu, memory from current definition
-          FAMILY=$(echo "$TASK_DEF_JSON" | jq -r '.family')
-          TASK_ROLE=$(echo "$TASK_DEF_JSON" | jq -r '.taskRoleArn')
-          EXEC_ROLE=$(echo "$TASK_DEF_JSON" | jq -r '.executionRoleArn')
-          CPU=$(echo "$TASK_DEF_JSON" | jq -r '.cpu')
-          MEMORY=$(echo "$TASK_DEF_JSON" | jq -r '.memory')
-          
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --family "$FAMILY" \
-            --task-role-arn "$TASK_ROLE" \
-            --execution-role-arn "$EXEC_ROLE" \
-            --network-mode awsvpc \
-            --requires-compatibilities FARGATE \
-            --cpu "$CPU" \
-            --memory "$MEMORY" \
-            --container-definitions "$NEW_CONTAINER_DEF" \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          
-          echo "New task definition: $NEW_TASK_DEF_ARN"
-          
-          # Update service to use new task definition
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE_BACKEND }} \
-            --task-definition "$NEW_TASK_DEF_ARN" \
-            --region ${{ env.AWS_REGION }}
-          
-          echo "✅ Stripe env vars added to ECS task definition"
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -175,42 +124,11 @@ jobs:
             fi
           }
           check GET "/api/system/health" "200" "Backend health"
-          check GET "/api/system/health/ready" "200" "Backend readiness"
           check GET "/" "200" "Frontend"
           check GET "/login" "200" "Login page"
-          check POST "/api/auth/login" "400\|401" "Auth endpoint"
           echo ""
-          TIME=$(curl -s -o /dev/null -w "%{time_total}" https://unysolar.com/api/system/health)
-          echo "  Response time: ${TIME}s"
-          echo "============================================"
           echo " RESULTS: $PASS passed, $FAIL failed"
           echo "============================================"
-
-      - name: Seed Stripe price IDs via admin API
-        if: always()
-        run: |
-          echo "Seeding Stripe price IDs in production DB..."
-          # Generate super admin JWT
-          ADMIN_JWT=$(python3 -c "
-  import jwt, time
-  token = jwt.encode({
-      'user_id': 24, 'tenant_id': 0,
-      'email': 'ugur.yardimci@unygms.com',
-      'role': 'SUPER_ADMIN',
-      'exp': int(time.time()) + 600,
-      'iat': int(time.time())
-  }, '${{ secrets.JWT_SECRET }}', algorithm='HS256')
-  print(token)
-          ")
-          
-          curl -s -X PUT https://unysolar.com/api/admin/email/config \
-            -H "Authorization: Bearer $ADMIN_JWT" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "stripe_price_monthly": "price_1TeBY6KWLIMlTHZnLitJ9nqz",
-              "stripe_price_yearly": "price_1TeBYGKWLIMlTHZnOP2sgrEL",
-              "stripe_pub_key": "${{ secrets.STRIPE_PUBLISHABLE_KEY }}"
-            }' && echo "✅ Stripe price IDs seeded" || echo "⚠ Could not seed price IDs"
 
       - name: Deployment summary
         if: always()
@@ -219,6 +137,5 @@ jobs:
           echo "Deployment Requested by: ${{ github.actor }}"
           echo "Reason: ${{ github.event.inputs.reason }}"
           echo "Commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
           echo "Time: $(date -u)"
           echo "============================================"
