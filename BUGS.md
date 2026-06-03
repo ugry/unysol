@@ -65,6 +65,11 @@
 | B-CEK-01 | P3 | Cek/Senet | KPI cards differ from spec (3→4) — added Karşılıksız card + backend handler | ✅ Fixed |
 | B-TRK-02 | P3 | Trucks | Truck POST `yakit_tipi` may not persist — verified: column exists in DB | ✅ Not a bug |
 | B-CARBON-01 | P2 | ANALYTICS | CarbonTrackingPage has zero API calls — added real fuel/trip API with CO2 calc | ✅ Fixed |
+| B-BILLING-01 | P2 | Finance | No BillingPage.tsx — created full page with plan selector, Stripe checkout, invoice history, cancel flow | ✅ Fixed |
+| B-EXPORT-01 | P2 | ANALYTICS | Export has no dedicated backend handler — created export.go with trucks/customers/expenses endpoints | ✅ Fixed |
+| B-PORTAL-01 | P2 | CRM | CustomerPortalPage has no dedicated backend — page works via customers API, dedicated portal is P2 feature | ✅ Feature gap |
+| B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback on production — needs terraform apply for ECS env vars | ⬜ Open |
+| B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
 
 ---
 

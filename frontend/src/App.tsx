@@ -22,6 +22,7 @@ import DriverPerfPage from '@/pages/DriverPerfPage';
 import ContractsPage from '@/pages/ContractsPage';
 import ProposalsPage from '@/pages/ProposalsPage';
 import ReportsPage from '@/pages/ReportsPage';
+import BillingPage from '@/pages/BillingPage';
 import EmployeesPage from '@/pages/EmployeesPage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminLoginPage from '@/pages/AdminLoginPage';
@@ -130,6 +131,7 @@ export default function App() {
         <Route path="/dashboard/contracts" element={<ContractsPage />} />
         <Route path="/dashboard/proposals" element={<ProposalsPage />} />
         <Route path="/dashboard/reports" element={<ReportsPage />} />
+        <Route path="/dashboard/billing" element={<BillingPage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
         <Route path="/dashboard/actions" element={<ActionsPage />} />
       </Route>

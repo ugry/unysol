@@ -41,6 +41,7 @@ const navItems = [
   { path: '/dashboard/driver-leave', label: 'İzin Takvimi', icon: UserCheck, moduleKey: 'driver_leave' },
   { path: '/dashboard/predictions', label: 'Tahminler', icon: TrendingUp, moduleKey: 'predictions' },
   { path: '/dashboard/reports', label: 'Raporlar', icon: BarChart3, moduleKey: 'reports' },
+  { path: '/dashboard/billing', label: 'Abonelik', icon: CreditCard, moduleKey: 'billing' },
   { path: '/dashboard/settings', label: 'Ayarlar', icon: Settings, moduleKey: 'settings' },
   { path: '/dashboard/proposals', label: 'Teklifler', icon: FileText, moduleKey: 'proposal_system' },
   { path: '/dashboard/contracts', label: 'Sözleşmeler', icon: FileText, moduleKey: 'contract_mgmt' },

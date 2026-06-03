@@ -101,6 +101,7 @@ func main() {
 	emailHandler := &handlers.EmailHandler{DB: pool}
 	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
 	stripeHandler := &handlers.StripeHandler{DB: pool}
+	exportHandler := &handlers.ExportHandler{DB: pool}
 	fuelLogHandler := &handlers.FuelLogHandler{DB: pool}
 	maintenanceHandler := &handlers.MaintenanceHandler{DB: pool}
 	userMgmtHandler := &handlers.UserManagementHandler{DB: pool}
@@ -210,6 +211,7 @@ func main() {
 			r.Mount("/user-management", userMgmtHandler.Routes())
 			r.Get("/my-permissions", userMgmtHandler.GetAllPermissions)
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
+			r.Mount("/export", exportHandler.Routes())
 		})
 
 		r.Route("/api/admin", func(r chi.Router) {

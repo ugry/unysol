@@ -55,7 +55,7 @@ func (h *BillingHandler) GetInvoices(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT id, tenant_id, subscription_id, fatura_no, tarih, vade, tutar, kdv, genel_toplam, durum, created_at
-		 FROM billings WHERE tenant_id = $1 ORDER BY created_at DESC`, tenantID)
+		 FROM billing WHERE tenant_id = $1 ORDER BY created_at DESC`, tenantID)
 	if err != nil {
 		slog.Error("failed to list invoices", "error", err, "tenant_id", tenantID)
 		writeError(w, http.StatusInternalServerError, "failed to list invoices")
