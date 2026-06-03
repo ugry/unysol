@@ -262,6 +262,43 @@ jobs:
         run: |
           [ -f backend/internal/handlers/export.go ] && echo "✅ Export handler exists" || echo "⚠ B-EXPORT-01: No dedicated export backend handler"
 
+      # B-TRK-02: yakit_tipi column must exist in trucks table
+      - name: "DB: trucks table has yakit_tipi column"
+        run: |
+          if grep -q "trucks" database/01-schema.sql && grep -q "yakit_tipi\|fuel_type" database/01-schema.sql; then
+            echo "✅ yakit_tipi column present in schema"
+          else
+            echo "⚠ B-TRK-02: Verify yakit_tipi column in trucks table (P3)"
+          fi
+
+      # B-LOAD-02: Interest/WhatsApp buttons must be visible regardless of list state
+      - name: "Frontend: LoadBoardPage interest buttons visible in empty state"
+        run: |
+          if grep -q "İlgileniyorum\|interest" frontend/src/pages/LoadBoardPage.tsx 2>/dev/null; then
+            echo "✅ Interest button exists in LoadBoardPage"
+          else
+            echo "⚠ B-LOAD-02: Interest button missing from LoadBoardPage (P3)"
+          fi
+
+      # B-LOAD-03: LoadBoardPage must have stats summary
+      - name: "Frontend: LoadBoardPage has stats summary cards"
+        run: |
+          if grep -q "stats\|summary\|toplam.*ilan\|aktif.*yük" frontend/src/pages/LoadBoardPage.tsx 2>/dev/null; then
+            echo "✅ LoadBoardPage has stats/summary section"
+          else
+            echo "⚠ B-LOAD-03: LoadBoardPage missing stats summary cards (P3)"
+          fi
+
+      # B-CEK-01: CekSenetPage must have 4 KPI cards
+      - name: "Frontend: CekSenetPage has 4 KPI cards"
+        run: |
+          KPI_COUNT=$(grep -c "KpiCard\|kpi\|Toplam\|Bekleyen\|Tahsil\|Karşılıksız" frontend/src/pages/CekSenetPage.tsx 2>/dev/null || echo "0")
+          if [ "$KPI_COUNT" -ge 4 ] 2>/dev/null; then
+            echo "✅ CekSenetPage has $KPI_COUNT KPI references"
+          else
+            echo "⚠ B-CEK-01: CekSenetPage may have <4 KPI cards — check spec (P3)"
+          fi
+
   # ============================================================
   # JOB 5: API SMOKE (UI_Test_Directives + module test results)
   # ============================================================

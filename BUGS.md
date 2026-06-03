@@ -2,9 +2,9 @@
 
 > **Canonical bug database.** All other files reference this one.
 > **Last Updated:** 03 June 2026
-> **Total Bugs Found:** 57  
+> **Total Bugs Found:** 63  
 > **Total Bugs Fixed:** 31  
-> **Open:** 26  
+> **Open:** 32  
 
 ---
 
@@ -70,6 +70,12 @@
 | B-CARBON-01 | P2 | ANALYTICS | CarbonTrackingPage has zero API calls — purely static page with hardcoded CO2/trees | ⬜ Open |
 | B-BILLING-01 | P2 | Finance | No BillingPage.tsx or subscription management UI — Stripe checkout only accessible via Settings→PRO Upgrade | ⬜ Open |
 | B-EXPORT-01 | P2 | ANALYTICS | ExportPage has no dedicated backend handler — relies on per-module DataGrid CSV export | ⬜ Open |
+| B-EMP-01 | P1 | Frontend | Employee create does not refresh list after save — SettingsPage user add may not re-fetch | ✅ Fixed |
+| B-RPT-01 | P2 | Frontend | ReportsPage may call `/api/tenant/reports` (404) instead of sub-routes like `/reports/summary` | ✅ Fixed |
+| B-TRK-02 | P3 | Trucks | Truck POST `yakit_tipi` field may not be persisted — schema column mismatch possible | ⬜ Open |
+| B-LOAD-02 | P3 | Load Board | "İlgileniyorum" + WhatsApp buttons hidden in empty state of load board | ⬜ Open |
+| B-LOAD-03 | P3 | Load Board | No stats summary cards at top of LoadBoardPage | ⬜ Open |
+| B-CEK-01 | P3 | Cek/Senet | KPI card labels differ from spec (3 cards instead of 4) at top of CekSenetPage | ⬜ Open |
 
 ---
 
@@ -908,3 +914,71 @@ moduletestrunQAjune1observations.md — QA test results
 | **Bug** | `ExportPage.tsx` exists (1 API call) but no `handlers/export.go` exists. Export functionality relies on per-module DataGrid `onExport` handler (CSV/Excel/PDF generation in `lib/export.ts`). No centralized export backend. |
 | **Impact** | Cross-module exports (export all data at once) not possible. Each module exports independently from frontend. |
 | **Fix** | Either: 1) Document that export is per-module only (DataGrid feature), OR 2) Add `handlers/export.go` with centralized multi-module export. |
+
+### B-EMP-01: Employee Create Does Not Refresh List (FIXED)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Frontend / Employees |
+| **Status** | ✅ **FIXED** |
+| **Found** | QA module test — employee created but not shown in list |
+| **Bug** | SettingsPage employee/user create did not refresh the list after save. Fixed by B-SET-06 (optimistic user add) which applies to SettingsPage's user management. |
+| **Fix** | SettingsPage now optimistically adds created user to list. The separate EmployeesPage.tsx route was also added to App.tsx. |
+| **CI Gate** | `production-integrity`: Employee create refreshes list |
+
+### B-RPT-01: Reports Page May Call Wrong Endpoint (FIXED)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P2 — Medium |
+| **Module** | Frontend / Reports |
+| **Status** | ✅ **FIXED** |
+| **Found** | Code review — ReportsPage.tsx API call pattern |
+| **Bug** | ReportsPage could potentially call `/api/tenant/reports` (which returns 404) instead of sub-routes like `/api/tenant/reports/summary` or `/api/tenant/reports/revenue-expenses`. The backend has no root `/reports` handler, only sub-routes. |
+| **Fix** | ReportsPage uses correct sub-route endpoints. Verified during full module test — both `/reports/summary` and `/reports/revenue-expenses` return 200. |
+| **CI Gate** | `production-integrity`: Reports page uses valid sub-route endpoints |
+
+### B-TRK-02: Truck POST yakit_tipi May Not Be Persisted (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Trucks |
+| **Status** | ⬜ **OPEN** |
+| **Found** | Test showed `yakit_tipi` sent in POST body may not be stored |
+| **Bug** | Frontend and API docs reference `yakit_tipi` but trucks table schema needs verification that the column exists and handler binds it correctly. |
+| **Fix** | Verify `trucks` table has `yakit_tipi` column. If not, add ALTER TABLE + fix handler binding. |
+
+### B-LOAD-02: "İlgileniyorum" Button Hidden in Empty State (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Load Board |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI review — "İlgileniyorum" + WhatsApp share buttons not visible when load board is empty |
+| **Bug** | Load board's interest/WhatsApp buttons are rendered only when listings exist. With zero listings, the buttons are hidden. |
+| **Fix** | Add buttons/labels to empty state view, or ensure buttons render regardless of listing count. |
+
+### B-LOAD-03: No Stats Summary Cards on Load Board (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Load Board |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI review — LoadBoardPage lacks KPI summary |
+| **Bug** | LoadBoardPage has no stats summary cards (total active loads, YUK_VAR count, YUK_ARA count, matches today) at top. Only filter tabs and listing grid. |
+| **Fix** | Add KPI cards row: "Toplam Aktif İlan", "Yük Var", "Yük Ara", "Bugünkü Eşleşme". Use `/api/tenant/load-board/stats` endpoint. |
+
+### B-CEK-01: KPI Cards Differ From Spec (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P3 — Low |
+| **Module** | Cek/Senet |
+| **Status** | ⬜ **OPEN** |
+| **Found** | UI review — CekSenetPage KPI cards |
+| **Bug** | CekSenetPage shows 3 KPI cards instead of 4 from spec. Spec calls for: Toplam Portföy, Bekleyen, Tahsil Edildi, Karşılıksız. |
+| **Fix** | Add missing 4th KPI card (Karşılıksız) to CekSenetPage top section. |
