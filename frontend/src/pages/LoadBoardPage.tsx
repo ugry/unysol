@@ -2,7 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import DataGrid, { type Column } from '@/components/DataGrid';
-import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2, Trash2, HeartHandshake, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, X, Loader2, Package, Phone, Mail, Building2, Trash2, HeartHandshake, ChevronDown, ChevronUp, TrendingUp, Clock, FileText } from 'lucide-react';
 
 interface LoadBoardItem {
   id: number;
@@ -75,6 +75,13 @@ export default function LoadBoardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [interestMsg, setInterestMsg] = useState('');
+  const [stats, setStats] = useState({ total_active: 0, yuk_var: 0, yuk_ara: 0, today_new: 0 });
+
+  useEffect(() => {
+    api.get('/api/tenant/load-board/stats').then(r => {
+      if (r.data) setStats({ total_active: r.data.total_active || 0, yuk_var: r.data.yuk_var || 0, yuk_ara: r.data.yuk_ara || 0, today_new: r.data.today_new || 0 });
+    }).catch(() => {});
+  }, [data]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ price_min: '', price_max: '', weight_min: '', weight_max: '', vehicle: '' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -271,6 +278,25 @@ export default function LoadBoardPage() {
       {interestMsg && (
         <div className="p-3 rounded-lg bg-[#FF5F03]/10 border border-[#FF5F03]/20 text-[#FF5F03] text-sm">{interestMsg}</div>
       )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
+          <div className="flex items-center justify-between"><span className="text-xs text-[#8a8f98] uppercase tracking-wider">Aktif İlan</span><FileText size={16} className="text-[#FF5F03]" /></div>
+          <p className="text-2xl font-bold text-[#f7f8f8] mt-2">{stats.total_active}</p>
+        </div>
+        <div className="bg-white border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
+          <div className="flex items-center justify-between"><span className="text-xs text-[#8a8f98] uppercase tracking-wider">Yük Var</span><Package size={16} className="text-[#3b82f6]" /></div>
+          <p className="text-2xl font-bold text-[#f7f8f8] mt-2">{stats.yuk_var}</p>
+        </div>
+        <div className="bg-white border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
+          <div className="flex items-center justify-between"><span className="text-xs text-[#8a8f98] uppercase tracking-wider">Yük Ara</span><TrendingUp size={16} className="text-[#16A34A]" /></div>
+          <p className="text-2xl font-bold text-[#f7f8f8] mt-2">{stats.yuk_ara}</p>
+        </div>
+        <div className="bg-white border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
+          <div className="flex items-center justify-between"><span className="text-xs text-[#8a8f98] uppercase tracking-wider">Bugün Eklenen</span><Clock size={16} className="text-[#8a8f98]" /></div>
+          <p className="text-2xl font-bold text-[#f7f8f8] mt-2">{stats.today_new}</p>
+        </div>
+      </div>
 
       <div>
         <button onClick={() => setShowFilters(!showFilters)}

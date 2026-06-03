@@ -257,5 +257,9 @@ func (h *CekSenetHandler) Summary(w http.ResponseWriter, r *http.Request) {
 		`SELECT COUNT(*) FROM cek_senet
 		 WHERE tenant_id = $1 AND vade_tarihi < CURRENT_DATE AND status = 'BEKLIYOR'`, tenantID,
 	).Scan(&summary.GecikmisCount)
+	h.DB.QueryRow(r.Context(),
+		`SELECT COUNT(*) FROM cek_senet
+		 WHERE tenant_id = $1 AND status = 'KARSILIKSIZ'`, tenantID,
+	).Scan(&summary.KarsiliksizCount)
 	writeJSON(w, http.StatusOK, summary)
 }

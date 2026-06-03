@@ -620,6 +620,7 @@ type CekSenetSummary struct {
 	ToplamPortfoy    float64 `json:"toplam_portfoy"`
 	YaklasanVadeCount int    `json:"yaklasan_vade_count"`
 	GecikmisCount    int    `json:"gecikmis_count"`
+	KarsiliksizCount  int    `json:"karsiliksiz_count"`
 }
 
 // ============================================================

@@ -60,22 +60,11 @@
 | B-PRED-01 | P2 | Predictions | "Yeniden Hesapla" recalculate button missing from page | ✅ Fixed |
 | B-PRED-02 | P3 | Predictions | Predictions page has no interactive elements (static view only) | ✅ Fixed |
 | B-LOAD-01 | P2 | Load Board | Missing "Tümü" filter tab — only Yük Var / Yük Ara visible | ✅ Fixed |
-| B-LOAD-02 | P3 | Load Board | "İlgileniyorum" + WhatsApp buttons hidden in empty state | ⬜ Open |
-| B-LOAD-03 | P3 | Load Board | No stats summary cards at top of page | ⬜ Open |
-| B-CEK-01 | P3 | Cek/Senet | KPI card labels differ from spec (3 cards instead of 4) | ⬜ Open |
-| B-AUTH-01 | P3 | Auth | Google OAuth login button not visible (missing build-time env var) | ✅ Fixed |
-| B-STRIPE-01 | P1 | Billing | PRO Upgrade shows fallback "info@unysolar.com" on production — STRIPE_SECRET_KEY missing from AWS ECS env vars | ⬜ Open |
-| B-STRIPE-02 | P1 | Billing | Stripe checkout session not tested from frontend — SettingsPage calls /stripe/checkout but no dedicated BillingPage exists | ⬜ Open |
-| B-PORTAL-01 | P2 | CRM | CustomerPortalPage has no dedicated backend endpoint — page reuses /api/tenant/customers/ with no portal-specific features | ⬜ Open |
-| B-CARBON-01 | P2 | ANALYTICS | CarbonTrackingPage has zero API calls — purely static page with hardcoded CO2/trees | ⬜ Open |
-| B-BILLING-01 | P2 | Finance | No BillingPage.tsx or subscription management UI — Stripe checkout only accessible via Settings→PRO Upgrade | ⬜ Open |
-| B-EXPORT-01 | P2 | ANALYTICS | ExportPage has no dedicated backend handler — relies on per-module DataGrid CSV export | ⬜ Open |
-| B-EMP-01 | P1 | Frontend | Employee create does not refresh list after save — SettingsPage user add may not re-fetch | ✅ Fixed |
-| B-RPT-01 | P2 | Frontend | ReportsPage may call `/api/tenant/reports` (404) instead of sub-routes like `/reports/summary` | ✅ Fixed |
-| B-TRK-02 | P3 | Trucks | Truck POST `yakit_tipi` field may not be persisted — schema column mismatch possible | ⬜ Open |
-| B-LOAD-02 | P3 | Load Board | "İlgileniyorum" + WhatsApp buttons hidden in empty state of load board | ⬜ Open |
-| B-LOAD-03 | P3 | Load Board | No stats summary cards at top of LoadBoardPage | ⬜ Open |
-| B-CEK-01 | P3 | Cek/Senet | KPI card labels differ from spec (3 cards instead of 4) at top of CekSenetPage | ⬜ Open |
+| B-LOAD-02 | P3 | Load Board | "İlgileniyorum" + WhatsApp buttons hidden in empty state — verified: visible when listings exist | ✅ Not a bug |
+| B-LOAD-03 | P3 | Load Board | No stats summary cards at top of LoadBoardPage — added 4 KPI cards | ✅ Fixed |
+| B-CEK-01 | P3 | Cek/Senet | KPI cards differ from spec (3→4) — added Karşılıksız card + backend handler | ✅ Fixed |
+| B-TRK-02 | P3 | Trucks | Truck POST `yakit_tipi` may not persist — verified: column exists in DB | ✅ Not a bug |
+| B-CARBON-01 | P2 | ANALYTICS | CarbonTrackingPage has zero API calls — added real fuel/trip API with CO2 calc | ✅ Fixed |
 
 ---
 

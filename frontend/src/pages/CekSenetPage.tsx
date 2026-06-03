@@ -8,6 +8,7 @@ import {
   CreditCard,
   Calendar,
   AlertTriangle,
+  Ban,
 } from 'lucide-react';
 import api from '@/lib/api';
 import DataGrid, { type Column } from '@/components/DataGrid';
@@ -84,6 +85,7 @@ interface KpiData {
   toplam_portfoy: number;
   yaklasan_vade_count: number;
   gecikmis_count: number;
+  karsiliksiz_count?: number;
 }
 
 const emptyForm: CekSenetFormData = {
@@ -517,7 +519,7 @@ export default function CekSenetPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-enterprise-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard size={18} className="text-[#3b82f6]" />
@@ -527,7 +529,6 @@ export default function CekSenetPage() {
             ₺{kpi.toplam_portfoy.toLocaleString('tr-TR')}
           </p>
         </div>
-
         <div className="bg-white border border-enterprise-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <Calendar size={18} className="text-[#FF5F03]" />
@@ -537,7 +538,6 @@ export default function CekSenetPage() {
             {kpi.yaklasan_vade_count} kayıt
           </p>
         </div>
-
         <div className="bg-white border border-enterprise-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={18} className="text-[#DC2626]" />
@@ -545,6 +545,15 @@ export default function CekSenetPage() {
           </div>
           <p className={`text-2xl font-bold ${kpi.gecikmis_count > 0 ? 'text-[#DC2626]' : 'text-enterprise-text'}`}>
             {kpi.gecikmis_count} kayıt
+          </p>
+        </div>
+        <div className="bg-white border border-enterprise-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Ban size={18} className="text-[#DC2626]" />
+            <span className="text-xs text-enterprise-text-muted uppercase tracking-wider">Karşılıksız</span>
+          </div>
+          <p className={`text-2xl font-bold ${(kpi.karsiliksiz_count || 0) > 0 ? 'text-[#DC2626]' : 'text-enterprise-text'}`}>
+            {kpi.karsiliksiz_count || 0} kayıt
           </p>
         </div>
       </div>
