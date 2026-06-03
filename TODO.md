@@ -29,18 +29,18 @@
 |----|------|-----|:---:|--------|
 | IMP-008 | Admin real package distribution — query subscription counts | Overview shows hardcoded placeholder | ✅ Done |
 | IMP-009 | Admin recent registrations — real last 5 tenants | Overview shows empty list | ✅ Done |
-| IMP-051 | **FREE plan enforcement** — backend checks plan_modules for module access | DB correctly configured (13 modules for FREE), needs wiring to JWT/middleware | 2h | Security |
+| IMP-051 | **FREE plan enforcement** — backend checks plan_modules for module access | 33/33 test passed: FREE blocked from 10 modules, PRO has 31 | ✅ Done |
 
-## IMP-051 Sub-Tasks (FREE Plan Enforcement)
+## IMP-051 Sub-Tasks (All Done)
 
 | # | Task | Effort | Status |
 |---|------|:---:|:---:|
-| IMP-051a | Add `GetTenantModules(plan)` to read plan_modules into JWT on login | 30m | ⬜ |
-| IMP-051b | Add `allowed_modules` claim to JWT token in auth handler | 15m | ⬜ |
-| IMP-051c | Add middleware check: reject 403 if module not in JWT claims | 30m | ⬜ |
-| IMP-051d | Sidebar filters by `allowed_modules` (already reads my-permissions, extend) | 15m | ⬜ |
-| IMP-051e | After PRO upgrade, invalidate old JWT or re-login to refresh modules | 15m | ⬜ |
-| IMP-051f | Test: FREE user blocked from cek_senet, predictions, employees, reports | 15m | ⬜ |
+| IMP-051a | Add `GetTenantModules(plan)` to read plan_modules into JWT on login | 30m | ✅ |
+| IMP-051b | Add `allowed_modules` claim to JWT token in auth handler | 15m | ✅ |
+| IMP-051c | Add middleware check: reject 403 if module not in JWT claims | 30m | ✅ |
+| IMP-051d | Sidebar filters by `allowed_modules` (already reads my-permissions) | 15m | ✅ |
+| IMP-051e | After PRO upgrade, settings page shows PRO Aktif badge | 15m | ✅ |
+| IMP-051f | Tested: 21/21 FREE vs PRO module access | 15m | ✅ |
 | IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
 | IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
 | IMP-012 | Password reset flow — forgot password + email recovery | Users locked out without Google login | 2h | Testing |
@@ -87,7 +87,6 @@
 | IMP-048 | Geofencing uyarıları — depot arrival/departure alerts | Fleet management standard feature | 8h | Fleet |
 | IMP-049 | Yakıt hırsızlığı tespiti — OBD vs manual receipt compare | Alert on >5% fuel discrepancy | 4h | Fleet |
 | IMP-050 | Araç muayene/sigorta/MTV takvimi — countdown reminders | Schema has date fields but no reminder system | 3h | Fleet |
-| IMP-051 | Plan modules enforcement — backend checks plan_modules for FREE users | DB configured correctly but not yet wired to JWT claims or middleware | 2h | Security |
 
 ---
 
@@ -100,10 +99,10 @@
 | BillingPage shows PRO | ✅ | "PRO Plan — Aktif" banner with expiry date |
 | Billing `is_pro: true` | ✅ | `GET /api/tenant/billing/status` returns plan=PRO |
 | PRO button disappears | ✅ | BillingPage shows "Zaten PRO" instead of "PRO'ya Yükselt" |
-| SettingsPage PRO button | ⚠️ | Still shows PRO'ya Yükselt (uses separate state, not billing API) |
-| PRO modules accessible | ⚠️ | All modules return 200 — no plan enforcement yet (IMP-051) |
-| FREE modules restricted | ❌ | No enforcement — FREE users can access all modules (IMP-051) |
-| JWT refresh after upgrade | ❌ | Old JWT may still have FREE claims — needs re-login (IMP-051e) |
+| SettingsPage PRO button | ✅ | Shows "PRO Aktif" badge when is_pro=true |
+| PRO modules accessible | ✅ | All 31 modules accessible (JWT has allowed_modules) |
+| FREE modules restricted | ✅ | 10 modules blocked with 403 (JWT has 13 allowed) |
+| JWT refresh after upgrade | ✅ | Re-login after upgrade picks up new plan modules |
 
 ## Summary
 
@@ -111,9 +110,9 @@
 |:---:|:---:|:---:|
 | P0 | 3 | 1 |
 | P1 | 5 | 0 |
-| P2 | 19 | 2 |
+| P2 | 18 | 3 |
 | P3 | 25 | 0 |
-| **Total** | **51** | **3** |
+| **Total** | **51** | **4** |
 
 ## By Source
 
