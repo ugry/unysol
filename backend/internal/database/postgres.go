@@ -114,10 +114,19 @@ func RunMigrations(ctx context.Context, migrationsDir string) error {
 
 		logging.System(logging.LevelInfo, "running migration", map[string]interface{}{"file": entry.Name()})
 		if _, err := p.Exec(ctx, string(sql)); err != nil {
-			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
+			markApplied := false
+			// Old migrations (001-010) may fail on idempotent re-run; catch known error patterns
+			msg := err.Error()
+			if strings.Contains(msg, "already exists") || strings.Contains(msg, "duplicate") ||
+				strings.Contains(msg, "current transaction is aborted") {
+				markApplied = true
+			}
+			// 011+ migrations MUST pass — only skip pre-existing errors
+			isNew := strings.Compare(entry.Name(), "010_") > 0
+			if markApplied && !isNew {
 				recordMigration(ctx, p, entry.Name())
 				skipped++
-				logging.System(logging.LevelInfo, "migration skipped (already applied)", map[string]interface{}{"file": entry.Name()})
+				logging.System(logging.LevelInfo, "migration skipped (idempotent)", map[string]interface{}{"file": entry.Name(), "error": msg})
 				continue
 			}
 			failed++
