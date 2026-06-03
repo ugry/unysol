@@ -281,6 +281,9 @@ export default function EmployeesPage() {
         if (res.data) {
           setEmployees((prev) => [...prev, res.data]);
         }
+        // Re-fetch to ensure list is up-to-date
+        const refreshed = await api.get<Employee[]>('/api/tenant/employees');
+        if (refreshed.data) setEmployees(refreshed.data);
       }
       setShowModal(false);
       setEditingId(null);
