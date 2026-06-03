@@ -65,6 +65,9 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 			if email, ok := claims["email"]; ok {
 				ctx = context.WithValue(ctx, EmailKey, fmt.Sprint(email))
 			}
+			if allowedModules, ok := claims["allowed_modules"]; ok {
+				ctx = context.WithValue(ctx, "allowed_modules", allowedModules)
+			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

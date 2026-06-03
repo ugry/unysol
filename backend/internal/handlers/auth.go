@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -241,6 +242,29 @@ func (h *AuthHandler) generateToken(userID, tenantID int, email, role string) (s
 		"exp":       time.Now().Add(365 * 24 * time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 	}
+
+	// If tenant user, query plan_modules for allowed modules
+	if role != "SUPER_ADMIN" && tenantID > 0 {
+		var plan string
+		ctx := context.Background()
+		h.DB.QueryRow(ctx, `SELECT COALESCE(plan::text,'FREE') FROM tenants WHERE id=$1`, tenantID).Scan(&plan)
+		
+		rows, err := h.DB.Query(ctx,
+			`SELECT m.module_key FROM plan_modules pm
+			 JOIN modules m ON m.id = pm.module_id
+			 WHERE pm.plan = $1 AND pm.enabled = TRUE`, plan)
+		if err == nil {
+			defer rows.Close()
+			var allowed []string
+			for rows.Next() {
+				var key string
+				rows.Scan(&key)
+				allowed = append(allowed, key)
+			}
+			claims["allowed_modules"] = allowed
+		}
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(h.JWTSecret))
 }

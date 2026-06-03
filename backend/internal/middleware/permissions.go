@@ -35,6 +35,14 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 		"/api/tenant/driver-leave":   "driver_leave",
 		"/api/tenant/user-management": "tenant_mgmt",
 		"/api/tenant/stripe":         "billing",
+		"/api/tenant/reports":        "reports",
+		"/api/tenant/tires":          "tire_tracking",
+		"/api/tenant/allowances":     "driver_allowance",
+		"/api/tenant/payslips":       "payslip",
+		"/api/tenant/contracts":      "contract_mgmt",
+		"/api/tenant/proposals":      "proposal_system",
+		"/api/tenant/customer-portal": "customer_portal",
+		"/api/tenant/export":         "export",
 	}
 
 	// Paths always allowed regardless of permissions
@@ -46,12 +54,47 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 
 	var mu sync.RWMutex
 
+	// resolveModuleKey maps URL path to module_key
+	resolveModuleKey := func(urlPath string) string {
+		mu.RLock()
+		defer mu.RUnlock()
+		for prefix, key := range pathToModule {
+			if strings.HasPrefix(urlPath, prefix) {
+				return key
+			}
+		}
+		return ""
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role := GetRole(r.Context())
 			userID := GetUserID(r.Context())
 
-			// TENANT_OWNER has all access
+			// Plan module check: resolve module_key and verify against JWT allowed_modules
+			// Applies to ALL users including TENANT_OWNER (blocks FREE plan from PRO modules)
+			moduleKey := resolveModuleKey(r.URL.Path)
+			if moduleKey != "" {
+				if allowedRaw := r.Context().Value("allowed_modules"); allowedRaw != nil {
+					if allowedList, ok := allowedRaw.([]interface{}); ok {
+						found := false
+						for _, m := range allowedList {
+							if s, ok := m.(string); ok && s == moduleKey {
+								found = true
+								break
+							}
+						}
+						if !found {
+							w.Header().Set("Content-Type", "application/json")
+							w.WriteHeader(http.StatusForbidden)
+							w.Write([]byte(`{"error":"Bu modül mevcut planınızda bulunmuyor. Yükseltmek için PRO plana geçin.","code":"plan_restricted"}`))
+							return
+						}
+					}
+				}
+			}
+
+			// TENANT_OWNER has all access (within plan limits, enforced above)
 			if role == "TENANT_OWNER" {
 				next.ServeHTTP(w, r)
 				return
@@ -69,17 +112,7 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Resolve module_key from URL path
-			mu.RLock()
-			moduleKey := ""
-			for prefix, key := range pathToModule {
-				if strings.HasPrefix(r.URL.Path, prefix) {
-					moduleKey = key
-					break
-				}
-			}
-			mu.RUnlock()
-
+			// Module key already resolved above
 			// Some paths are always allowed (e.g., my-permissions)
 			if alwaysAllowed[r.URL.Path] {
 				next.ServeHTTP(w, r)

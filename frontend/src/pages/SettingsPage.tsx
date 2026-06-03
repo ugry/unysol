@@ -52,6 +52,10 @@ export default function SettingsPage() {
       setPlanInfo(prev => ({ ...prev, truckCount: d?.aktif_kamyon || 0 }));
     }).catch(() => {});
 
+    api.get('/api/tenant/billing/status').then(r => {
+      if (r.data) setPlanInfo(prev => ({ ...prev, plan: r.data.plan || 'FREE' }));
+    }).catch(() => {});
+
     api.get('/api/tenant/settings').then(r => {
       const s = r.data?.settings;
       if (s && Array.isArray(s)) {
@@ -376,12 +380,17 @@ export default function SettingsPage() {
                 <span>Kullanıcı: <span className="text-[#f7f8f8]">{users.length}/{planInfo.userLimit}</span></span>
               </div>
             </div>
-            {planInfo.plan === 'FREE' && (
+            {planInfo.plan === 'FREE' ? (
               <button onClick={handleUpgrade} disabled={upgrading}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm transition-all duration-150 flex-shrink-0 disabled:opacity-60">
                 <Crown size={16} />
                 {upgrading ? 'Yönlendiriliyor...' : "PRO'ya Yükselt"}
               </button>
+            ) : (
+              <span className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#FF5F03]/10 border border-[#FF5F03]/20 text-[#FF5F03] font-medium text-sm flex-shrink-0">
+                <Crown size={16} />
+                PRO Aktif
+              </span>
             )}
           </div>
           {upgradeMsg && <p className="mt-3 text-sm text-[#FF5F03] bg-[#FF5F03]/10 rounded-lg px-4 py-2">{upgradeMsg}</p>}

@@ -57,6 +57,19 @@ INSERT INTO modules (module_key, module_name, category, is_core, default_enabled
 ('actions', 'İşlem Kayıtları', 'CORE', FALSE, TRUE)
 ON CONFLICT (module_key) DO NOTHING;
 
+-- New modules (built June 2)
+INSERT INTO modules (module_key, module_name, category, is_core, default_enabled) VALUES
+('tire_tracking', 'Lastik Takibi', 'FLEET', FALSE, TRUE),
+('driver_allowance', 'Harcırah Yönetimi', 'HR', FALSE, TRUE),
+('driver_performance', 'Şoför Performans', 'HR', FALSE, TRUE),
+('payslip', 'Bordro', 'HR', FALSE, TRUE),
+('proposal_system', 'Teklif Yönetimi', 'CRM', FALSE, TRUE),
+('contract_mgmt', 'Sözleşme Yönetimi', 'CRM', FALSE, TRUE),
+('customer_portal', 'Müşteri Portalı', 'CRM', FALSE, TRUE),
+('carbon_tracking', 'Karbon Takibi', 'ANALYTICS', FALSE, TRUE),
+('export', 'Veri Dışa Aktarım', 'ANALYTICS', FALSE, TRUE)
+ON CONFLICT (module_key) DO NOTHING;
+
 -- Country modules for TR (all default-enabled modules)
 INSERT INTO country_modules (country_code, module_id, enabled)
 SELECT 'TR', id, default_enabled FROM modules
