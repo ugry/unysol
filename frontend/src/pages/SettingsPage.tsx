@@ -239,48 +239,9 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      {/* TENANT_OWNER ONLY: Kullanıcı Yönetimi + Personel Kayıtları */}
+      {/* Personel Kayıtları (HR records — merged from EmployeesPage) */}
       {isOwner && (
-        <>
-          {/* Kullanıcı Yönetimi (login accounts) */}
-          <div className="bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-5 sm:p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-lg bg-[#FF5F03]/10 flex items-center justify-center flex-shrink-0">
-                <UsersIcon size={20} className="text-[#FF5F03]" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-[#f7f8f8]">Kullanıcı Yönetimi</h3>
-                <p className="text-xs text-[#8a8f98] mt-0.5">Sisteme giriş yapabilen kullanıcı hesapları</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {users.map((u) => (
-                <div key={u.id} className="flex items-center justify-between bg-[#191a1b] rounded-lg px-4 py-3 border border-[rgba(255,255,255,0.08)]">
-                  <div>
-                    <span className="text-sm font-medium text-[#f7f8f8]">{u.ad_soyad}</span>
-                    <span className="text-xs text-[#8a8f98] block">{u.email} · {u.rol}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {u.rol !== 'TENANT_OWNER' && (
-                      <button onClick={() => setShowPermsFor(parseInt(u.id))} className="text-[#8a8f98] hover:text-[#FF5F03] transition-colors p-1.5 rounded-md hover:bg-[#FF5F03]/10" title="İzinleri Yönet">
-                        <Settings2 size={16} />
-                      </button>
-                    )}
-                    <button onClick={() => handleDeleteUser(u.id)} className="text-[#8a8f98] hover:text-[#DC2626] transition-colors p-1.5 rounded-md hover:bg-[#DC2626]/10" title="Kullanıcıyı Sil">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {users.length === 0 && <p className="text-sm text-[#8a8f98] text-center py-4">Henüz kullanıcı eklenmemiş</p>}
-              <button onClick={() => setShowAddUser(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-[rgba(255,255,255,0.08)] text-[#8a8f98] hover:text-[#f7f8f8] hover:border-gray-400 text-sm font-medium transition-all">
-                <Plus size={16} /> Kullanıcı Ekle
-              </button>
-            </div>
-          </div>
-
-          {/* Personel Kayıtları (HR records — merged from EmployeesPage) */}
-          <div className="bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-5 sm:p-6">
+        <div className="bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#FF5F03]/10 flex items-center justify-center flex-shrink-0">
@@ -320,7 +281,7 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Bildirim Tercihleri */}

@@ -280,6 +280,12 @@ jobs:
           grep -q "sonKayitlar\|son_kayitlar.*SELECT\|firma_unvani.*plan.*created_at.*LIMIT" backend/internal/handlers/admin.go || { echo "❌ B-ADMIN-03: Dashboard son_kayitlar not queried from DB"; exit 1; }
           echo "✅ Dashboard son_kayitlar uses real DB query"
 
+      # IMP-052: access_mgmt module must exist in migration
+      - name: "DB: access_mgmt module seed exists"
+        run: |
+          grep -q "access_mgmt" backend/internal/database/migrations/013_access_mgmt.sql || { echo "❌ IMP-052: access_mgmt seed migration missing"; exit 1; }
+          echo "✅ access_mgmt seed migration exists"
+
       # B-TRK-02: yakit_tipi column must exist in trucks table
       - name: "DB: trucks table has yakit_tipi column"
         run: |

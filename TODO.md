@@ -44,6 +44,7 @@
 | IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
 | IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
 | IMP-012 | Password reset flow — forgot password + email recovery | Users locked out without Google login | 2h | Testing |
+| IMP-052 | **Access Management module** — user CRUD + permissions moved from Settings to PRO-only module | FREE blocked, PRO allowed via plan_modules | ✅ Done |
 | IMP-013 | Fuel price tracking widget — compare to EPDK prices | #1 Turkish trucker pain point (exa.ai research) | 2h | Testing |
 | IMP-014 | SMS notifications — trip status, invoice reminders | FiloMetrik & Filojistik have this | 4h | FiloMetrik |
 | IMP-015 | Bulk CSV import — migrate data from Excel/competitors | FiloMetrik has this; critical for onboarding | 3h | FiloMetrik |
