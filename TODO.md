@@ -29,6 +29,7 @@
 |----|------|-----|:---:|--------|
 | IMP-008 | Admin real package distribution — query subscription counts | Overview shows hardcoded placeholder | ✅ Done |
 | IMP-009 | Admin recent registrations — real last 5 tenants | Overview shows empty list | ✅ Done |
+| IMP-051 | **FREE plan enforcement** — backend checks plan_modules for module access | DB correctly configured (13 modules for FREE), needs wiring to JWT/middleware | 2h | Security |
 | IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
 | IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
 | IMP-012 | Password reset flow — forgot password + email recovery | Users locked out without Google login | 2h | Testing |
@@ -75,6 +76,7 @@
 | IMP-048 | Geofencing uyarıları — depot arrival/departure alerts | Fleet management standard feature | 8h | Fleet |
 | IMP-049 | Yakıt hırsızlığı tespiti — OBD vs manual receipt compare | Alert on >5% fuel discrepancy | 4h | Fleet |
 | IMP-050 | Araç muayene/sigorta/MTV takvimi — countdown reminders | Schema has date fields but no reminder system | 3h | Fleet |
+| IMP-051 | Plan modules enforcement — backend checks plan_modules for FREE users | DB configured correctly but not yet wired to JWT claims or middleware | 2h | Security |
 
 ---
 
@@ -84,9 +86,9 @@
 |:---:|:---:|:---:|
 | P0 | 3 | 1 |
 | P1 | 5 | 0 |
-| P2 | 18 | 2 |
+| P2 | 19 | 2 |
 | P3 | 25 | 0 |
-| **Total** | **50** | **3** |
+| **Total** | **51** | **3** |
 
 ## By Source
 

@@ -90,3 +90,28 @@ WHERE NOT EXISTS (
     WHERE pm.plan::text = 'PREMIUM' AND pm.module_id = m.id
 )
 ON CONFLICT (plan, module_id) DO NOTHING;
+
+-- ============================================================
+-- FREE plan module restrictions
+-- Only: Kamyonlar, Dorseler, Seferler, Yük Panosu, Faturalar,
+--       Yakıt Takip, Bakım, Giderler + Core modules
+-- ============================================================
+UPDATE plan_modules SET enabled = FALSE WHERE plan::text = 'FREE'
+AND module_id NOT IN (
+    SELECT id FROM modules WHERE module_key IN (
+        'auth','tenant_mgmt','dashboard','settings','actions',
+        'truck_tracking','trailer_mgmt','load_board','maintenance','fuel_logging',
+        'invoice_mgmt','expense_tracking',
+        'trip_mgmt'
+    )
+);
+
+UPDATE plan_modules SET enabled = TRUE WHERE plan::text = 'FREE'
+AND module_id IN (
+    SELECT id FROM modules WHERE module_key IN (
+        'auth','tenant_mgmt','dashboard','settings','actions',
+        'truck_tracking','trailer_mgmt','load_board','maintenance','fuel_logging',
+        'invoice_mgmt','expense_tracking',
+        'trip_mgmt'
+    )
+);
