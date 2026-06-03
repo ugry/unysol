@@ -46,6 +46,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Update ECS task definition with Stripe env vars
+        run: |
+          echo "Adding STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY to ECS task definition..."
+          
+          # Get current task definition
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition unysol-backend \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition')
+          
+          # Build new container definition with Stripe env vars added
+          NEW_CONTAINER_DEF=$(echo "$TASK_DEF" | jq \
+            --arg stripe_sk "${{ secrets.STRIPE_SECRET_KEY }}" \
+            --arg stripe_pk "${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
+            '.containerDefinitions[0].environment += [
+              {"name": "STRIPE_SECRET_KEY", "value": $stripe_sk},
+              {"name": "STRIPE_PUBLISHABLE_KEY", "value": $stripe_pk}
+            ] | .containerDefinitions')
+          
+          # Register new task definition revision
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --family unysol-backend \
+            --task-role-arn $(echo "$TASK_DEF" | jq -r '.taskRoleArn') \
+            --execution-role-arn $(echo "$TASK_DEF" | jq -r '.executionRoleArn') \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu $(echo "$TASK_DEF" | jq -r '.cpu') \
+            --memory $(echo "$TASK_DEF" | jq -r '.memory') \
+            --container-definitions "$NEW_CONTAINER_DEF" \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          echo "New task definition: $NEW_TASK_DEF_ARN"
+          
+          # Update service to use new task definition
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_BACKEND }} \
+            --task-definition "$NEW_TASK_DEF_ARN" \
+            --region ${{ env.AWS_REGION }}
+          
+          echo "✅ Stripe env vars added to ECS task definition"
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
