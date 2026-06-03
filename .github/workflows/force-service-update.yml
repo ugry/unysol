@@ -45,14 +45,14 @@ jobs:
           CPU=$(jq -r '.cpu' /tmp/current-td.json)
           MEMORY=$(jq -r '.memory' /tmp/current-td.json)
           
-          # Add Stripe env vars to the container definitions
+          # Add Stripe env vars to the first container, output full containerDefinitions array
           jq -c \
             --arg sk '${{ secrets.STRIPE_SECRET_KEY }}' \
             --arg pk '${{ secrets.STRIPE_PUBLISHABLE_KEY }}' \
             '.containerDefinitions[0].environment += [
               {"name":"STRIPE_SECRET_KEY","value":$sk},
               {"name":"STRIPE_PUBLISHABLE_KEY","value":$pk}
-            ]' /tmp/current-td.json > /tmp/new-containers.json
+            ] | .containerDefinitions' /tmp/current-td.json > /tmp/new-containers.json
           
           # Register as new revision
           NEW_ARN=$(aws ecs register-task-definition \
