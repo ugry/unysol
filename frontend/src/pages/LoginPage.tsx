@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SignupPayload } from '@/types';
 import api from '@/lib/api';
-import { Loader2, Eye, EyeOff, Truck, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Truck, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -13,6 +13,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotPassword, setForgotPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState<'email'|'code'>('email');
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotSending, setForgotSending] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -124,6 +131,31 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotSend = async () => {
+    if (!forgotEmail) return;
+    setForgotSending(true); setForgotMsg('');
+    try {
+      const r = await api.post('/api/auth/forgot-password', { email: forgotEmail });
+      setForgotMsg(r.data?.message || 'Kod gönderildi.');
+      setForgotStep('code');
+    } catch { setForgotMsg('Bir hata oluştu. Lütfen tekrar deneyin.'); }
+    finally { setForgotSending(false); }
+  };
+
+  const handleForgotReset = async () => {
+    if (!forgotCode || !forgotPassword) return;
+    setForgotSending(true); setForgotMsg('');
+    try {
+      const r = await api.post('/api/auth/reset-password', { email: forgotEmail, code: forgotCode, password: forgotPassword });
+      setForgotMsg(r.data?.message || 'Şifre güncellendi.');
+      setForgotMode(false);
+      setForgotStep('email');
+      setForgotEmail(''); setForgotCode(''); setForgotPassword('');
+    } catch (err: any) {
+      setForgotMsg(err?.response?.data?.error || 'Geçersiz kod veya şifre.');
+    } finally { setForgotSending(false); }
   };
 
   const toggleMode = () => {
@@ -238,6 +270,13 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {!isSignup && (
+              <button type="button" onClick={() => { setForgotMode(true); setForgotStep('email'); setForgotMsg(''); }}
+                className="text-[13px] text-[#FF5F03] hover:text-[#E55600] transition-colors text-right">
+                Şifrenizi mi unuttunuz?
+              </button>
+            )}
+
             {isSignup && (
               <div>
                 <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">
@@ -286,6 +325,50 @@ export default function LoginPage() {
           {isSignup ? 'Giriş Yap' : 'Hesap Oluştur'}
         </button>
       </div>
+
+      {/* Forgot Password Modal */}
+      {forgotMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setForgotMode(false)}>
+          <div className="bg-[#0f1011] border border-[rgba(255,255,255,0.08)] rounded-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setForgotMode(false)} className="absolute top-4 right-4 text-[#8a8f98] hover:text-[#f7f8f8]"><ArrowLeft size={18} /></button>
+
+            {forgotStep === 'email' ? (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Şifre Sıfırlama</h3>
+                <p className="text-sm text-[#8a8f98] mb-4">E-posta adresinizi girin, size şifre sıfırlama kodu gönderelim.</p>
+                <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                  placeholder="E-posta adresiniz" className="w-full px-3 py-2 rounded-lg bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-sm outline-none mb-3" />
+                <button onClick={handleForgotSend} disabled={forgotSending}
+                  className="w-full py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm disabled:opacity-60">
+                  {forgotSending ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Kod Gönder'}
+                </button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Yeni Şifre</h3>
+                <p className="text-sm text-[#8a8f98] mb-4">{forgotEmail} adresine kod gönderildi.</p>
+                <input type="text" value={forgotCode} onChange={e => setForgotCode(e.target.value)}
+                  placeholder="6 haneli kod" maxLength={6}
+                  className="w-full px-3 py-2 rounded-lg bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-sm outline-none mb-3 tracking-[8px] text-center text-xl" />
+                <input type="password" value={forgotPassword} onChange={e => setForgotPassword(e.target.value)}
+                  placeholder="Yeni şifre (en az 8 karakter)"
+                  className="w-full px-3 py-2 rounded-lg bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-sm outline-none mb-3" />
+                <button onClick={handleForgotReset} disabled={forgotSending}
+                  className="w-full py-2.5 rounded-lg bg-[#FF5F03] hover:bg-[#E55600] text-white font-medium text-sm disabled:opacity-60">
+                  {forgotSending ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Şifreyi Güncelle'}
+                </button>
+              </>
+            )}
+
+            {forgotMsg && (
+              <p className={`mt-3 text-sm text-center ${forgotMsg.includes('gönderildi')||forgotMsg.includes('güncellendi') ? 'text-green-500' : 'text-red-400'}`}>
+                {forgotMsg}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

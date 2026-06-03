@@ -136,3 +136,24 @@ func SendVerificationEmail(to string, code string, token string) error {
 </html>`, code, token, code)
 	return Send(to, subject, body)
 }
+
+func SendPasswordReset(to string, code string) error {
+	subject := fmt.Sprintf("Unysol — Şifre Sıfırlama Kodunuz: %s", code)
+	body := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #FF5F03;">Şifre Sıfırlama Talebi</h2>
+  <p>Unysol hesabınız için şifre sıfırlama talebi alındı.</p>
+  <p>Şifrenizi sıfırlamak için kodunuz:</p>
+  <div style="background: #FFF3E0; border: 2px dashed #FF5F03; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+    <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #FF5F03;">%s</span>
+  </div>
+  <p style="color: #666; font-size: 14px;">
+    Bu kod 1 saat süreyle geçerlidir. Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelin.
+  </p>
+  <hr style="border: 1px solid #eee; margin: 20px 0;">
+  <p style="color: #999; font-size: 12px;">Unysol — Kamyoncular için yük bulma, takip ve fatura platformu</p>
+</body>
+</html>`, code)
+	return Send(to, subject, body)
+}

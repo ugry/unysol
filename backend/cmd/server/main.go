@@ -160,6 +160,8 @@ func main() {
 	r.Get("/api/verify", authHandler.VerifyEmail)
 	r.Post("/api/auth/verify-code", authHandler.VerifyCode)
 	r.Post("/api/auth/resend-code", authHandler.ResendCode)
+	r.Post("/api/auth/forgot-password", authHandler.ForgotPassword)
+	r.Post("/api/auth/reset-password", authHandler.ResetPassword)
 
 	r.Post("/api/stripe/webhook", stripeHandler.Webhook)
 

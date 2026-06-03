@@ -569,3 +569,101 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		Role:      role,
 	})
 }
+
+// ForgotPassword sends a password reset email with a 6-digit code
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "E-posta adresi zorunludur"})
+		return
+	}
+
+	// Check if user exists
+	var userID int
+	err := h.DB.QueryRow(r.Context(), `SELECT id FROM users WHERE email = $1`, req.Email).Scan(&userID)
+	if err != nil {
+		// Don't reveal if email exists or not (security)
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.",
+		})
+		return
+	}
+
+	// Generate 6-digit code
+	codeNum, _ := rand.Int(rand.Reader, big.NewInt(1000000))
+	code := fmt.Sprintf("%06d", codeNum.Int64())
+
+	// Store reset token
+	_, _ = h.DB.Exec(r.Context(),
+		`INSERT INTO password_resets (email, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
+		req.Email, code)
+
+	// Send email (non-blocking)
+	go func() {
+		if err := email.SendPasswordReset(req.Email, code); err != nil {
+			logging.System(logging.LevelWarn, "password reset email failed", map[string]interface{}{"email": req.Email, "error": err.Error()})
+		}
+	}()
+
+	logging.Auth(logging.LevelInfo, "password reset requested", "0", itoa(userID), "", r.RemoteAddr,
+		map[string]interface{}{"email": req.Email})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.",
+	})
+}
+
+// ResetPassword validates the code and updates the password
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email    string `json:"email"`
+		Code     string `json:"code"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.Code == "" || req.Password == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "E-posta, kod ve yeni şifre zorunludur"})
+		return
+	}
+
+	if len(req.Password) < 8 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Şifre en az 8 karakter olmalıdır"})
+		return
+	}
+
+	// Validate code
+	var tokenID int
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT id FROM password_resets WHERE email=$1 AND token=$2 AND used=false AND expires_at > NOW()`,
+		req.Email, req.Code).Scan(&tokenID)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz veya süresi dolmuş kod"})
+		return
+	}
+
+	// Update password
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Şifre güncellenemedi"})
+		return
+	}
+	_, err = h.DB.Exec(r.Context(), `UPDATE users SET password_hash=$1 WHERE email=$2`, string(hash), req.Email)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Şifre güncellenemedi"})
+		return
+	}
+
+	// Mark token as used
+	h.DB.Exec(r.Context(), `UPDATE password_resets SET used=true WHERE id=$1`, tokenID)
+
+	logging.Auth(logging.LevelInfo, "password reset completed", "", "", "", r.RemoteAddr,
+		map[string]interface{}{"email": req.Email})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Şifreniz başarıyla güncellendi. Şimdi giriş yapabilirsiniz.",
+	})
+}
