@@ -27,6 +27,7 @@ type GlobalEmailConfig struct {
 	AwsRegion         string `json:"aws_region"`
 	GoogleClientID    string `json:"google_client_id"`
 	StripePubKey      string `json:"stripe_pub_key"`
+	StripeSecretKey   string `json:"stripe_secret_key"`
 	StripePriceMonthly string `json:"stripe_price_monthly"`
 	StripePriceYearly string `json:"stripe_price_yearly"`
 }
@@ -38,11 +39,12 @@ func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		       COALESCE(smtp_address,''), COALESCE(imap_address,''), COALESCE(port,'465'),
 		       COALESCE(imap_port,'993'), COALESCE(aws_region,'eu-central-1'),
 		       COALESCE(google_client_id,''), COALESCE(stripe_pub_key,''),
+		       COALESCE(stripe_secret_key,''),
 		       COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'')
 		FROM email_config WHERE id=1
 	`).Scan(&cfg.EmailMethod, &cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress,
 		&cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort, &cfg.AwsRegion,
-		&cfg.GoogleClientID, &cfg.StripePubKey, &cfg.StripePriceMonthly, &cfg.StripePriceYearly)
+		&cfg.GoogleClientID, &cfg.StripePubKey, &cfg.StripeSecretKey, &cfg.StripePriceMonthly, &cfg.StripePriceYearly)
 	if err != nil {
 		writeJSON(w, http.StatusOK, GlobalEmailConfig{EmailMethod: "smtp", SmtpPort: "465", ImapPort: "993", AwsRegion: "eu-central-1"})
 		return
@@ -92,15 +94,15 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	_, err := h.DB.Exec(r.Context(), `
 		INSERT INTO email_config (id, email_method, email_address, password, smtp_address, imap_address,
 			port, imap_port, host, username, from_email, aws_region,
-			google_client_id, stripe_pub_key, stripe_price_monthly, stripe_price_yearly)
-		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $2, $2, $9, $10, $11, $12, $13)
+			google_client_id, stripe_pub_key, stripe_secret_key, stripe_price_monthly, stripe_price_yearly)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $2, $2, $9, $10, $11, $12, $13, $14)
 		ON CONFLICT (id) DO UPDATE SET
 			email_method=$1, email_address=$2, password=$3, smtp_address=$4, imap_address=$5,
 			port=$6, imap_port=$7, host=$8, username=$2, from_email=$2, aws_region=$9,
-			google_client_id=$10, stripe_pub_key=$11, stripe_price_monthly=$12, stripe_price_yearly=$13
+			google_client_id=$10, stripe_pub_key=$11, stripe_secret_key=$12, stripe_price_monthly=$13, stripe_price_yearly=$14
 	`, req.EmailMethod, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress,
 		req.SmtpPort, req.ImapPort, host, req.AwsRegion,
-		req.GoogleClientID, req.StripePubKey, req.StripePriceMonthly, req.StripePriceYearly)
+		req.GoogleClientID, req.StripePubKey, req.StripeSecretKey, req.StripePriceMonthly, req.StripePriceYearly)
 
 	if err != nil {
 		logging.Error(logging.LevelError, err, "", "", "", "", "email", "save config failed", nil)

@@ -25,8 +25,16 @@ type CheckoutRequest struct {
 	Plan    string `json:"plan"`
 }
 
-func getStripeSecretKey() string {
-	return os.Getenv("STRIPE_SECRET_KEY")
+func getStripeSecretKey(h *StripeHandler, r *http.Request) string {
+	// Try env var first (for local/dev), fall back to database (for production)
+	sk := os.Getenv("STRIPE_SECRET_KEY")
+	if sk != "" {
+		return sk
+	}
+	// Read from DB email_config
+	var dbKey string
+	_ = h.DB.QueryRow(r.Context(), `SELECT COALESCE(stripe_secret_key,'') FROM email_config WHERE id=1`).Scan(&dbKey)
+	return dbKey
 }
 
 func getStripePublishableKey() string {
@@ -43,7 +51,7 @@ func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	sk := getStripeSecretKey()
+	sk := getStripeSecretKey(h, r)
 	if sk == "" {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Stripe yapılandırılmamış"})
 		return
@@ -170,14 +178,20 @@ func (h *StripeHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *StripeHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	var pubKey, priceMonthly, priceYearly string
+	var pubKey, secretKey, priceMonthly, priceYearly string
 	_ = h.DB.QueryRow(r.Context(),
-		`SELECT COALESCE(stripe_pub_key,''), COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'') FROM email_config WHERE id=1`,
-	).Scan(&pubKey, &priceMonthly, &priceYearly)
+		`SELECT COALESCE(stripe_pub_key,''), COALESCE(stripe_secret_key,''), COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'') FROM email_config WHERE id=1`,
+	).Scan(&pubKey, &secretKey, &priceMonthly, &priceYearly)
 
 	writeJSON(w, http.StatusOK, map[string]string{
 		"publishable_key":    pubKey,
+		"secret_key_set":     boolToString(secretKey != ""),
 		"price_monthly":      priceMonthly,
 		"price_yearly":       priceYearly,
 	})
+}
+
+func boolToString(b bool) string {
+	if b { return "true" }
+	return "false"
 }
