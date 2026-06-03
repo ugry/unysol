@@ -1,7 +1,7 @@
 # Unysol — Competitor Intelligence & Gap Analysis
 
 > **Purpose:** Where do we lack against each competitor? What features should we build?
-> **Updated:** 25 May 2026
+> **Updated:** 03 June 2026 (pricing refreshed via exa.ai)
 
 ---
 
@@ -190,16 +190,40 @@ Focus:   GPS tracking, CAN bus, fleet monitoring
 
 ```
 Unysol PRO:       200 TL  ◀────────────────────┐
-Filom360 Temel:   ~500 TL  (site satılık)       │
-Arvento:        ~1,200 TL                        │
-Mobiliz:        ~1,500 TL                        │
-FiloMetrik:     ~1,999 TL  (10x Unysol)         │
-Tırport:        ~2,500 TL  (12.5x Unysol)       │
-Samsara TR:     ~3,500 TL                        │
-Webfleet:       ~4,000 TL                        │
-─────────────────────────────────────────────────┘
-Unysol is 2.5x to 20x CHEAPER than every competitor
+FiloMetrik Başl.:  1,999 TL  (2-5 araç)          │
+FiloAsistan Başl.: 5,990 TL  (5-25 araç)         │
+FiloAsistan Pro:   7,990 TL  (25-100 araç)        │
+FiloAsistan Kur.:  12,990 TL (100+ araç)          │
+Nakliye Yazılımı:  65,000 TL (one-time lisans)    │
+Kamyoon TMS:       B2B (özel fiyat)                │
+──────────────────────────────────────────────────┘
+Unysol is 10x to 60x CHEAPER than every competitor
 ```
+
+### Detailed Competitor Package Comparison (June 2026)
+
+| Feature | **Unysol FREE** | **Unysol PRO** | **FiloMetrik** | **FiloAsistan** | **Kamyoon** |
+|---------|:---:|:---:|:---:|:---:|:---:|
+| Price | **0 TL** | **200 TL/ay** | 1,999 TL/ay | 5,990-12,990 TL/ay | B2B |
+| Trucks | 5 | 10 | 2-5 | 5-25+ | Unlimited |
+| GPS tracking | ✅ | ✅ | 10+ providers | ✅ | ✅ |
+| Trip management | Manual | Auto | ✅ | ✅ | ✅ Uçtan uca |
+| Invoice | Manual | ✅ e-Fatura | ✅ | ✅ | ✅ |
+| Expense tracking | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Fuel tracking | ✅ | ✅ | ✅ | — | ✅ |
+| Maintenance | ✅ | ✅ | ✅ | ✅ (Pro) | — |
+| Customer CRM | — | ✅ | ✅ | ✅ | ✅ |
+| Employee mgmt | — | ✅ | ✅ | — | — |
+| Load board | ✅ | ✅ | — | — | ✅ Yük Borsası |
+| Predictions/AI | — | ✅ | — | AI agent (Pro) | AI |
+| HGS/Toll tracking | — | ✅ | — | ✅ | — |
+| Çek/Senet | — | ✅ | ✅ | — | — |
+| Mobile app | PWA | PWA | Şoför paneli | ❌ | ✅ Native |
+| WhatsApp integration | — | — | ❌ | ✅ AI Ajan | ❌ |
+| Multi-language | TR+EN | TR+EN | TR | TR | TR |
+| Free tier | ✅ Forever | — | ❌ 7-day trial | ❌ | ❌ |
+| On-premise | ✅ | ✅ | ✅ cPanel | ❌ | ✅ |
+| Open docs | ✅ GitHub | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
