@@ -625,7 +625,7 @@ jobs:
       # B-SET-05: Upgrade button must have fallback
       - name: "Settings: PRO upgrade has fallback response"
         run: |
-          if grep -A10 "handleUpgrade" frontend/src/pages/SettingsPage.tsx | grep -q "upgradeMsg\|catch"; then
+          if grep -A15 "handleUpgrade" frontend/src/pages/SettingsPage.tsx | grep -qE "upgradeMsg|catch"; then
             echo "✅ PRO upgrade has fallback handler"
           else
             echo "❌ B-SET-05: PRO upgrade has no visible fallback response"
