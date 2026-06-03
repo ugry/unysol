@@ -548,6 +548,20 @@ jobs:
           grep -q "Erişim Reddedildi" frontend/src/components/AccessDenied.tsx || { echo "❌ B-UI-02: AccessDenied missing Turkish message"; exit 1; }
           echo "✅ AccessDenied component present"
 
+      # B-EMP-01: EmployeesPage list refreshes after employee add
+      - name: "B-EMP-01: Employee create refreshes list"
+        run: |
+          if grep -A30 "handleSubmit\|handleSave\|handleCreate" frontend/src/pages/EmployeesPage.tsx 2>/dev/null | grep -qE "setEmployees|fetchEmployees|\.get\(.*employees"; then
+            echo "✅ Employee create refreshes list after save"
+          else
+            if [ ! -f frontend/src/pages/EmployeesPage.tsx ]; then
+              echo "ℹ️  EmployeesPage.tsx not found (unified into Settings)"
+            else
+              echo "❌ B-EMP-01: Employee create does not refresh list after save"
+              exit 1
+            fi
+          fi
+
       # truckownersettingsanalysis.md: WhatsApp integration tracking
       - name: WhatsApp integration status
         run: |
