@@ -247,17 +247,30 @@ Unysol is 10x to 60x CHEAPER than every competitor
 
 ## 6. PRIORITY ACTION ITEMS (Ordered)
 
-| # | What | Why | From Competitor |
-|---|------|-----|----------------|
-| 1 | **Test suite** | Zero tests currently, critical for production | Best practice |
-| 2 | **Load board UI** | Schema exists, no frontend | Tırport, Kamyoon |
-| 3 | **e-Fatura GİB** | Legal requirement for scaling | FiloMetrik |
-| 4 | **Batch shipping** | Turkish truckers need this | Filojistik |
-| 5 | **Factory/depot tracking** | Customer factory integration | Filojistik |
-| 6 | **Product/service records** | Link products to trips | Filojistik |
-| 7 | **Native mobile app** | PWA limits on iOS | Kamyoon, Filojistik |
-| 8 | **WhatsApp auto-notify** | Critical for driver comms | Filojistik |
-| 9 | **Allowances UI** | Harcırah/avans for drivers | FiloMetrik |
-| 10 | **SMS notifications** | Schema exists, integration missing | FiloMetrik, Filojistik |
-| 11 | **Bulk CSV import** | Data migration for new tenants | FiloMetrik |
-| 12 | **Carbon tracking UI** | Growing EU requirement | Kamyoon |
+| # | IMP | What | Why | From Competitor |
+|---|-----|------|-----|----------------|
+| 1 | IMP-003 | **WhatsApp notification** | Critical for driver comms — they live on WhatsApp | FiloAsistan, Filojistik |
+| 2 | IMP-014 | **SMS notifications** | Trip status, invoice reminders for non-smartphone drivers | FiloMetrik, Filojistik |
+| 3 | IMP-015 | **Bulk CSV import** | Data migration from Excel/competitors for new tenants | FiloMetrik |
+| 4 | IMP-016 | **Native mobile app** | PWA limits on iOS; competitors have native | Kamyoon, Filojistik |
+| 5 | IMP-007 | **WhatsApp share on load board** | Viral growth — drivers share loads in WhatsApp groups | Filojistik |
+| 6 | IMP-017 | **Harcırah/avans** | Driver allowance tracking — FiloMetrik has full module | FiloMetrik |
+| 7 | IMP-018 | **TCMB döviz kurları** | Auto currency rates for international loads | FiloMetrik |
+| 8 | IMP-021 | **Toplu sevkiyat yazdırma** | Turkish truckers print physical docs regularly | Filojistik |
+| 9 | IMP-022 | **Fabrika/depo takibi** | Customer factory integration for logistics | Filojistik |
+| 10 | IMP-023 | **Ürün/hizmet kayıtları** | Product records linked to trips | Filojistik |
+| 11 | IMP-035 | **Canlı destek chat** | Build trust, reduce support emails | FiloMetrik |
+| 12 | IMP-020 | **"Sizi Arayalım" formu** | Lead capture — truckers prefer calls over forms | Filojistik |
+| 13 | IMP-033 | **Karbon sayacı** | ESG signaling on landing page | Kamyoon |
+| 14 | IMP-034 | **Nakliye fiyat hesaplama** | Lead gen tool on website | Kamyoon |
+| 15 | IMP-036 | **Yıllık/aylık fiyat toggle** | Annual discount display on pricing | FiloMetrik |
+| 16 | IMP-043 | **Yakıt kartı entegrasyonu** | DKV/PetrolOfisi auto fuel import | Integration |
+| 17 | IMP-044 | **HGS otomatik veri çekme** | PTT portal auto toll import | Integration |
+| 18 | IMP-045 | **Muhasebe export** | LOGO/NetSis/Mikro interoperability | Integration |
+| 19 | IMP-046 | **U-ETDS entegrasyonu** | Legal requirement for certain transports | Integration |
+| 20 | IMP-047 | **Rota optimizasyonu** | Multi-stop route planning | Fleet |
+| 21 | IMP-048 | **Geofencing** | Depot arrival/departure alerts | Fleet |
+| 22 | IMP-049 | **Yakıt hırsızlığı tespiti** | OBD vs manual receipt comparison | Fleet |
+| 23 | IMP-050 | **Araç muayene/sigorta/MTV takvimi** | Countdown reminders for deadlines | Fleet |
+| 24 | IMP-024 | **Müşteri yorumları** | Social proof with real photos | Navlungo |
+| 25 | IMP-042 | **2FA** | Two-factor auth for enterprise adoption | Security |

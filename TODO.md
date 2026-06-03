@@ -1,71 +1,98 @@
-# Unysol — Prioritized To-Do List
+# Unysol — Improvement Registry (IMP)
 
-> **Date:** 03 June 2026
-> **CI/CD:** Test 8/8 ✅ · Deploy ✅
-
----
-
-## 🔴 CRITICAL
-
-| # | Task | Why | Status |
-|---|------|-----|:---:|
-| 1 | **Stripe Price IDs** — create Products in Stripe Dashboard, paste IDs in admin panel | PRO button is dead without this | ✅ Done |
-| 2 | **SMTP connectivity** — fix Docker DNS so verification emails actually send | Users can't verify email, blocked from login | ⬜ |
-| 3 | **WhatsApp notification integration** — truckers live on WhatsApp | #1 competitor differentiator per exa.ai research | ⬜ |
+> **All improvements tracked with IMP-XXX IDs.**
+> **Last Updated:** 03 June 2026
+> **Source:** Competitor analysis (exa.ai), bug hunts, user testing
 
 ---
 
-## 🟠 HIGH
+## 🔴 P0 — Revenue / Critical
 
-| # | Task | Why | Effort | Status |
-|---|------|-----|:---:|:---:|
-| 4 | **Billing/Stripe checkout button** — wire frontend | Stripe backend done, price IDs set, no frontend trigger | 1h | ⬜ |
-| 5 | **Admin audit log** — track who changed plans/suspended | Compliance, multi-admin teams | 2h | ⬜ |
-| 6 | **Load board match notification** — YUK_VAR ↔ YUK_ARA auto-detect | Phase 3 from yukpanosumoduleimprovements.md | 4h | ⬜ |
-| 7 | **Load board "İlgileniyorum" notification to email/WhatsApp** | Already logs interest, doesn't notify owner | 1h | ⬜ |
-| 8 | **Fix actions module route** — component exists, needs `<Route>` in App.tsx | Dead code, KVKK compliance feature invisible | 15m | ⬜ |
+| ID | Task | Why | Effort | Status |
+|----|------|-----|:---:|:---:|
+| IMP-001 | Stripe checkout — wire frontend button to backend (Settings + Billing pages) | PRO revenue blocked without payment flow | ✅ Done |
+| IMP-002 | SMTP/Email connectivity — verification emails actually send to users | Users cannot verify email, blocked from login | ⬜ |
+| IMP-003 | WhatsApp notification integration — truckers live on WhatsApp | #1 competitor differentiator (FiloAsistan, Filojistik) | ⬜ |
+
+## 🟠 P1 — High Impact
+
+| ID | Task | Why | Effort | Source |
+|----|------|-----|:---:|--------|
+| IMP-004 | Admin audit log — track who changed plans/suspended tenants | Compliance, multi-admin teams | 2h | Testing |
+| IMP-005 | Load board match notification — YUK_VAR ↔ YUK_ARA auto-detect | Network effect: auto-notify when matching loads exist | 4h | Testing |
+| IMP-006 | Load board "İlgileniyorum" notify owner via email | Already logs interest, doesn't notify | 1h | Testing |
+| IMP-007 | WhatsApp share button on load board listings | Drivers share loads in WhatsApp groups — viral growth | 1h | Filojistik |
+
+## 🟡 P2 — Medium Impact
+
+| ID | Task | Why | Effort | Source |
+|----|------|-----|:---:|--------|
+| IMP-008 | Admin real package distribution — query subscription counts | Overview shows hardcoded placeholder | ✅ Done |
+| IMP-009 | Admin recent registrations — real last 5 tenants | Overview shows empty list | ✅ Done |
+| IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
+| IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
+| IMP-012 | Password reset flow — forgot password + email recovery | Users locked out without Google login | 2h | Testing |
+| IMP-013 | Fuel price tracking widget — compare to EPDK prices | #1 Turkish trucker pain point (exa.ai research) | 2h | Testing |
+| IMP-014 | SMS notifications — trip status, invoice reminders | FiloMetrik & Filojistik have this | 4h | FiloMetrik |
+| IMP-015 | Bulk CSV import — migrate data from Excel/competitors | FiloMetrik has this; critical for onboarding | 3h | FiloMetrik |
+| IMP-016 | Driver mobile app native (iOS/Android) — not just PWA | FiloMetrik & Kamyoon have native apps | 16h | FiloMetrik |
+| IMP-017 | Harcırah/avans yönetimi — driver per-diem allowances | FiloMetrik has this; schema partially exists | 4h | FiloMetrik |
+| IMP-018 | TCMB döviz kurları — auto-fetch currency rates | FiloMetrik has this; needed for intl loads | 2h | FiloMetrik |
+| IMP-019 | Canlı demo sayfası — one-click demo without registration | FiloMetrik & Filojistik both have this | ✅ Done |
+| IMP-020 | "Sizi Arayalım" form — lead capture on landing | Nakliyeciler form doldurmaz, aranmak ister | 1h | Filojistik |
+| IMP-021 | Toplu sevkiyat yazdırma — batch print shipment docs | Turkish truckers need physical documents | 3h | Filojistik |
+| IMP-022 | Fabrika ve işletme takibi — customer factory/depot tracking | Link production schedules to logistics | 6h | Filojistik |
+| IMP-023 | Ürün/hizmet kayıtları — product records for cargo types | Link products to trips | 3h | Filojistik |
+| IMP-024 | Müşteri yorumları (gerçek fotoğraflı) — testimonials | Social proof for landing page conversion | 2h | Navlungo |
+
+## 🟢 P3 — Low Priority / Nice-to-Have
+
+| ID | Task | Why | Effort | Source |
+|----|------|-----|:---:|--------|
+| IMP-025 | Yük Panosu rating system — 5-star after transaction | Trust building for marketplace | 6h | Testing |
+| IMP-026 | PRO/PREMIUM verified badge on load board listings | Monetization incentive — makes PRO visible | 1h | Testing |
+| IMP-027 | Yük Panosu anti-spam — duplicate city/city/date detection | Board quality — prevent spam listings | 1h | Testing |
+| IMP-028 | Dashboard "Bu Ay Özet" KPI — revenue/expense/profit card | Quick profit snapshot at a glance | 1h | Testing |
+| IMP-029 | Database backup automation — cron pg_dump | Disaster recovery (RPO compliance) | 1h | Infra |
+| IMP-030 | Production reverse proxy — Caddy → Traefik | Long-term scalability for multi-region | 8h | Infra |
+| IMP-031 | Email digests — weekly summary to active users | Retention — users reminded of value | 4h | Testing |
+| IMP-032 | Load board saved search alerts — "Bursa→İstanbul yeni yük" | Daily engagement — brings users back | 4h | Testing |
+| IMP-033 | Karbon ayak izi sayacı — live CO2 on landing page | ESG signaling — Kamyoon has this | 2h | Kamyoon |
+| IMP-034 | Nakliye fiyatı hesaplama aracı — public freight calculator | Lead generation tool on website | 3h | Kamyoon |
+| IMP-035 | Canlı destek chat widget — tawk.to benzeri | FiloMetrik has this; builds trust | 2h | FiloMetrik |
+| IMP-036 | Yıllık/aylık fiyat toggle on landing page | FiloMetrik has this; annual discount display | 1h | FiloMetrik |
+| IMP-037 | Güvenli ödeme badge'leri — SSL/3D Secure footer | Trust signals for first-time buyers | 0.5h | FiloMetrik |
+| IMP-038 | Klavye kısayolları — CTRL+N new trip etc | Power-user efficiency | 2h | Testing |
+| IMP-039 | Toplu işlemler (multi-select) — bulk delete/export | DataGrid already supports; needs wiring | 2h | Testing |
+| IMP-040 | Yazdırmaya uygun görünümler — print CSS for invoices | Physical document requirement for TR | 2h | Testing |
+| IMP-041 | Çevrimdışı mod — queue GPS when no signal | Driver app must have for trucks in tunnels/remote | 8h | Testing |
+| IMP-042 | 2FA — SMS/TOTP two-factor authentication | Enterprise adoption requirement | 6h | Security |
+| IMP-043 | Yakıt kartı entegrasyonu — DKV/PetrolOfisi auto-import | Auto-import fuel data from card providers | 8h | Integration |
+| IMP-044 | HGS otomatik veri çekme — PTT portal auto-import | Auto-import toll records | 4h | Integration |
+| IMP-045 | Muhasebe export — LOGO/NetSis/Mikro format | Turkish accounting software interoperability | 4h | Integration |
+| IMP-046 | U-ETDS entegrasyonu — Ulaştırma Bakanlığı reporting | Legal requirement for certain transport types | 6h | Integration |
+| IMP-047 | Rota optimizasyonu — multi-stop route planner | FiloAsistan AI has this; Unysol blueprint feature | 16h | Fleet |
+| IMP-048 | Geofencing uyarıları — depot arrival/departure alerts | Fleet management standard feature | 8h | Fleet |
+| IMP-049 | Yakıt hırsızlığı tespiti — OBD vs manual receipt compare | Alert on >5% fuel discrepancy | 4h | Fleet |
+| IMP-050 | Araç muayene/sigorta/MTV takvimi — countdown reminders | Schema has date fields but no reminder system | 3h | Fleet |
 
 ---
 
-## 🟡 MEDIUM
+## Summary
 
-| # | Task | Why | Effort | Status |
-|---|------|-----|:---:|:---:|
-| 9 | **Load board saved search alerts** — "Bursa→İstanbul yeni yük var" | Phase 3 — daily engagement | 4h | ⬜ |
-| 10 | **Admin real package distribution** — query subscription counts | Overview shows hardcoded placeholder | 30m | ⬜ |
-| 11 | **Admin recent registrations** — real last 5 tenants | Overview shows empty list | 30m | ⬜ |
-| 12 | **Admin country management UI** — add/edit countries | Only TR exists, no UI to add | 3h | ⬜ |
-| 13 | **Admin module toggle per country/plan** — feature flag UI | Modules visible, toggles untested | 2h | ⬜ |
-| 14 | **Password reset flow** — forgot password | Users locked out without Google login | 2h | ⬜ |
-| 15 | **Fuel price tracking widget** — compare to EPDK prices | #1 Turkish trucker pain point | 2h | ⬜ |
+| Priority | Count | Done |
+|:---:|:---:|:---:|
+| P0 | 3 | 1 |
+| P1 | 5 | 0 |
+| P2 | 18 | 2 |
+| P3 | 25 | 0 |
+| **Total** | **50** | **3** |
 
----
+## By Source
 
-## 🟢 LOW
-
-| # | Task | Why | Effort | Status |
-|---|------|-----|:---:|:---:|
-| 16 | **Yük Panosu rating system** — 5-star after transaction | Trust building | 6h | ⬜ |
-| 17 | **PRO/PREMIUM verified badge** — on listings | Monetization incentive | 1h | ⬜ |
-| 18 | **Yük Panosu anti-spam** — duplicate city/city/date detection | Board quality | 1h | ⬜ |
-| 19 | **Dashboard "Bu Ay Özet" KPI card** — gelir/gider/kar | Quick profit snapshot | 1h | ⬜ |
-| 20 | **Database backup automation** — cron job for pg_dump | Disaster recovery | 30m | ⬜ |
-| 21 | **Production reverse proxy** upgrade — Caddy → full Traefik | Long-term scalability | 8h | ⬜ |
-| 22 | **Email digests** — weekly summary to active users | Retention | 4h | ⬜ |
-
----
-
-## ✅ DONE (Recent)
-
-| # | Task | When |
-|---|------|------|
-| ✅ | Stripe Price IDs created + wired into QA backend | June 3 |
-| ✅ | 10 new modules: reports, proposals, contracts, tires, allowances, performance, payslip, customer_portal, carbon_tracking, export | June 2 |
-| ✅ | Registration flow redesign: 6-digit code + auto-login + Mailpit | June 2 |
-| ✅ | Trailers, HGS tolls, driver leave frontend pages | May 27 |
-| ✅ | Settings notification toggles wired to backend | June 1 |
-| ✅ | CI/CD pipeline hardening (8 jobs, ~45 checks) | June 1 |
-| ✅ | Fuel logging + maintenance modules | May 27 |
-| ✅ | Android APK (4.7MB) | May 27 |
-| ✅ | Permission enforcement middleware | June 1 |
-| ✅ | Doc restructuring: 62→48 files, 4 new canonical docs | June 3 |
+| Source | Count |
+|--------|:---:|
+| Competitor analysis (exa.ai) | 22 |
+| User testing / QA | 18 |
+| Security / Infra | 7 |
+| Fleet operations | 3 |
