@@ -132,7 +132,7 @@ func (h *ReportsHandler) ProfitPerTruck(w http.ResponseWriter, r *http.Request) 
 			COUNT(t.id)::int as trip_count,
 			COALESCE(SUM(t.ucret), 0) as total_revenue,
 			COALESCE((SELECT SUM(toplam_tutar) FROM fuel_logs WHERE truck_id=tr.id AND tarih BETWEEN $2 AND $3), 0) as fuel_cost,
-			COALESCE((SELECT SUM(tutar) FROM maintenance_records WHERE truck_id=tr.id AND tarih BETWEEN $2 AND $3), 0) as maintenance_cost
+			COALESCE((SELECT SUM(toplam_tutar) FROM maintenance_records WHERE truck_id=tr.id AND tarih BETWEEN $2 AND $3), 0) as maintenance_cost
 		FROM trucks tr
 		LEFT JOIN trips t ON t.truck_id = tr.id AND t.baslangic_tarih BETWEEN $2 AND $3 AND t.durum='TAMAMLANDI'
 		WHERE tr.tenant_id=$1 AND tr.aktif=true
@@ -223,7 +223,7 @@ func (h *ReportsHandler) CategoryBreakdown(w http.ResponseWriter, r *http.Reques
 	rows, err := h.DB.Query(r.Context(), `
 		SELECT kategori::text, COUNT(*)::int, COALESCE(SUM(tutar), 0)
 		FROM expenses WHERE tenant_id=$1 AND tarih BETWEEN $2 AND $3
-		GROUP BY kategori ORDER BY sum DESC
+		GROUP BY kategori ORDER BY SUM(tutar) DESC
 	`, tenantID, start, end)
 	if err != nil {
 		slog.Error("reports categories failed", "error", err)
