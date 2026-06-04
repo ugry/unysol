@@ -85,7 +85,13 @@ func Send(to string, subject string, body string) error {
 	defer client.Close()
 
 	if cfg.Username != "" && cfg.Password != "" {
-		auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
+		username := cfg.Username
+		host := cfg.Host
+		if strings.Contains(cfg.Host, "resend.com") {
+			username = "resend"
+			host = "smtp.resend.com"
+		}
+		auth := smtp.PlainAuth("", username, cfg.Password, host)
 		if err := client.Auth(auth); err != nil {
 			return fmt.Errorf("SMTP kimlik doğrulama hatası: %w", err)
 		}
