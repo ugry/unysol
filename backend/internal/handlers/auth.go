@@ -161,14 +161,21 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send verification email with a short delay to ensure SMTP is ready
+	// Send verification email with retry
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		if err := email.SendVerificationEmail(req.Email, verificationCode, verificationToken); err != nil {
-			logging.System(logging.LevelWarn, "verification email failed", map[string]interface{}{
-				"error": err.Error(), "email": req.Email,
-			})
+		var lastErr error
+		for attempt := 0; attempt < 3; attempt++ {
+			if err := email.SendVerificationEmail(req.Email, verificationCode, verificationToken); err != nil {
+				lastErr = err
+				time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+				continue
+			}
+			return
 		}
+		logging.System(logging.LevelWarn, "verification email failed after retries", map[string]interface{}{
+			"error": lastErr.Error(), "email": req.Email,
+		})
 	}()
 
 	logging.Auth(logging.LevelInfo, "signup pending verification", "", "", "", r.RemoteAddr,
@@ -443,9 +450,14 @@ func (h *AuthHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 
 		var tenantID int
 		err = h.DB.QueryRow(r.Context(),
-			`INSERT INTO tenants (slug, firma_unvani, plan, durum) VALUES ($1, $2, 'FREE', 'AKTIF') RETURNING id`, slug, pendingName,
+			`INSERT INTO tenants (slug, firma_unvani, plan, durum) VALUES ($1, $2, 'FREE', 'AKTIF') 
+			 ON CONFLICT (slug) DO UPDATE SET firma_unvani = EXCLUDED.firma_unvani
+			 RETURNING id`, slug, pendingName,
 		).Scan(&tenantID)
 		if err != nil {
+			logging.System(logging.LevelError, "verify-code: tenant insert failed", map[string]interface{}{
+				"slug": slug, "name": pendingName, "error": err.Error(),
+			})
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Firma oluşturulamadı. Lütfen tekrar deneyin."})
 			return
 		}
@@ -527,7 +539,18 @@ func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
 		h.DB.Exec(r.Context(), `UPDATE pending_registrations SET code=$1, token=$2, expires_at=NOW() + INTERVAL '1 hour' WHERE id=$3`, code, token, pendingID)
 		go func() {
 			time.Sleep(500 * time.Millisecond)
-			email.SendVerificationEmail(req.Email, code, token)
+			var lastErr error
+			for attempt := 0; attempt < 3; attempt++ {
+				if err := email.SendVerificationEmail(req.Email, code, token); err != nil {
+					lastErr = err
+					time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+					continue
+				}
+				return
+			}
+			logging.System(logging.LevelWarn, "verification resend email failed after retries", map[string]interface{}{
+				"error": lastErr.Error(), "email": req.Email,
+			})
 		}()
 		writeJSON(w, http.StatusOK, map[string]string{"success": "true", "message": "Yeni doğrulama kodu gönderildi"})
 		return
@@ -697,12 +720,18 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO password_resets (email, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
 		req.Email, code)
 
-	// Send email (non-blocking, with delay)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		if err := email.SendPasswordReset(req.Email, code); err != nil {
-			logging.System(logging.LevelWarn, "password reset email failed", map[string]interface{}{"email": req.Email, "error": err.Error()})
+		var lastErr error
+		for attempt := 0; attempt < 3; attempt++ {
+			if err := email.SendPasswordReset(req.Email, code); err != nil {
+				lastErr = err
+				time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+				continue
+			}
+			return
 		}
+		logging.System(logging.LevelWarn, "password reset email failed after retries", map[string]interface{}{"email": req.Email, "error": lastErr.Error()})
 	}()
 
 	logging.Auth(logging.LevelInfo, "password reset requested", "0", itoa(userID), "", r.RemoteAddr,
