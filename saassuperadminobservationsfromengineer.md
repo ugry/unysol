@@ -3,7 +3,7 @@
 > **Reviewer:** Senior SaaS Engineer (Post-fix audit)
 > **Date:** 27 May 2026
 > **URL:** https://unysolar.com/admin
-> **Auth:** ugur.yardimci@unygms.com (SUPER_ADMIN)
+> **Auth:** uguradm (SUPER_ADMIN)
 
 ---
 

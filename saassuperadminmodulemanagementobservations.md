@@ -2,7 +2,7 @@
 
 > **Date:** 27 May 2026
 > **Test Method:** API + Playwright UI (headless Chromium)
-> **Auth:** ugur.yardimci@unygms.com (SUPER_ADMIN)
+> **Auth:** uguradm (SUPER_ADMIN)
 
 ---
 

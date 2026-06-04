@@ -2,7 +2,7 @@
 
 > **Reviewer:** Product Owner / Stakeholder (Post-fix audit)
 > **Date:** 27 May 2026
-> **Login:** ugur.yardimci@unygms.com
+> **Login:** uguradm
 
 ---
 
