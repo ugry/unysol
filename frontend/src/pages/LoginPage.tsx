@@ -85,13 +85,12 @@ export default function LoginPage() {
   }, []);
 
   const getRecaptchaToken = useCallback(async (action: string): Promise<string> => {
-    if (!grecaptchaReady) return '';
     try {
       const w = window as any;
-      if (!w.grecaptcha) return '';
+      if (!w.grecaptcha || !w.grecaptcha.execute) return '';
       return await w.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
     } catch { return ''; }
-  }, [grecaptchaReady]);
+  }, []);
 
   const handleGoogleToken = async (idToken: string) => {
     try {
