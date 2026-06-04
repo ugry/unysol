@@ -16,16 +16,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const storedUser = authLib.getStoredUser();
+  const storedAuth = authLib.isAuthenticated();
+  const [user, setUser] = useState<User | null>(storedAuth ? storedUser : null);
+  const [loading, setLoading] = useState(false);
 
+  // Auto-recover user if token exists but user is null (e.g., after email verification)
   useEffect(() => {
-    const stored = authLib.getStoredUser();
-    if (stored && authLib.isAuthenticated()) {
-      setUser(stored);
+    if (!user && authLib.isAuthenticated()) {
+      const stored = authLib.getStoredUser();
+      if (stored) setUser(stored);
     }
-    setLoading(false);
-  }, []);
+  }, [user]);
 
   // Auto-recover user if token exists but user is null (e.g., after email verification)
   useEffect(() => {
