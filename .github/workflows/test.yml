@@ -391,7 +391,6 @@ jobs:
 
       # UI_Test_Directives Step 1: Signup + Verify + Login
       - name: "CRUD: Signup + Verify + Login"
-        continue-on-error: true
         run: |
           set +e
           # Step 1: Signup
