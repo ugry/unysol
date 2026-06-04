@@ -161,8 +161,9 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send verification email
+	// Send verification email with a short delay to ensure SMTP is ready
 	go func() {
+		time.Sleep(500 * time.Millisecond)
 		if err := email.SendVerificationEmail(req.Email, verificationCode, verificationToken); err != nil {
 			logging.System(logging.LevelWarn, "verification email failed", map[string]interface{}{
 				"error": err.Error(), "email": req.Email,
@@ -442,7 +443,7 @@ func (h *AuthHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 
 		var tenantID int
 		err = h.DB.QueryRow(r.Context(),
-			`INSERT INTO tenants (slug, firma_unvani) VALUES ($1, $2) RETURNING id`, slug, pendingName,
+			`INSERT INTO tenants (slug, firma_unvani, plan, durum) VALUES ($1, $2, 'FREE', 'AKTIF') RETURNING id`, slug, pendingName,
 		).Scan(&tenantID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Firma oluşturulamadı. Lütfen tekrar deneyin."})
@@ -525,6 +526,7 @@ func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
 		token := generateVerificationToken()
 		h.DB.Exec(r.Context(), `UPDATE pending_registrations SET code=$1, token=$2, expires_at=NOW() + INTERVAL '1 hour' WHERE id=$3`, code, token, pendingID)
 		go func() {
+			time.Sleep(500 * time.Millisecond)
 			email.SendVerificationEmail(req.Email, code, token)
 		}()
 		writeJSON(w, http.StatusOK, map[string]string{"success": "true", "message": "Yeni doğrulama kodu gönderildi"})
@@ -695,8 +697,9 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO password_resets (email, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
 		req.Email, code)
 
-	// Send email (non-blocking)
+	// Send email (non-blocking, with delay)
 	go func() {
+		time.Sleep(500 * time.Millisecond)
 		if err := email.SendPasswordReset(req.Email, code); err != nil {
 			logging.System(logging.LevelWarn, "password reset email failed", map[string]interface{}{"email": req.Email, "error": err.Error()})
 		}

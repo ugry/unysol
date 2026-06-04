@@ -75,19 +75,41 @@
 | B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
 | B-AUTH-02 | P2 | Auth | Forgot password missing — users locked out without recovery option | ✅ Fixed |
 
-### B-AUTH-07: Verification success doesn't redirect to dashboard (OPEN)
+### B-AUTH-07: Verification success doesn't redirect to dashboard
 
 | Field | Detail |
 |-------|--------|
 | **Severity** | P1 — High |
 | **Module** | Auth / Registration |
-| **Status** | ⬜ OPEN |
+| **Status** | ✅ Fixed |
 | **Found** | Production E2E test — June 4, 2026 |
-| **Bug** | After successful verification (code entered + API returns 200 + JWT), the UI shows "Doğrulandı!" but then redirects to `/login` instead of `/dashboard`. The `ProtectedRoute` doesn't recognize the auth state because `AuthContext` hasn't updated from localStorage yet. |
-| **Impact** | Users complete verification but get stuck on login page. Must manually login again. |
-| **Root Cause** | `navigate('/dashboard')` triggers React Router which hits `ProtectedRoute` before `AuthContext` re-renders from localStorage. |
-| **Fix** | Changed to `window.location.href = '/dashboard'` for hard redirect — forces full page reload so AuthContext picks up token. |
-| **CI Gate** | (to be added) |
+| **Bug** | After successful verification, UI showed "Doğrulandı!" but redirected to `/login` instead of `/dashboard`. `ProtectedRoute` didn't recognize auth state because `AuthContext` hadn't rehydrated from localStorage. |
+| **Fix** | Changed `navigate('/dashboard')` to `window.location.href = '/dashboard'` — hard redirect forces full page reload. |
+| **CI Gate** | None |
+
+### B-AUTH-08: Verification email not sent on first signup attempt
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Auth / Email |
+| **Status** | ✅ Fixed |
+| **Found** | Production user test — June 4, 2026 |
+| **Bug** | User registered, verification email never arrived. Had to click "Tekrar Gönder" to get code. Goroutine email send fires before SMTP connection is ready. |
+| **Fix** | Added `time.Sleep(500ms)` before email send in Signup, ResendCode, and ForgotPassword handlers. |
+| **CI Gate** | None (timing — verified by production testing) |
+
+### B-AUTH-09: New users get all modules (appears as PRO)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Auth / Registration |
+| **Status** | ✅ Fixed |
+| **Found** | Production user report — June 4, 2026 |
+| **Bug** | After verification, new tenant had all 31 modules accessible instead of FREE plan (13 modules). Plan enforcement broken for new signups. |
+| **Fix** | Explicitly set `plan='FREE', durum='AKTIF'` in tenant INSERT in VerifyCode handler. Removes dependency on column defaults which may be stale. |
+| **CI Gate** | To be added |
 
 ---
 
