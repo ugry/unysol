@@ -249,3 +249,41 @@ See `TODO.md` for the prioritized task list.
 9. Build + deploy
 10. Test POST/GET/DELETE via curl
 ```
+
+---
+
+## June 4, 2026 — Registration Fixes + PRO Upgrade + Multi-tenancy (12+ commits)
+
+### Auth & Registration Fixes (B-AUTH-07 through B-AUTH-15)
+- **Email delivery**: Switched from SMTP to Resend API (HTTP), 500ms delay + 3 retries
+- **Verification flow**: Post-signup code input screen, dynamic email link (BASE_URL), resend code
+- **KVKK/Terms**: Consent checkboxes on signup with legal links
+- **Password**: Strength meter + confirmation field + inline policy checklist
+- **Account enumeration**: Identical responses prevent email existence detection
+- **Input validation**: Phone format, company name min/max, input trimming
+- **Forgot password**: Resend code with 60s cooldown, password confirmation
+- **Auto-redirect**: Fixed verification→dashboard redirect (location.href)
+- **Admin auth**: username-based login (uguradm), no email required
+- **reCAPTCHA**: Temporarily disabled — re-enable when deploys stabilize
+
+### PRO Upgrade Flow (B-AUTH-12 through B-AUTH-15)
+- **Stripe checkout**: Price IDs configured, Stripe URL template encoding fix
+- **Session verification**: Public endpoint verifies payment directly, auto-upgrades tenant
+- **Plan enforcement**: plan_enum::text cast fix, migration 022 seeds PRO modules
+- **Sidebar filtering**: JWT allowed_modules decoded in frontend
+
+### Multi-tenancy Fix (B-DATA-01)
+- Removed mock data with cross-tenant plates from ExpensesPage
+- Truck dropdown now fetches real tenant trucks from API
+
+### Infrastructure
+- **GitHub Actions**: suspended due to billing — manual deploy via docker build + ECR push + ECS update
+- **Deploy method**: `docker build` → `docker tag` → `docker push` → `aws ecs update-service`
+- **AWS Profile**: `unysol`, region `eu-central-1`, ECR: `326804802908.dkr.ecr.eu-central-1.amazonaws.com`
+- **Email**: Resend API key `REDACTED...`, domain `unysolar.com` verified
+
+### Credentials
+- Super admin: `uguradm` / `REDACTED` — https://unysolar.com/admin/login
+- Test user: `unygms@tutamail.com` / `REDACTED` — PRO plan, tenant 21
+- QA: `admin@qa.local` / `REDACTED` — http://localhost/login
+- AWS: profile `unysol`, credentials in `~/.aws/`

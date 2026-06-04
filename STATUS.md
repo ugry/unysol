@@ -1,4 +1,58 @@
-# Unysol Status — 03 June 2026 (End of Session)
+# Unysol Status — 04 June 2026
+
+## System Status
+
+```
+CI/CD: GitHub Actions suspended (billing) — manual deploy via docker + ECR + ECS
+QA Env: Docker production mirror (Caddy, PostgreSQL, Redis, Go backend, React frontend, Mailpit)
+Prod: AWS ECS Fargate (ALB, RDS 16.6, ElastiCache 7.1)
+
+LIVE DATA (Prod):
+  8 tenants · 35+ users · 31 modules
+  Stripe checkout: ✅ LIVE (test mode, 4242...)
+  Plan enforcement: ✅ LIVE (FREE=13 modules, PRO=31)
+  Resend email: ✅ LIVE (API method)
+  Admin panel: ✅ uguradm / REDACTED
+  reCAPTCHA: ⬜ Temporarily disabled
+```
+
+## Project Health
+
+```
+CI/CD:          ███████████████░░░░░  %70 (manual deploy only)
+BACKEND:        ███████████████████░  %95
+FRONTEND:       ███████████████████░  %95
+MODULES:        ████████████████░░░░  %63 (31/49)
+QA ENV:         ████████████████████  %100
+EMAIL:          ████████████████████  %100 (Resend API)
+PAYMENTS:       ████████████████░░░░  %80 (Stripe test mode, webhook needs fix)
+OVERALL:        ██████████████████░░  %92
+```
+
+## Today's Achievements
+
+- ✅ Email delivery: Resend API (HTTP) replaces broken SMTP
+- ✅ Registration: KVKK consent, password strength, confirmation, enumeration prevention
+- ✅ Forgot password: resend code, password confirmation
+- ✅ PRO upgrade: Stripe checkout, session verification, plan enforcement
+- ✅ Sidebar: JWT-based module filtering (FREE=13, PRO=31)
+- ✅ Admin: username-based auth (uguradm), tenant delete with export
+- ✅ Multi-tenancy: removed cross-tenant mock data from ExpensesPage
+- ✅ B-AUTH-07 through B-AUTH-15: 9 registration bugs fixed
+- ✅ B-DATA-01: cross-tenant data leakage fixed
+- ✅ B-ADMIN-04: admin panel shows correct tenant plan
+- ⬜ reCAPTCHA: disabled until deploys stabilize
+- ⬜ GitHub Actions: suspended (billing)
+
+## Access
+
+| Account | Credentials | URL |
+|---------|-----------|-----|
+| Super Admin | uguradm / REDACTED | https://unysolar.com/admin/login |
+| Test User (PRO) | unygms@tutamail.com / REDACTED | https://unysolar.com/login |
+| QA Admin | admin@qa.local / REDACTED | http://localhost/login |
+| AWS | profile unysol | ~/.aws/credentials |
+| Stripe Test Card | 4242 4242 4242 4242 | Any future date / any CVC |
 
 ## System Status
 
