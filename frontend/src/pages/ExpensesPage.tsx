@@ -114,28 +114,10 @@ const expenseColumns: Column<Expense>[] = [
   },
 ];
 
-const mockExpenses: Expense[] = [
-  { id: 1, tarih: '2024-06-15', kategori: 'yakit', aciklama: 'İstanbul-Ankara sefer yakıt', tutar: 3200, plaka: '34 ABC 123', fatura_no: 'YKT-001' },
-  { id: 2, tarih: '2024-06-14', kategori: 'yakit', aciklama: 'İzmir-Bursa sefer yakıt', tutar: 2450, plaka: '06 XYZ 456', fatura_no: 'YKT-002' },
-  { id: 3, tarih: '2024-06-10', kategori: 'bakim', aciklama: 'Periyodik bakım (yağ, filtre)', tutar: 4800, plaka: '35 DEF 789', fatura_no: 'BKM-001' },
-  { id: 4, tarih: '2024-06-08', kategori: 'lastik', aciklama: '4 adet lastik değişimi', tutar: 12000, plaka: '07 GHI 012', fatura_no: 'LST-001' },
-  { id: 5, tarih: '2024-06-05', kategori: 'sigorta', aciklama: '06 XYZ 456 kasko yenileme', tutar: 18500, plaka: '06 XYZ 456', fatura_no: 'SIG-001' },
-  { id: 6, tarih: '2024-06-01', kategori: 'mtv', aciklama: 'MTV 2024 ikinci taksit - 34 ABC 123', tutar: 2800, plaka: '34 ABC 123', fatura_no: '' },
-  { id: 7, tarih: '2024-05-28', kategori: 'trafik_cezasi', aciklama: 'Hız limiti ihlali - TEM otoyolu', tutar: 1500, plaka: '01 JKL 345', fatura_no: '' },
-  { id: 8, tarih: '2024-05-20', kategori: 'yakit', aciklama: 'Samsun-Trabzon sefer yakıt', tutar: 2600, plaka: '01 JKL 345', fatura_no: 'YKT-003' },
-];
-
-const mockTrucks = [
-  { plaka: '34 ABC 123', label: '34 ABC 123 - Ford F-MAX' },
-  { plaka: '06 XYZ 456', label: '06 XYZ 456 - Mercedes Actros' },
-  { plaka: '35 DEF 789', label: '35 DEF 789 - Scania R450' },
-  { plaka: '07 GHI 012', label: '07 GHI 012 - Volvo FH16' },
-  { plaka: '01 JKL 345', label: '01 JKL 345 - BMC Tugra' },
-];
-
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trucks, setTrucks] = useState<{id:number;plaka:string;marka?:string;model?:string}[]>([]);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -154,11 +136,14 @@ export default function ExpensesPage() {
         if (!cancelled) setExpenses(res.data);
       })
       .catch(() => {
-        if (!cancelled) setExpenses(mockExpenses);
+        if (!cancelled) setExpenses([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    api.get('/api/tenant/trucks/').then(res => {
+      if (!cancelled && Array.isArray(res.data)) setTrucks(res.data);
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -395,8 +380,8 @@ export default function ExpensesPage() {
                   className="w-full px-3.5 py-2.5 rounded-lg bg-gray-100 border border-enterprise-border text-enterprise-text text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/30 transition-all cursor-pointer"
                 >
                   <option value="">Seçiniz</option>
-                  {mockTrucks.map((t) => (
-                    <option key={t.plaka} value={t.plaka}>{t.label}</option>
+                  {trucks.map((t) => (
+                    <option key={t.id} value={t.plaka}>{t.plaka} {t.marka ? `- ${t.marka} ${t.model||''}` : ''}</option>
                   ))}
                 </select>
               </div>
