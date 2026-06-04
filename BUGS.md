@@ -75,6 +75,20 @@
 | B-STRIPE-02 | P1 | Billing | No dedicated BillingPage — created, handles Stripe checkout + subscription mgmt | ✅ Fixed |
 | B-AUTH-02 | P2 | Auth | Forgot password missing — users locked out without recovery option | ✅ Fixed |
 
+### B-AUTH-07: Verification success doesn't redirect to dashboard (OPEN)
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | P1 — High |
+| **Module** | Auth / Registration |
+| **Status** | ⬜ OPEN |
+| **Found** | Production E2E test — June 4, 2026 |
+| **Bug** | After successful verification (code entered + API returns 200 + JWT), the UI shows "Doğrulandı!" but then redirects to `/login` instead of `/dashboard`. The `ProtectedRoute` doesn't recognize the auth state because `AuthContext` hasn't updated from localStorage yet. |
+| **Impact** | Users complete verification but get stuck on login page. Must manually login again. |
+| **Root Cause** | `navigate('/dashboard')` triggers React Router which hits `ProtectedRoute` before `AuthContext` re-renders from localStorage. |
+| **Fix** | Changed to `window.location.href = '/dashboard'` for hard redirect — forces full page reload so AuthContext picks up token. |
+| **CI Gate** | (to be added) |
+
 ---
 
 ## Bug Details

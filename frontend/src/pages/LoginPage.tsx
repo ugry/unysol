@@ -256,7 +256,8 @@ export default function LoginPage() {
           id: res.data.user_id, email: res.data.email,
           tenant_id: res.data.tenant_id, role: res.data.role,
         }));
-        setTimeout(() => navigate('/dashboard', { replace: true }), 1500);
+        // Use location.href for hard redirect — AuthContext picks up token
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
       setVerifyMsg(err?.response?.data?.error || 'Geçersiz kod. Lütfen tekrar deneyin.');
