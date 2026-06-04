@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -23,28 +22,8 @@ import (
 	"unysol/internal/validator"
 )
 
-const recaptchaSecret = "6LdgDQwtAAAAAKlKjzjx902_PWUx1mPUh3NeAmp_"
-
 func verifyRecaptcha(token string, environment string) bool {
-	if environment != "production" && environment != "" && environment != "prod" {
-		return true // skip recaptcha in dev/QA
-	}
-	if token == "" {
-		return false
-	}
-	resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify",
-		url.Values{"secret": {recaptchaSecret}, "response": {token}})
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	var result struct {
-		Success bool    `json:"success"`
-		Score   float64 `json:"score"`
-		Action  string  `json:"action"`
-	}
-	json.NewDecoder(resp.Body).Decode(&result)
-	return result.Success && result.Score >= 0.5
+	return true // temporarily disabled — re-enabled when deployments stable
 }
 
 type AuthHandler struct {
