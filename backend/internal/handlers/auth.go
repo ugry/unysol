@@ -197,8 +197,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token"), h.Environment) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
-		return
+		if !(req.Username != "" && !strings.Contains(req.Username, "@")) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
+			return
+		}
 	}
 
 	if req.Email == "" && req.Password == "" && req.Username == "" {
@@ -465,10 +467,15 @@ func (h *AuthHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 		var userID int
 		err = h.DB.QueryRow(r.Context(),
 			`INSERT INTO users (tenant_id, email, password_hash, ad_soyad, rol, telefon, aktif) 
-			 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5, true) RETURNING id`,
+			 VALUES ($1, $2, $3, $4, 'TENANT_OWNER', $5, true)
+			 ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, aktif = true
+			 RETURNING id`,
 			tenantID, pendingEmail, pendingPass, pendingName, pendingPhone,
 		).Scan(&userID)
 		if err != nil {
+			logging.System(logging.LevelError, "verify-code: user insert failed", map[string]interface{}{
+				"tenant_id": tenantID, "email": pendingEmail, "name": pendingName, "error": err.Error(),
+			})
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Kullanıcı oluşturulamadı"})
 			return
 		}
