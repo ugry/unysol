@@ -1,4 +1,5 @@
 name: Deploy to AWS Production
+
 on:
   workflow_dispatch:
     inputs:
@@ -7,10 +8,13 @@ on:
         required: true
         type: string
         default: 'Bug fix or feature release'
+
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   AWS_REGION: eu-central-1
   ECR_BACKEND: unysol/backend
   ECR_FRONTEND: unysol/frontend
@@ -18,36 +22,120 @@ env:
   ECS_SERVICE_BACKEND: unysol-backend
   ECS_SERVICE_FRONTEND: unysol-frontend
   FRONTEND_API_URL: https://unysolar.com
+
 jobs:
+  tests:
+    name: Run Automated Tests
+    uses: ./.github/workflows/test.yml
+
   deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
+    needs: []
+    environment:
+      name: production
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to Amazon ECR
         id: login-ecr
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v5
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:latest
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: docker/build-push-action@v5
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
           build-args: |
             VITE_API_URL=${{ env.FRONTEND_API_URL }}
-            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:latest
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE_BACKEND }} --force-new-deployment --region ${{ env.AWS_REGION }}
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE_FRONTEND }} --force-new-deployment --region ${{ env.AWS_REGION }}
+
+      - name: Deploy backend to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_BACKEND }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy frontend to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_FRONTEND }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for backend stabilization
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for frontend stabilization
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_FRONTEND }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Post-deploy smoke tests
+        if: always()
+        run: |
+          echo "============================================"
+          echo " Post-Deploy Smoke Tests"
+          echo "============================================"
+          PASS=0; FAIL=0
+          check() {
+            local code=$(curl -s -o /dev/null -w "%{http_code}" -X "$1" "https://unysolar.com$2" 2>/dev/null)
+            if echo "$code" | grep -qE "$3"; then
+              echo "  ✓ $4 (HTTP $code)"; PASS=$((PASS+1))
+            else
+              echo "  ✗ $4 (HTTP $code, expected $3)"; FAIL=$((FAIL+1))
+            fi
+          }
+          check GET "/api/system/health" "200" "Backend health"
+          check GET "/" "200" "Frontend"
+          check GET "/login" "200" "Login page"
+          echo ""
+          echo " RESULTS: $PASS passed, $FAIL failed"
+          echo "============================================"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "============================================"
+          echo "Deployment Requested by: ${{ github.actor }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Time: $(date -u)"
+          echo "============================================"
