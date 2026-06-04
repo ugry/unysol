@@ -288,6 +288,12 @@ func (h *AuthHandler) generateToken(userID, tenantID int, email, role string) (s
 		var plan string
 		ctx := context.Background()
 		h.DB.QueryRow(ctx, `SELECT COALESCE(plan::text,'FREE') FROM tenants WHERE id=$1`, tenantID).Scan(&plan)
+
+		var count int
+		h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM plan_modules WHERE plan::text = $1 AND enabled = TRUE`, plan).Scan(&count)
+		logging.System(logging.LevelInfo, "plan_modules query", map[string]interface{}{
+			"tenant_id": tenantID, "plan": plan, "pro_modules_count": count,
+		})
 		
 		rows, err := h.DB.Query(ctx,
 			`SELECT m.module_key FROM plan_modules pm
