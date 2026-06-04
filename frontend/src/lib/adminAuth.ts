@@ -1,8 +1,15 @@
 import api from './api';
 import type { AdminLoginResponse, AdminUser } from '@/types';
 
-export async function adminLogin(email: string, password: string): Promise<AdminUser> {
-  const res = await api.post<AdminLoginResponse>('/api/auth/login', { email, password });
+export async function adminLogin(usernameOrEmail: string, password: string): Promise<AdminUser> {
+  const payload: Record<string, string> = { password };
+  if (usernameOrEmail.includes('@')) {
+    payload.email = usernameOrEmail;
+  } else {
+    payload.username = usernameOrEmail;
+  }
+
+  const res = await api.post<AdminLoginResponse>('/api/auth/login', payload);
 
   if (res.data.role !== 'SUPER_ADMIN') {
     throw new Error('Bu hesap yönetici yetkisine sahip değil');

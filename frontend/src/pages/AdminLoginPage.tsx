@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '@/lib/adminAuth';
-import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Shield, User } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      await adminLogin(email, password);
+      await adminLogin(username.trim(), password);
       navigate('/admin', { replace: true });
     } catch (err: unknown) {
       const msg =
@@ -46,8 +46,13 @@ export default function AdminLoginPage() {
         </div>
 
         <div className="bg-[#08090a] border border-[rgba(255,255,255,0.08)] rounded-lg p-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-[#FF5F03]/10 rounded-full flex items-center justify-center">
+              <User size={28} className="text-[#FF5F03]" />
+            </div>
+          </div>
           <h2 className="text-xl font-semibold text-[#f7f8f8] mb-1 text-center">
-            Yetkili Girişi
+            Sistem Yöneticisi
           </h2>
           <p className="text-sm text-[#8a8f98] mb-6 text-center">
             Platform yönetim paneline erişim
@@ -62,14 +67,15 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#8a8f98] mb-1.5">
-                E-posta
+                Kullanıcı Adı
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                placeholder="admin@unysolar.com"
+                autoComplete="username"
+                placeholder="Kullanıcı adınız"
                 className="w-full px-3.5 py-2.5 rounded-lg bg-[#08090a] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#555] text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/20 transition-all"
               />
             </div>
@@ -84,6 +90,7 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-lg bg-[#08090a] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#555] text-sm outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/20 transition-all pr-10"
                 />

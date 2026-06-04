@@ -63,6 +63,7 @@ type SignupRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Username string `json:"username,omitempty"`
 }
 
 type AuthResponse struct {
@@ -192,12 +193,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+	if req.Email == "" && req.Password == "" && req.Username == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email or username and password are required"})
 		return
 	}
 
-	if isLockedOut(req.Email) {
+	// Determine if logging in with email or username
+	loginField := req.Email
+	if loginField == "" && req.Username != "" {
+		loginField = req.Username
+	}
+
+	if isLockedOut(loginField) {
 		logging.Auth(logging.LevelWarn, "login blocked — account locked", "", "", "", r.RemoteAddr,
 			map[string]interface{}{"email": req.Email})
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "Çok fazla giriş denemesi. Lütfen daha sonra tekrar deneyin."})
@@ -208,8 +215,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var passwordHash, role string
 	var aktif bool
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT id, tenant_id, password_hash, rol, COALESCE(aktif, false) FROM users WHERE email = $1`,
-		req.Email,
+		`SELECT id, tenant_id, password_hash, rol, COALESCE(aktif, false) FROM users WHERE email = $1 OR username = $1`,
+		loginField,
 	).Scan(&userID, &tenantID, &passwordHash, &role, &aktif)
 	if err != nil {
 		recordFailedAttempt(req.Email)
