@@ -14,6 +14,7 @@
 | IMP-002 | SMTP/Email connectivity — verification emails actually send to users | Switched from SES to Hostinger SMTP (smtp.hostinger.com:587). Working in QA. Needs deploy. | ✅ Done |
 | IMP-003 | WhatsApp notification integration — truckers live on WhatsApp | #1 competitor differentiator (FiloAsistan, Filojistik) | ⬜ |
 | IMP-054 | Resend API integration — all system emails via Resend API | Replaces broken SMTP; registration, password reset, notifications | ✅ Done |
+| IMP-055 | Delete tenant with data export — super admin can delete + optional ZIP export | GDPR compliance, data portability, tenant lifecycle management | ✅ Done |
 
 ## 🟠 P1 — High Impact
 

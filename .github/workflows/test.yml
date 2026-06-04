@@ -764,6 +764,35 @@ jobs:
           fi
           echo "✅ IMP-054: Resend integration complete"
 
+      # IMP-055: Admin can delete tenants with export
+      - name: "IMP-055: Delete tenant endpoint exists"
+        run: |
+          if grep -q "DeleteTenant" backend/internal/handlers/admin.go; then
+            echo "✅ DeleteTenant handler exists"
+          else
+            echo "❌ IMP-055: DeleteTenant handler missing"
+            exit 1
+          fi
+          if grep -q "ExportTenant" backend/internal/handlers/admin.go; then
+            echo "✅ ExportTenant handler exists"
+          else
+            echo "❌ IMP-055: ExportTenant handler missing"
+            exit 1
+          fi
+          if grep -q "r.Delete.*tenants.*DeleteTenant" backend/cmd/server/main.go; then
+            echo "✅ DELETE route registered"
+          else
+            echo "❌ IMP-055: DELETE route not registered"
+            exit 1
+          fi
+          if grep -q "DeleteModal\|deleteModal\|Firmayı Sil" frontend/src/pages/AdminDashboard.tsx; then
+            echo "✅ Delete modal in AdminDashboard"
+          else
+            echo "❌ IMP-055: Delete modal missing from AdminDashboard"
+            exit 1
+          fi
+          echo "✅ IMP-055: Tenant deletion with export complete"
+
       # truckownersettingsanalysis.md: WhatsApp integration tracking
       - name: WhatsApp integration status
         run: |

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -9,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"unysol/internal/logging"
 	"unysol/internal/middleware"
 	"unysol/internal/models"
 )
@@ -353,4 +356,195 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, user)
+}
+
+func (h *AdminHandler) ExportTenant(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid tenant id")
+		return
+	}
+
+	var tenantName string
+	err = h.DB.QueryRow(r.Context(), `SELECT firma_unvani FROM tenants WHERE id=$1`, id).Scan(&tenantName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "tenant not found")
+		return
+	}
+
+	buf, zipErr := exportTenantData(h.DB, r, id, tenantName)
+	if zipErr != nil {
+		slog.Error("failed to export tenant data", "error", zipErr, "tenant_id", id)
+		writeError(w, http.StatusInternalServerError, "failed to export tenant data")
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename="+safeFilename(tenantName)+".zip")
+	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
+}
+
+func (h *AdminHandler) DeleteTenant(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid tenant id")
+		return
+	}
+
+	var tenantName string
+	err = h.DB.QueryRow(r.Context(), `SELECT firma_unvani FROM tenants WHERE id=$1`, id).Scan(&tenantName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "tenant not found")
+		return
+	}
+
+	export := r.URL.Query().Get("export") == "true"
+
+	if export {
+		buf, zipErr := exportTenantData(h.DB, r, id, tenantName)
+		if zipErr != nil {
+			slog.Error("failed to export tenant data", "error", zipErr, "tenant_id", id)
+			writeError(w, http.StatusInternalServerError, "failed to export tenant data")
+			return
+		}
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", "attachment; filename="+safeFilename(tenantName)+".zip")
+		w.WriteHeader(http.StatusOK)
+		w.Write(buf.Bytes())
+		return
+	}
+
+	tables := []struct {
+		name  string
+		col   string
+	}{
+		{"invoice_payments", "invoice_id IN (SELECT id FROM invoices WHERE tenant_id=$1)"},
+		{"invoice_items", "invoice_id IN (SELECT id FROM invoices WHERE tenant_id=$1)"},
+		{"e_fatura_logs", "invoice_id IN (SELECT id FROM invoices WHERE tenant_id=$1)"},
+		{"invoice_recurrences", "tenant_id"},
+		{"driver_leave", "tenant_id"},
+		{"payslips", "tenant_id"},
+		{"driver_allowances", "tenant_id"},
+		{"fuel_logs", "tenant_id"},
+		{"toll_logs", "tenant_id"},
+		{"maintenance_records", "tenant_id"},
+		{"tire_records", "tenant_id"},
+		{"cek_senet", "tenant_id"},
+		{"expenses", "tenant_id"},
+		{"trips", "tenant_id"},
+		{"load_board", "tenant_id"},
+		{"proposals", "tenant_id"},
+		{"contracts", "tenant_id"},
+		{"notifications", "tenant_id"},
+		{"predictions", "tenant_id"},
+		{"settings", "tenant_id"},
+		{"actions", "tenant_id"},
+		{"password_resets", "tenant_id"},
+		{"user_permissions", "tenant_id"},
+		{"tenant_modules", "tenant_id"},
+		{"customers", "tenant_id"},
+		{"trailers", "tenant_id"},
+		{"trucks", "tenant_id"},
+		{"employees", "tenant_id"},
+		{"users", "tenant_id"},
+		{"invoices", "tenant_id"},
+		{"subscriptions", "tenant_id"},
+	}
+
+	for _, t := range tables {
+		_, err := h.DB.Exec(r.Context(), "DELETE FROM "+t.name+" WHERE "+t.col, id)
+		if err != nil {
+			slog.Warn("delete tenant cascade", "table", t.name, "error", err)
+		}
+	}
+
+	if _, err = h.DB.Exec(r.Context(), `DELETE FROM tenants WHERE id=$1`, id); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete tenant")
+		return
+	}
+
+	logging.Auth(logging.LevelInfo, "tenant deleted", "0", strconv.Itoa(id), middleware.GetUserID(r.Context()), r.RemoteAddr,
+		map[string]interface{}{"tenant_name": tenantName, "exported": false})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Firma ve tüm verileri silindi",
+	})
+}
+
+func exportTenantData(db *pgxpool.Pool, r *http.Request, tenantID int, tenantName string) (*bytes.Buffer, error) {
+	buf := new(bytes.Buffer)
+	zw := zip.NewWriter(buf)
+
+	tables := map[string]string{
+		"tenants":           "SELECT * FROM tenants WHERE id=$1",
+		"users":             "SELECT * FROM users WHERE tenant_id=$1",
+		"trucks":            "SELECT * FROM trucks WHERE tenant_id=$1",
+		"trailers":          "SELECT * FROM trailers WHERE tenant_id=$1",
+		"trips":             "SELECT * FROM trips WHERE tenant_id=$1",
+		"customers":         "SELECT * FROM customers WHERE tenant_id=$1",
+		"invoices":          "SELECT * FROM invoices WHERE tenant_id=$1",
+		"invoice_items":     "SELECT * FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE tenant_id=$1)",
+		"invoice_payments":  "SELECT * FROM invoice_payments WHERE invoice_id IN (SELECT id FROM invoices WHERE tenant_id=$1)",
+		"expenses":          "SELECT * FROM expenses WHERE tenant_id=$1",
+		"employees":         "SELECT * FROM employees WHERE tenant_id=$1",
+		"cek_senet":         "SELECT * FROM cek_senet WHERE tenant_id=$1",
+		"fuel_logs":         "SELECT * FROM fuel_logs WHERE tenant_id=$1",
+		"toll_logs":         "SELECT * FROM toll_logs WHERE tenant_id=$1",
+		"maintenance_records": "SELECT * FROM maintenance_records WHERE tenant_id=$1",
+		"predictions":       "SELECT * FROM predictions WHERE tenant_id=$1",
+		"subscriptions":     "SELECT * FROM subscriptions WHERE tenant_id=$1",
+		"settings":          "SELECT * FROM settings WHERE tenant_id=$1",
+		"notifications":     "SELECT * FROM notifications WHERE tenant_id=$1",
+		"actions":           "SELECT * FROM actions WHERE tenant_id=$1",
+		"load_board":        "SELECT * FROM load_board WHERE tenant_id=$1",
+		"driver_leave":      "SELECT * FROM driver_leave WHERE tenant_id=$1",
+	}
+
+	for name, query := range tables {
+		rows, err := db.Query(r.Context(), query, tenantID)
+		if err != nil {
+			continue
+		}
+		defer rows.Close()
+
+		descs := rows.FieldDescriptions()
+		var all []map[string]interface{}
+		for rows.Next() {
+			vals, _ := rows.Values()
+			row := make(map[string]interface{})
+			for i, v := range vals {
+				row[string(descs[i].Name)] = v
+			}
+			all = append(all, row)
+		}
+		rows.Close()
+
+		if len(all) == 0 {
+			continue
+		}
+
+		jsonBytes, _ := json.MarshalIndent(all, "", "  ")
+		w, _ := zw.Create(tenantName + "/" + name + ".json")
+		w.Write(jsonBytes)
+	}
+
+	zw.Close()
+	return buf, nil
+}
+
+func safeFilename(name string) string {
+	result := make([]byte, 0, len(name))
+	for _, c := range name {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' {
+			result = append(result, byte(c))
+		} else if c == ' ' {
+			result = append(result, '_')
+		}
+	}
+	if len(result) == 0 {
+		return "tenant"
+	}
+	return string(result)
 }

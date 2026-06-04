@@ -223,6 +223,8 @@ func main() {
 			r.Get("/tenants/{id}", adminHandler.GetTenant)
 			r.Put("/tenants/{id}/plan", adminHandler.ChangePlan)
 			r.Post("/tenants/{id}/suspend", adminHandler.SuspendTenant)
+			r.Delete("/tenants/{id}", adminHandler.DeleteTenant)
+			r.Get("/tenants/{id}/export", adminHandler.ExportTenant)
 
 			r.Get("/dashboard/summary", adminHandler.DashboardSummary)
 			r.Get("/audit-log", adminHandler.ListAuditLog)
