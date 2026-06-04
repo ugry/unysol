@@ -52,6 +52,8 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 		"/api/tenant/settings":       true,
 		"/api/tenant/notifications":  true,
 		"/api/tenant/billing/status": true,
+		"/api/tenant/stripe/checkout": true,
+		"/api/tenant/stripe/portal":   true,
 	}
 
 	var mu sync.RWMutex

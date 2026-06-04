@@ -115,8 +115,8 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       const errMsg = err?.response?.data?.error || '';
-      setUpgradeMsg(errMsg === 'Stripe yapılandırılmamış'
-        ? 'Ödeme sistemi henüz aktif değil. Lütfen daha sonra tekrar deneyin.'
+      setUpgradeMsg(errMsg
+        ? errMsg
         : 'Bağlantı hatası. Lütfen info@unysolar.com adresine yazın.');
     } finally { setUpgrading(false); }
   };
