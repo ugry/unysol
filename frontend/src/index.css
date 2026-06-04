@@ -61,3 +61,16 @@ input:-webkit-autofill:focus {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* reCAPTCHA v3 badge — compact, non-intrusive */
+.grecaptcha-badge {
+  visibility: visible !important;
+  opacity: 0.6 !important;
+  transform: scale(0.85) !important;
+  transform-origin: bottom right !important;
+  transition: opacity 0.2s !important;
+  z-index: 40 !important;
+}
+.grecaptcha-badge:hover {
+  opacity: 1 !important;
+}

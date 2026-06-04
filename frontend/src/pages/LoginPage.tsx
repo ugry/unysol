@@ -373,6 +373,13 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* reCAPTCHA terms (required by Google) */}
+            {isSignup && (
+              <p className="text-[10px] text-[#62666d] leading-relaxed pt-1">
+                Bu site reCAPTCHA ile korunmaktadır. <a href="https://policies.google.com/privacy" target="_blank" className="text-[#8a8f98] hover:text-[#d0d6e0] underline">Google Gizlilik Politikası</a> ve <a href="https://policies.google.com/terms" target="_blank" className="text-[#8a8f98] hover:text-[#d0d6e0] underline">Kullanım Koşulları</a> geçerlidir.
+              </p>
+            )}
+
             <button type="submit" disabled={loading}
               className="w-full py-2 rounded-md bg-[#FF5F03] hover:bg-[#FF5F03]-hover text-white font-[510] text-[14px] transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {loading && <Loader2 size={16} className="animate-spin" />}
