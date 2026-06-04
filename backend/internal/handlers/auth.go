@@ -292,7 +292,7 @@ func (h *AuthHandler) generateToken(userID, tenantID int, email, role string) (s
 		rows, err := h.DB.Query(ctx,
 			`SELECT m.module_key FROM plan_modules pm
 			 JOIN modules m ON m.id = pm.module_id
-			 WHERE pm.plan = $1 AND pm.enabled = TRUE`, plan)
+			 WHERE pm.plan::text = $1 AND pm.enabled = TRUE`, plan)
 		if err == nil {
 			defer rows.Close()
 			var allowed []string
