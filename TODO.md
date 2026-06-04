@@ -16,7 +16,7 @@
 | IMP-054 | Resend API integration — all system emails via Resend API | Replaces broken SMTP; registration, password reset, notifications | ✅ Done |
 | IMP-055 | Delete tenant with data export — super admin can delete + optional ZIP export | GDPR compliance, data portability, tenant lifecycle management | ✅ Done |
 | IMP-056 | KVKK/Terms consent checkbox on signup | Turkish legal requirement (KVKK Law No. 6698) — explicit opt-in mandatory | ✅ Done |
-| IMP-057 | reCAPTCHA v3 on signup/login | Bot protection — prevent automated account creation | ⬜ |
+| IMP-057 | reCAPTCHA v3 on signup/login/forgot-password | Bot protection — prevent automated account creation | ✅ Done |
 | IMP-058 | Password strength meter + confirmation + inline policy | Reduce typos, improve password quality, match industry UX | ✅ Done |
 | IMP-059 | Account enumeration prevention — identical responses | OWASP: never reveal whether account exists via error messages | ✅ Done |
 | IMP-060 | Input trimming + validation (phone, company name) | Prevent garbage data, normalize inputs | ✅ Done |

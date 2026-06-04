@@ -1,8 +1,11 @@
 import api from './api';
 import type { LoginResponse, SignupPayload, User } from '@/types';
 
-export async function login(email: string, password: string): Promise<User> {
-  const res = await api.post<LoginResponse>('/api/auth/login', { email, password });
+export async function login(email: string, password: string, recaptchaToken?: string): Promise<User> {
+  const headers: Record<string, string> = {};
+  if (recaptchaToken) headers['X-Recaptcha-Token'] = recaptchaToken;
+
+  const res = await api.post<LoginResponse>('/api/auth/login', { email, password }, { headers });
 
   const token = res.data.access_token;
   const user: User = {
@@ -18,13 +21,16 @@ export async function login(email: string, password: string): Promise<User> {
   return user;
 }
 
-export async function signup(data: SignupPayload): Promise<{ requires_verification: boolean; email: string; user_id: number; tenant_id: number }> {
+export async function signup(data: SignupPayload, recaptchaToken?: string): Promise<{ requires_verification: boolean; email: string; user_id: number; tenant_id: number }> {
+  const headers: Record<string, string> = {};
+  if (recaptchaToken) headers['X-Recaptcha-Token'] = recaptchaToken;
+
   const res = await api.post('/api/auth/signup', {
     tenant_name: data.firma_unvani,
     email: data.email,
     password: data.password,
     telefon: data.telefon,
-  });
+  }, { headers });
 
   if (res.data.requires_verification) {
     return {
@@ -35,7 +41,6 @@ export async function signup(data: SignupPayload): Promise<{ requires_verificati
     };
   }
 
-  // Legacy flow (shouldn't happen anymore)
   const token = res.data.access_token;
   const user: User = {
     id: res.data.user_id,

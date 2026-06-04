@@ -764,6 +764,24 @@ jobs:
           fi
           echo "✅ IMP-054: Resend integration complete"
 
+      - name: "IMP-057: reCAPTCHA v3 on auth endpoints"
+        run: |
+          if grep -q "verifyRecaptcha" backend/internal/handlers/auth.go && \
+             grep -q "X-Recaptcha-Token" backend/internal/handlers/auth.go; then
+            echo "✅ reCAPTCHA verification on backend"
+          else
+            echo "❌ IMP-057: reCAPTCHA backend missing"
+            exit 1
+          fi
+          if grep -q "RECAPTCHA_SITE_KEY" frontend/src/pages/LoginPage.tsx && \
+             grep -q "getRecaptchaToken" frontend/src/pages/LoginPage.tsx; then
+            echo "✅ reCAPTCHA integrated in frontend"
+          else
+            echo "❌ IMP-057: reCAPTCHA frontend missing"
+            exit 1
+          fi
+          echo "✅ IMP-057: reCAPTCHA v3 complete"
+
       # IMP-056-062: Registration best practices
       - name: "IMP-056: KVKK/Terms checkbox in signup"
         run: |

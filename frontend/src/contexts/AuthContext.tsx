@@ -7,8 +7,8 @@ type SignupResult = User | { requires_verification: boolean; email: string; user
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  signup: (data: SignupPayload) => Promise<SignupResult>;
+  login: (email: string, password: string, recaptchaToken?: string) => Promise<User>;
+  signup: (data: SignupPayload, recaptchaToken?: string) => Promise<SignupResult>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -35,14 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const login = async (email: string, password: string) => {
-    const u = await authLib.login(email, password);
+  const login = async (email: string, password: string, recaptchaToken?: string) => {
+    const u = await authLib.login(email, password, recaptchaToken);
     setUser(u);
     return u;
   };
 
-  const signupFn = async (data: SignupPayload) => {
-    const result = await authLib.signup(data);
+  const signupFn = async (data: SignupPayload, recaptchaToken?: string) => {
+    const result = await authLib.signup(data, recaptchaToken);
     if ('requires_verification' in result && result.requires_verification) {
       return result;
     }

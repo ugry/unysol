@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,27 @@ import (
 	"unysol/internal/logging"
 	"unysol/internal/validator"
 )
+
+const recaptchaSecret = "6LdgDQwtAAAAAKlKjzjx902_PWUx1mPUh3NeAmp_"
+
+func verifyRecaptcha(token string) bool {
+	if token == "" {
+		return false
+	}
+	resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify",
+		url.Values{"secret": {recaptchaSecret}, "response": {token}})
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	var result struct {
+		Success bool    `json:"success"`
+		Score   float64 `json:"score"`
+		Action  string  `json:"action"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+	return result.Success && result.Score >= 0.5
+}
 
 type AuthHandler struct {
 	DB        *pgxpool.Pool
@@ -52,6 +74,11 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz istek"})
+		return
+	}
+
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
 		return
 	}
 
@@ -153,6 +180,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
 		return
 	}
 
@@ -620,6 +652,14 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "E-posta adresi zorunludur"})
+		return
+	}
+
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.",
+		})
 		return
 	}
 

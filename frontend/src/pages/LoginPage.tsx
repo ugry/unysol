@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SignupPayload } from '@/types';
 import api from '@/lib/api';
 import { Loader2, Eye, EyeOff, Truck, Mail, ArrowLeft, Check, X as XIcon } from 'lucide-react';
+
+const RECAPTCHA_SITE_KEY = '6LdgDQwtAAAAAKxF1RJeI7bbIEtQ_7IjRqNYBo8u';
 
 function passwordStrength(pw: string): { score: number; label: string; color: string; checks: { label: string; ok: boolean }[] } {
   const checks = [
@@ -63,6 +65,28 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, [forgotResendCooldown]);
 
+  // reCAPTCHA v3 — load script and expose executor
+  const [grecaptchaReady, setGrecaptchaReady] = useState(false);
+  useEffect(() => {
+    const scriptId = 'recaptcha-script';
+    if (document.getElementById(scriptId)) { setGrecaptchaReady(true); return; }
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    script.onload = () => setGrecaptchaReady(true);
+    document.head.appendChild(script);
+  }, []);
+
+  const getRecaptchaToken = useCallback(async (action: string): Promise<string> => {
+    if (!grecaptchaReady) return '';
+    try {
+      const w = window as any;
+      if (!w.grecaptcha) return '';
+      return await w.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+    } catch { return ''; }
+  }, [grecaptchaReady]);
+
   const handleGoogleToken = async (idToken: string) => {
     try {
       setError('');
@@ -104,6 +128,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const trimmedEmail = email.trim();
+    const recaptchaToken = await getRecaptchaToken(isSignup ? 'signup' : 'login');
 
     try {
       if (isSignup) {
@@ -119,7 +144,7 @@ export default function LoginPage() {
           password,
           telefon: telefon.trim() || undefined,
         };
-        const result = await signup(payload);
+        const result = await signup(payload, recaptchaToken);
         if ('requires_verification' in result && result.requires_verification) {
           setVerificationEmail(result.email);
           setShowVerification(true);
@@ -127,7 +152,7 @@ export default function LoginPage() {
           return;
         }
       } else {
-        await login(trimmedEmail, password);
+        await login(trimmedEmail, password, recaptchaToken);
       }
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
@@ -148,8 +173,10 @@ export default function LoginPage() {
   const handleForgotSend = async () => {
     if (!forgotEmail.trim()) return;
     setForgotSending(true); setForgotMsg('');
+    const recaptchaToken = await getRecaptchaToken('forgot_password');
     try {
-      const r = await api.post('/api/auth/forgot-password', { email: forgotEmail.trim() });
+      const r = await api.post('/api/auth/forgot-password', { email: forgotEmail.trim() },
+        { headers: { 'X-Recaptcha-Token': recaptchaToken } });
       setForgotMsg(r.data?.message || 'Kod gönderildi.');
       setForgotStep('code');
       setForgotResendCooldown(60);
