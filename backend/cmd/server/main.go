@@ -214,6 +214,7 @@ func main() {
 			r.Mount("/user-management", userMgmtHandler.Routes())
 			r.Get("/my-permissions", userMgmtHandler.GetAllPermissions)
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
+			r.Post("/stripe/verify-session", stripeHandler.VerifySession)
 			r.Mount("/export", exportHandler.Routes())
 		})
 

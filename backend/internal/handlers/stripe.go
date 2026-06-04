@@ -9,7 +9,10 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"unysol/internal/logging"
@@ -114,6 +117,84 @@ func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Req
 
 	sessionURL, _ := session["url"].(string)
 	writeJSON(w, http.StatusOK, map[string]string{"url": sessionURL})
+}
+
+func (h *StripeHandler) VerifySession(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SessionID string `json:"session_id"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.SessionID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session_id gerekli"})
+		return
+	}
+
+	sk := getStripeSecretKey(h, r)
+	if sk == "" {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Stripe yapılandırılmamış"})
+		return
+	}
+
+	stripeReq, _ := http.NewRequest("GET", "https://api.stripe.com/v1/checkout/sessions/"+req.SessionID, nil)
+	stripeReq.SetBasicAuth(sk, "")
+	resp, err := http.DefaultClient.Do(stripeReq)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Oturum kontrol edilemedi"})
+		return
+	}
+	defer resp.Body.Close()
+
+	var session map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&session)
+
+	paymentStatus, _ := session["payment_status"].(string)
+	metadata, _ := session["metadata"].(map[string]interface{})
+
+	if paymentStatus == "paid" && metadata != nil {
+		tenantID, _ := metadata["tenant_id"].(string)
+		plan, _ := metadata["plan"].(string)
+		customer, _ := session["customer"].(string)
+		subscription, _ := session["subscription"].(string)
+		amountTotal, _ := session["amount_total"].(float64)
+
+		if tenantID != "" && plan != "" {
+			tid, _ := strconv.Atoi(tenantID)
+			h.DB.Exec(r.Context(),
+				`INSERT INTO subscriptions (tenant_id, plan, baslangic, bitis, ucret) VALUES ($1,$2,CURRENT_DATE,CURRENT_DATE+INTERVAL '1 year',$3) ON CONFLICT DO NOTHING`,
+				tid, plan, amountTotal/100)
+			h.DB.Exec(r.Context(),
+				`UPDATE tenants SET plan='PRO', stripe_customer_id=$1, stripe_subscription_id=$2 WHERE id=$3`,
+				customer, subscription, tid)
+
+			// Generate new JWT with PRO modules
+			var email, role string
+			var uid int
+			h.DB.QueryRow(r.Context(), `SELECT id, email, COALESCE(rol::text,'TENANT_OWNER') FROM users WHERE tenant_id=$1 AND rol='TENANT_OWNER' LIMIT 1`, tid).Scan(&uid, &email, &role)
+
+			claims := jwt.MapClaims{
+				"user_id": uid, "tenant_id": tid, "email": email, "role": role,
+				"exp": time.Now().Add(365 * 24 * time.Hour).Unix(),
+				"iat": time.Now().Unix(),
+			}
+			// Add PRO modules
+			rows, _ := h.DB.Query(r.Context(), `SELECT m.module_key FROM plan_modules pm JOIN modules m ON m.id=pm.module_id WHERE pm.plan='PRO' AND pm.enabled=true`)
+			if rows != nil {
+				defer rows.Close()
+				var allowed []string
+				for rows.Next() { var k string; rows.Scan(&k); allowed = append(allowed, k) }
+				claims["allowed_modules"] = allowed
+			}
+			jwtToken, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+			writeJSON(w, http.StatusOK, map[string]interface{}{
+				"success": true, "plan": plan,
+				"access_token": jwtToken, "user_id": uid, "tenant_id": tid, "email": email, "role": role,
+				"message": "Plan PRO'ya yükseltildi!",
+			})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"success": "false", "status": paymentStatus})
 }
 
 func (h *StripeHandler) Webhook(w http.ResponseWriter, r *http.Request) {

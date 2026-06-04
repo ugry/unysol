@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import { Building2, Users as UsersIcon, Bell, Package, Crown, Save, Plus, Trash2, Settings2, UserCheck, Calendar, Phone, UserPlus } from 'lucide-react';
@@ -7,7 +8,25 @@ import PermissionsModal from '@/components/PermissionsModal';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const isOwner = user?.role === 'TENANT_OWNER';
+
+  // Check for Stripe checkout session return
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      api.post('/api/tenant/stripe/verify-session', { session_id: sessionId }).then(res => {
+        if (res.data?.access_token) {
+          localStorage.setItem('unysol_token', res.data.access_token);
+          localStorage.setItem('unysol_user', JSON.stringify({
+            id: res.data.user_id, email: res.data.email,
+            tenant_id: res.data.tenant_id, role: res.data.role,
+          }));
+          window.location.href = '/dashboard/settings';
+        }
+      }).catch(() => {});
+    }
+  }, [searchParams]);
 
   const [companyForm, setCompanyForm] = useState({
     firma_unvani: user?.firma_unvani || '',
