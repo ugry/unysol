@@ -65,6 +65,18 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [permittedModules, setPermittedModules] = useState<Set<string> | null | undefined>(undefined);
 
   useEffect(() => {
+    // Decode JWT to get allowed_modules for plan-based filtering
+    const token = localStorage.getItem('unysol_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.allowed_modules && Array.isArray(payload.allowed_modules)) {
+          setPermittedModules(new Set(payload.allowed_modules));
+          return;
+        }
+      } catch {}
+    }
+
     // TENANT_OWNER sees all modules
     if (user?.role === 'TENANT_OWNER') {
       setPermittedModules(null); // null = show all
