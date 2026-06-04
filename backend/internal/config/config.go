@@ -37,6 +37,7 @@ type Config struct {
 	JWTSecret    string
 	RedisURL     string
 	Environment  string
+	BaseURL      string
 	RateLimiting RateLimitingConfig
 	PlanLimits   PlanLimitsConfig
 	Redis        RedisConfig
@@ -52,6 +53,7 @@ func Load() *Config {
 		JWTSecret:   getEnv("JWT_SECRET", "default-secret-change-me"),
 		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379/0"),
 		Environment: getEnv("ENVIRONMENT", "development"),
+		BaseURL:     getEnv("BASE_URL", "https://unysolar.com"),
 		RateLimiting: RateLimitingConfig{
 			Global: getEnvInt("RATE_LIMIT_GLOBAL", 500),
 			Auth:   getEnvInt("RATE_LIMIT_AUTH", 10),

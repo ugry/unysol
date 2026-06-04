@@ -25,7 +25,10 @@ import (
 
 const recaptchaSecret = "6LdgDQwtAAAAAKlKjzjx902_PWUx1mPUh3NeAmp_"
 
-func verifyRecaptcha(token string) bool {
+func verifyRecaptcha(token string, environment string) bool {
+	if environment != "production" && environment != "" && environment != "prod" {
+		return true // skip recaptcha in dev/QA
+	}
 	if token == "" {
 		return false
 	}
@@ -45,8 +48,9 @@ func verifyRecaptcha(token string) bool {
 }
 
 type AuthHandler struct {
-	DB        *pgxpool.Pool
-	JWTSecret string
+	DB          *pgxpool.Pool
+	JWTSecret   string
+	Environment string
 }
 
 type SignupRequest struct {
@@ -77,7 +81,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token"), h.Environment) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
 		return
 	}
@@ -183,7 +187,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token"), h.Environment) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Bot doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin."})
 		return
 	}
@@ -655,7 +659,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token")) {
+	if !verifyRecaptcha(r.Header.Get("X-Recaptcha-Token"), h.Environment) {
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"message": "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.",

@@ -71,7 +71,7 @@ func main() {
 
 	repo := repository.NewRepository(pool)
 
-	authHandler := &handlers.AuthHandler{DB: pool, JWTSecret: cfg.JWTSecret}
+	authHandler := &handlers.AuthHandler{DB: pool, JWTSecret: cfg.JWTSecret, Environment: cfg.Environment}
 	trucksHandler := &handlers.TrucksHandler{DB: pool}
 	tripsHandler := &handlers.TripsHandler{DB: pool}
 	customersHandler := &handlers.CustomersHandler{DB: pool}
@@ -111,6 +111,7 @@ func main() {
 
 	// Load email config from database on startup
 	loadEmailConfig(pool)
+	email.SetBaseURL(cfg.BaseURL)
 
 	// Cleanup expired load board listings on startup + daily
 	go func() {
@@ -329,24 +330,24 @@ func maskPassword(url string) string {
 }
 
 func loadEmailConfig(pool *pgxpool.Pool) {
-	var method, host, port, username, password, from, region string
-	err := pool.QueryRow(context.Background(), `
-		SELECT COALESCE(email_method,'smtp'), COALESCE(host,''), COALESCE(port,'465'),
-		       COALESCE(username,''), COALESCE(password,''), COALESCE(from_email,''),
-		       COALESCE(aws_region,'eu-central-1')
+	var method, host, port, username, password, from, region, resendKey string
+	_ = pool.QueryRow(context.Background(), `
+		SELECT COALESCE(email_method,'smtp'), COALESCE(smtp_address,''), COALESCE(port,'587'), COALESCE(username,''),
+		       COALESCE(password,''), COALESCE(from_email,''), COALESCE(aws_region,'eu-central-1'), COALESCE(resend_api_key,'')
 		FROM email_config WHERE id=1
-	`).Scan(&method, &host, &port, &username, &password, &from, &region)
-	if err != nil || (method == "smtp" && host == "") {
+	`).Scan(&method, &host, &port, &username, &password, &from, &region, &resendKey)
+	if host == "" && method != "resend" {
 		return
 	}
 	email.Configure(email.Config{
-		Method:   method,
-		Host:     host,
-		Port:     port,
-		Username: username,
-		Password: password,
-		From:     from,
-		Region:   region,
+		Method:       method,
+		Host:         host,
+		Port:         port,
+		Username:     username,
+		Password:     password,
+		From:         from,
+		Region:       region,
+		ResendAPIKey: resendKey,
 	})
 	logging.System(logging.LevelInfo, "email config loaded from database", map[string]interface{}{
 		"method": method,

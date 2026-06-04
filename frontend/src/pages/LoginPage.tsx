@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SignupPayload } from '@/types';
 import api from '@/lib/api';
-import { Loader2, Eye, EyeOff, Truck, Mail, ArrowLeft, Check, X as XIcon } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Truck, Mail, ArrowLeft, Check, X as XIcon, RefreshCw } from 'lucide-react';
 
 const RECAPTCHA_SITE_KEY = '6LdgDQwtAAAAAKxF1RJeI7bbIEtQ_7IjRqNYBo8u';
 
@@ -53,6 +53,12 @@ export default function LoginPage() {
 
   const [verificationEmail, setVerificationEmail] = useState('');
   const [showVerification, setShowVerification] = useState(false);
+  const [verifyCode, setVerifyCode] = useState(['', '', '', '', '', '']);
+  const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState('');
+  const [verifyResending, setVerifyResending] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState(false);
+  const verifyInputs = useRef<(HTMLInputElement | null)[]>([]);
 
   const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) || '';
   const googleBtnRef = useRef<HTMLDivElement>(null);
@@ -211,6 +217,72 @@ export default function LoginPage() {
     } finally { setForgotSending(false); }
   };
 
+  // Verification code handlers
+  const handleVerifyCodeChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newCode = [...verifyCode];
+    newCode[index] = value.slice(-1);
+    setVerifyCode(newCode);
+    setVerifyMsg('');
+    if (value && index < 5) verifyInputs.current[index + 1]?.focus();
+  };
+
+  const handleVerifyKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !verifyCode[index] && index > 0) {
+      verifyInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const newCode = [...verifyCode];
+    for (let i = 0; i < 6; i++) newCode[i] = pasted[i] || '';
+    setVerifyCode(newCode);
+    if (pasted.length === 6) verifyInputs.current[5]?.focus();
+  };
+
+  const handleVerifySubmit = async () => {
+    const fullCode = verifyCode.join('');
+    if (fullCode.length !== 6) return;
+    setVerifySubmitting(true); setVerifyMsg('');
+    try {
+      const res = await api.post('/api/auth/verify-code', { code: fullCode });
+      setVerifySuccess(true);
+      setVerifyMsg(res.data.message || 'Hesabınız doğrulandı!');
+      if (res.data.access_token) {
+        localStorage.setItem('unysol_token', res.data.access_token);
+        localStorage.setItem('unysol_user', JSON.stringify({
+          id: res.data.user_id, email: res.data.email,
+          tenant_id: res.data.tenant_id, role: res.data.role,
+        }));
+        setTimeout(() => navigate('/dashboard', { replace: true }), 1500);
+      }
+    } catch (err: any) {
+      setVerifyMsg(err?.response?.data?.error || 'Geçersiz kod. Lütfen tekrar deneyin.');
+      setVerifyCode(['', '', '', '', '', '']);
+      verifyInputs.current[0]?.focus();
+    } finally { setVerifySubmitting(false); }
+  };
+
+  const handleVerifyResend = async () => {
+    if (!verificationEmail) return;
+    setVerifyResending(true); setVerifyMsg('');
+    try {
+      await api.post('/api/auth/resend-code', { email: verificationEmail });
+      setVerifyMsg('Yeni kod gönderildi.');
+      setVerifyCode(['', '', '', '', '', '']);
+      verifyInputs.current[0]?.focus();
+    } catch (err: any) {
+      setVerifyMsg(err?.response?.data?.error || 'Kod gönderilemedi.');
+    } finally { setVerifyResending(false); }
+  };
+
+  // Auto-focus first input when verification shows
+  useEffect(() => {
+    if (showVerification) setTimeout(() => verifyInputs.current[0]?.focus(), 200);
+  }, [showVerification]);
+
   const toggleMode = () => {
     setIsSignup(!isSignup);
     setError(''); setLoading(false);
@@ -231,17 +303,61 @@ export default function LoginPage() {
         <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded-lg p-6">
           {showVerification ? (
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#16A34A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail size={28} className="text-[#16A34A]" />
-              </div>
-              <h2 className="text-[16px] font-[590] text-[#f7f8f8] mb-2">E-postanızı Kontrol Edin</h2>
-              <p className="text-[14px] text-[#8a8f98] mb-3">
-                <strong className="text-[#d0d6e0]">{verificationEmail}</strong> adresine 6 haneli doğrulama kodu gönderdik.
-              </p>
-              <p className="text-[13px] text-[#62666d] mb-6">Gelen kutunuzu ve spam klasörünü kontrol edin.</p>
-              <button
-                onClick={() => { setShowVerification(false); setEmail(''); setPassword(''); setFirmaUnvani(''); setTelefon(''); }}
-                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#d0d6e0] px-4 py-2 rounded-md font-[510] text-[14px] hover:bg-[rgba(255,255,255,0.06)] transition-colors">
+              {verifySuccess ? (
+                <>
+                  <div className="w-16 h-16 bg-[#16A34A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check size={28} className="text-[#16A34A]" />
+                  </div>
+                  <h2 className="text-[16px] font-[590] text-[#f7f8f8] mb-2">Doğrulandı!</h2>
+                  <p className="text-[14px] text-[#8a8f98] mb-6">{verifyMsg}</p>
+                  <div className="flex justify-center"><Loader2 size={20} className="animate-spin text-[#FF5F03]" /></div>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 bg-[#FF5F03]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Mail size={28} className="text-[#FF5F03]" />
+                  </div>
+                  <h2 className="text-[16px] font-[590] text-[#f7f8f8] mb-2">E-posta Doğrulama</h2>
+                  <p className="text-[13px] text-[#8a8f98] mb-1">
+                    <strong className="text-[#d0d6e0]">{verificationEmail}</strong> adresine 6 haneli kod gönderildi.
+                  </p>
+                  <p className="text-[12px] text-[#62666d] mb-5">Kodu aşağıya girin veya e-postadaki linke tıklayın.</p>
+
+                  <div className="flex justify-center gap-2 mb-5" onPaste={handleVerifyPaste}>
+                    {verifyCode.map((digit, i) => (
+                      <input key={i} ref={el => { verifyInputs.current[i] = el; }}
+                        type="text" inputMode="numeric" maxLength={1} value={digit}
+                        onChange={e => handleVerifyCodeChange(i, e.target.value)}
+                        onKeyDown={e => handleVerifyKeyDown(i, e)}
+                        className="w-11 h-14 text-center text-xl font-bold rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] text-[#f7f8f8] focus:border-[#FF5F03] focus:outline-none transition-colors" />
+                    ))}
+                  </div>
+
+                  {verifyMsg && (
+                    <p className={`text-[13px] mb-3 ${verifyMsg.includes('gönderildi') || verifyMsg.includes('Doğrulandı') ? 'text-green-500' : 'text-red-400'}`}>
+                      {verifyMsg}
+                    </p>
+                  )}
+
+                  <button onClick={handleVerifySubmit}
+                    disabled={verifyCode.join('').length !== 6 || verifySubmitting}
+                    className="w-full bg-[#FF5F03] hover:bg-[#E55600] disabled:opacity-50 text-white px-4 py-2.5 rounded-md font-[510] text-[14px] transition-colors mb-3">
+                    {verifySubmitting ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Doğrula'}
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 text-[13px]">
+                    <span className="text-[#8a8f98]">Kodu almadınız mı?</span>
+                    <button onClick={handleVerifyResend} disabled={verifyResending}
+                      className="text-[#FF5F03] hover:text-[#E55600] disabled:opacity-50 inline-flex items-center gap-1">
+                      {verifyResending ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      Tekrar Gönder
+                    </button>
+                  </div>
+                </>
+              )}
+
+              <button onClick={() => { setShowVerification(false); setEmail(''); setPassword(''); setFirmaUnvani(''); setTelefon(''); setVerifyCode(['','','','','','']); setVerifyMsg(''); setVerifySuccess(false); }}
+                className="w-full mt-4 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#d0d6e0] px-4 py-2 rounded-md font-[510] text-[14px] hover:bg-[rgba(255,255,255,0.06)] transition-colors">
                 Giriş Sayfasına Dön
               </button>
             </div>

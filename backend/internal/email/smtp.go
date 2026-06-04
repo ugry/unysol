@@ -20,6 +20,7 @@ type Config struct {
 }
 
 var cfg Config
+var baseURL = "https://unysolar.com"
 
 func Configure(c Config) {
 	if c.Method == "" {
@@ -29,6 +30,12 @@ func Configure(c Config) {
 		SetResendAPIKey(c.ResendAPIKey)
 	}
 	cfg = c
+}
+
+func SetBaseURL(url string) {
+	if url != "" {
+		baseURL = url
+	}
 }
 
 func Send(to string, subject string, body string) error {
@@ -142,7 +149,7 @@ func SendVerificationEmail(to string, code string, token string) error {
   </div>
   <p>Veya aşağıdaki linke tıklayarak doğrulayabilirsiniz:</p>
   <p>
-    <a href="http://localhost/verify?token=%s&code=%s"
+    <a href="`+baseURL+`/verify?token=%s&code=%s"
        style="background: #FF5F03; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
       Hesabımı Doğrula
     </a>
