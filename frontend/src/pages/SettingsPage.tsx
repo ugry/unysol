@@ -15,7 +15,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
-      api.post('/api/tenant/stripe/verify-session', { session_id: sessionId }).then(res => {
+      api.post('/api/stripe/verify-session', { session_id: sessionId }).then(res => {
         if (res.data?.access_token) {
           localStorage.setItem('unysol_token', res.data.access_token);
           localStorage.setItem('unysol_user', JSON.stringify({

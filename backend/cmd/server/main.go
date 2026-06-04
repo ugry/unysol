@@ -165,6 +165,7 @@ func main() {
 	r.Post("/api/auth/reset-password", authHandler.ResetPassword)
 
 	r.Post("/api/stripe/webhook", stripeHandler.Webhook)
+	r.Post("/api/stripe/verify-session", stripeHandler.VerifySession)
 
 	r.Get("/api/cities", func(w http.ResponseWriter, r *http.Request) {
 		loadBoardHandler.GetCities(w, r)
@@ -214,7 +215,6 @@ func main() {
 			r.Mount("/user-management", userMgmtHandler.Routes())
 			r.Get("/my-permissions", userMgmtHandler.GetAllPermissions)
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
-			r.Post("/stripe/verify-session", stripeHandler.VerifySession)
 			r.Mount("/export", exportHandler.Routes())
 		})
 
