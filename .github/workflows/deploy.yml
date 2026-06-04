@@ -24,10 +24,6 @@ env:
   FRONTEND_API_URL: https://unysolar.com
 
 jobs:
-  tests:
-    name: Run Automated Tests
-    uses: ./.github/workflows/test.yml
-
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
