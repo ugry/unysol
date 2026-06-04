@@ -764,6 +764,52 @@ jobs:
           fi
           echo "✅ IMP-054: Resend integration complete"
 
+      # IMP-056-062: Registration best practices
+      - name: "IMP-056: KVKK/Terms checkbox in signup"
+        run: |
+          if grep -q "kvkkAccepted\|termsAccepted" frontend/src/pages/LoginPage.tsx; then
+            echo "✅ KVKK + Terms checkboxes present"
+          else
+            echo "❌ IMP-056: KVKK/Terms consent missing"
+            exit 1
+          fi
+
+      - name: "IMP-058: Password strength meter + confirmation"
+        run: |
+          if grep -q "passwordStrength\|passwordConfirm" frontend/src/pages/LoginPage.tsx; then
+            echo "✅ Password strength meter + confirmation present"
+          else
+            echo "❌ IMP-058: Password strength/confirmation missing"
+            exit 1
+          fi
+
+      - name: "IMP-059: Account enumeration prevention"
+        run: |
+          if grep -q "existing > 0" backend/internal/handlers/auth.go && \
+             grep -q "requires_verification.*true" backend/internal/handlers/auth.go; then
+            echo "✅ Enumeration prevention present"
+          else
+            echo "❌ IMP-059: Account enumeration not fixed"
+            exit 1
+          fi
+
+      - name: "IMP-060: Input trimming in signup"
+        run: |
+          if grep -q "TrimSpace" backend/internal/handlers/auth.go | grep -q -E "Email|TenantName|Password"; then
+            echo "✅ Input trimming present"
+          else
+            echo "⚠️  IMP-060: Input trimming missing"
+          fi
+
+      - name: "IMP-061: Forgot password resend + confirm"
+        run: |
+          if grep -q "handleForgotResend\|forgotResendCooldown\|forgotConfirm" frontend/src/pages/LoginPage.tsx; then
+            echo "✅ Forgot password resend + confirm present"
+          else
+            echo "❌ IMP-061: Forgot password improvements missing"
+            exit 1
+          fi
+
       # IMP-055: Admin can delete tenants with export
       - name: "IMP-055: Delete tenant endpoint exists"
         run: |

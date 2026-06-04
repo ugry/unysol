@@ -55,8 +55,18 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = strings.TrimSpace(req.Email)
+	req.TenantName = strings.TrimSpace(req.TenantName)
+	req.Telefon = strings.TrimSpace(req.Telefon)
+	req.Password = strings.TrimSpace(req.Password)
+
 	if req.TenantName == "" || req.Email == "" || req.Password == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Firma adı, e-posta ve şifre zorunludur"})
+		return
+	}
+
+	if len(req.TenantName) < 2 || len(req.TenantName) > 250 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Firma adı 2-250 karakter arasında olmalıdır"})
 		return
 	}
 
@@ -89,23 +99,18 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	slug := strings.ToLower(strings.ReplaceAll(req.TenantName, " ", "-"))
 	slug = cleanSlug(slug)
 
-	// Check for duplicate tenant or email
+	// Check for duplicate — use generic message to prevent enumeration
 	var existing int
-	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE slug=$1`, slug).Scan(&existing)
-	if err == nil && existing > 0 {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu firma adı zaten kayıtlı. Lütfen giriş yapın veya farklı bir firma adı kullanın."})
-		return
-	}
-	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM users WHERE email=$1`, req.Email).Scan(&existing)
-	if err == nil && existing > 0 {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın."})
-		return
-	}
-
-	// Check pending_registrations too
-	err = h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM pending_registrations WHERE email=$1`, req.Email).Scan(&existing)
-	if err == nil && existing > 0 {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "Bu e-posta adresi için doğrulama bekleniyor. Lütfen e-postanızı kontrol edin."})
+	h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM tenants WHERE slug=$1`, slug).Scan(&existing)
+	h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM users WHERE email=$1`, req.Email).Scan(&existing)
+	h.DB.QueryRow(r.Context(), `SELECT COUNT(*) FROM pending_registrations WHERE email=$1`, req.Email).Scan(&existing)
+	if existing > 0 {
+		writeJSON(w, http.StatusCreated, map[string]interface{}{
+			"success":              true,
+			"message":              "Doğrulama kodu e-posta adresinize gönderildi. Hesabınızı aktifleştirmek için kodu girin.",
+			"email":                req.Email,
+			"requires_verification": true,
+		})
 		return
 	}
 
