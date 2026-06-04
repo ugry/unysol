@@ -523,7 +523,8 @@ func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
 
 	// Check pending_registrations first
 	var pendingID int
-	err := h.DB.QueryRow(r.Context(), `SELECT id FROM pending_registrations WHERE email=$1`, req.Email).Scan(&pendingID)
+	var existingCode string
+	err := h.DB.QueryRow(r.Context(), `SELECT id, code FROM pending_registrations WHERE email=$1`, req.Email).Scan(&pendingID, &existingCode)
 	if err == nil {
 		// Generate new code for pending registration
 		code := generateVerificationCode()
@@ -531,18 +532,14 @@ func (h *AuthHandler) ResendCode(w http.ResponseWriter, r *http.Request) {
 		h.DB.Exec(r.Context(), `UPDATE pending_registrations SET code=$1, token=$2, expires_at=NOW() + INTERVAL '1 hour' WHERE id=$3`, code, token, pendingID)
 		go func() {
 			time.Sleep(500 * time.Millisecond)
-			var lastErr error
 			for attempt := 0; attempt < 3; attempt++ {
 				if err := email.SendVerificationEmail(req.Email, code, token); err != nil {
-					lastErr = err
+					logging.System(logging.LevelWarn, "resend email failed", map[string]interface{}{"email": req.Email, "attempt": attempt, "error": err.Error()})
 					time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
 					continue
 				}
 				return
 			}
-			logging.System(logging.LevelWarn, "verification resend email failed after retries", map[string]interface{}{
-				"error": lastErr.Error(), "email": req.Email,
-			})
 		}()
 		writeJSON(w, http.StatusOK, map[string]string{"success": "true", "message": "Yeni doğrulama kodu gönderildi"})
 		return
