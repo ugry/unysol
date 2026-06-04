@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Method   string // "smtp" or "ses"
-	Host     string
-	Port     string
-	Username string
-	Password string
-	From     string
-	Region   string
+	Method       string // "smtp", "ses", or "resend"
+	Host         string
+	Port         string
+	Username     string
+	Password     string
+	From         string
+	Region       string
+	ResendAPIKey string
 }
 
 var cfg Config
@@ -24,10 +25,17 @@ func Configure(c Config) {
 	if c.Method == "" {
 		c.Method = "smtp"
 	}
+	if c.Method == "resend" && c.ResendAPIKey != "" {
+		SetResendAPIKey(c.ResendAPIKey)
+	}
 	cfg = c
 }
 
 func Send(to string, subject string, body string) error {
+	if cfg.Method == "resend" {
+		return sendViaResend(cfg.From, to, subject, body)
+	}
+
 	if cfg.Method == "ses" {
 		region := cfg.Region
 		if region == "" {

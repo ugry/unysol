@@ -1056,7 +1056,7 @@ function AnalyticsTab() {
 }
 
 function EmailTab() {
-  const [cfg, setCfg] = useState({ email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993', google_client_id: '', stripe_pub_key: '', stripe_price_monthly: '', stripe_price_yearly: '' });
+  const [cfg, setCfg] = useState({ email_method: 'smtp', email_address: '', email_password: '', smtp_address: '', imap_address: '', smtp_port: '465', imap_port: '993', google_client_id: '', stripe_pub_key: '', stripe_price_monthly: '', stripe_price_yearly: '', resend_api_key: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -1096,38 +1096,57 @@ function EmailTab() {
       )}
 
       <form onSubmit={handleSave} className="space-y-4 max-w-2xl">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Adresi</label>
-            <input type="text" value={cfg.email_address} onChange={e => update('email_address', e.target.value)} placeholder="info@unysolar.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-          </div>
-          <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Şifresi</label>
-            <input type="password" value={cfg.email_password} onChange={e => update('email_password', e.target.value)} placeholder="E-posta hesap şifresi" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-          </div>
+        <div>
+          <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Yöntemi</label>
+          <select value={cfg.email_method} onChange={e => update('email_method', e.target.value)} className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] text-[14px] outline-none focus:border-[#FF5F03]/40">
+            <option value="smtp">SMTP (Hostinger / Harici)</option>
+            <option value="ses">AWS SES</option>
+            <option value="resend">Resend API</option>
+          </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {cfg.email_method === 'resend' ? (
           <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Adresi</label>
-            <input type="text" value={cfg.smtp_address} onChange={e => update('smtp_address', e.target.value)} placeholder="smtp.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">Resend API Key</label>
+            <input type="password" value={cfg.resend_api_key} onChange={e => update('resend_api_key', e.target.value)} placeholder="re_..." className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+            <p className="text-[11px] text-[#8a8f98] mt-1">API key'inizi <a href="https://resend.com/api-keys" target="_blank" className="text-[#FF5F03] hover:underline">resend.com/api-keys</a> adresinden alabilirsiniz.</p>
           </div>
-          <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Adresi</label>
-            <input type="text" value={cfg.imap_address} onChange={e => update('imap_address', e.target.value)} placeholder="imap.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Adresi</label>
+                <input type="text" value={cfg.email_address} onChange={e => update('email_address', e.target.value)} placeholder="info@unysolar.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">E-posta Şifresi</label>
+                <input type="password" value={cfg.email_password} onChange={e => update('email_password', e.target.value)} placeholder="E-posta hesap şifresi" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Port</label>
-            <input type="text" value={cfg.smtp_port} onChange={e => update('smtp_port', e.target.value)} placeholder="465" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-          </div>
-          <div>
-            <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Port</label>
-            <input type="text" value={cfg.imap_port} onChange={e => update('imap_port', e.target.value)} placeholder="993" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Adresi</label>
+                <input type="text" value={cfg.smtp_address} onChange={e => update('smtp_address', e.target.value)} placeholder="smtp.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Adresi</label>
+                <input type="text" value={cfg.imap_address} onChange={e => update('imap_address', e.target.value)} placeholder="imap.hostinger.com" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">SMTP Port</label>
+                <input type="text" value={cfg.smtp_port} onChange={e => update('smtp_port', e.target.value)} placeholder="465" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-[510] text-[#d0d6e0] mb-1.5">IMAP Port</label>
+                <input type="text" value={cfg.imap_port} onChange={e => update('imap_port', e.target.value)} placeholder="993" className="w-full px-3 py-2 rounded-md bg-[#191a1b] border border-[rgba(255,255,255,0.08)] text-[#f7f8f8] placeholder-[#8a8f98] text-[14px] outline-none focus:border-[#FF5F03]/40" />
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

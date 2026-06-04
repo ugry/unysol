@@ -1,7 +1,19 @@
 # Unysol — Milestones & Project History
 
 > **Canonical milestone document.**
-> **Last Updated:** 03 June 2026 (End of session — 57 commits)
+> **Last Updated:** 04 June 2026 (IMP-054 Resend API)
+
+---
+
+## June 4, 2026 — Resend API Integration (IMP-054)
+
+### Email Delivery
+- Resend API sender built (`backend/internal/email/resend.go`)
+- `email.Configure/Send` now supports `resend` method alongside `smtp` and `ses`
+- `email_config` table: `resend_api_key` column added (migration 015)
+- Super admin panel: method selector (SMTP/SES/Resend) + API key field
+- CI gate: `IMP-054: Resend integration exists` in production-integrity job
+- All system emails (registration verification, password reset) route through chosen method
 
 ---
 

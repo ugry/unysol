@@ -16,19 +16,20 @@ type EmailHandler struct {
 }
 
 type GlobalEmailConfig struct {
-	EmailMethod       string `json:"email_method"`
-	EmailAddress      string `json:"email_address"`
-	EmailPass         string `json:"email_password"`
-	SmtpAddress       string `json:"smtp_address"`
-	ImapAddress       string `json:"imap_address"`
-	SmtpPort          string `json:"smtp_port"`
-	ImapPort          string `json:"imap_port"`
-	AwsRegion         string `json:"aws_region"`
-	GoogleClientID    string `json:"google_client_id"`
-	StripePubKey      string `json:"stripe_pub_key"`
-	StripeSecretKey   string `json:"stripe_secret_key"`
+	EmailMethod        string `json:"email_method"`
+	EmailAddress       string `json:"email_address"`
+	EmailPass          string `json:"email_password"`
+	SmtpAddress        string `json:"smtp_address"`
+	ImapAddress        string `json:"imap_address"`
+	SmtpPort           string `json:"smtp_port"`
+	ImapPort           string `json:"imap_port"`
+	AwsRegion          string `json:"aws_region"`
+	GoogleClientID     string `json:"google_client_id"`
+	StripePubKey       string `json:"stripe_pub_key"`
+	StripeSecretKey    string `json:"stripe_secret_key"`
 	StripePriceMonthly string `json:"stripe_price_monthly"`
-	StripePriceYearly string `json:"stripe_price_yearly"`
+	StripePriceYearly  string `json:"stripe_price_yearly"`
+	ResendAPIKey       string `json:"resend_api_key"`
 }
 
 func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
@@ -39,11 +40,13 @@ func (h *EmailHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		       COALESCE(imap_port,'993'), COALESCE(aws_region,'eu-central-1'),
 		       COALESCE(google_client_id,''), COALESCE(stripe_pub_key,''),
 		       COALESCE(stripe_secret_key,''),
-		       COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'')
+		       COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,''),
+		       COALESCE(resend_api_key,'')
 		FROM email_config WHERE id=1
 	`).Scan(&cfg.EmailMethod, &cfg.EmailAddress, &cfg.EmailPass, &cfg.SmtpAddress,
 		&cfg.ImapAddress, &cfg.SmtpPort, &cfg.ImapPort, &cfg.AwsRegion,
-		&cfg.GoogleClientID, &cfg.StripePubKey, &cfg.StripeSecretKey, &cfg.StripePriceMonthly, &cfg.StripePriceYearly)
+		&cfg.GoogleClientID, &cfg.StripePubKey, &cfg.StripeSecretKey, &cfg.StripePriceMonthly, &cfg.StripePriceYearly,
+		&cfg.ResendAPIKey)
 	if err != nil {
 		writeJSON(w, http.StatusOK, GlobalEmailConfig{EmailMethod: "smtp", SmtpPort: "465", ImapPort: "993", AwsRegion: "eu-central-1"})
 		return
@@ -91,15 +94,17 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	_, err := h.DB.Exec(r.Context(), `
 		INSERT INTO email_config (id, email_method, email_address, password, smtp_address, imap_address,
 			port, imap_port, host, username, from_email, aws_region,
-			google_client_id, stripe_pub_key, stripe_secret_key, stripe_price_monthly, stripe_price_yearly)
-		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $2, $2, $9, $10, $11, $12, $13, $14)
+			google_client_id, stripe_pub_key, stripe_secret_key, stripe_price_monthly, stripe_price_yearly, resend_api_key)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $2, $2, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (id) DO UPDATE SET
 			email_method=$1, email_address=$2, password=$3, smtp_address=$4, imap_address=$5,
 			port=$6, imap_port=$7, host=$8, username=$2, from_email=$2, aws_region=$9,
-			google_client_id=$10, stripe_pub_key=$11, stripe_secret_key=$12, stripe_price_monthly=$13, stripe_price_yearly=$14
+			google_client_id=$10, stripe_pub_key=$11, stripe_secret_key=$12, stripe_price_monthly=$13, stripe_price_yearly=$14,
+			resend_api_key=$15
 	`, req.EmailMethod, req.EmailAddress, passwordVal, req.SmtpAddress, req.ImapAddress,
 		req.SmtpPort, req.ImapPort, host, req.AwsRegion,
-		req.GoogleClientID, req.StripePubKey, req.StripeSecretKey, req.StripePriceMonthly, req.StripePriceYearly)
+		req.GoogleClientID, req.StripePubKey, req.StripeSecretKey, req.StripePriceMonthly, req.StripePriceYearly,
+		req.ResendAPIKey)
 
 	if err != nil {
 		logging.Error(logging.LevelError, err, "", "", "", "", "email", "save config failed", nil)
@@ -108,13 +113,14 @@ func (h *EmailHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email.Configure(email.Config{
-		Method:   req.EmailMethod,
-		Host:     host,
-		Port:     req.SmtpPort,
-		Username: req.EmailAddress,
-		Password: passwordVal,
-		From:     req.EmailAddress,
-		Region:   req.AwsRegion,
+		Method:       req.EmailMethod,
+		Host:         host,
+		Port:         req.SmtpPort,
+		Username:     req.EmailAddress,
+		Password:     passwordVal,
+		From:         req.EmailAddress,
+		Region:       req.AwsRegion,
+		ResendAPIKey: req.ResendAPIKey,
 	})
 
 	logging.System(logging.LevelInfo, "global email config updated", map[string]interface{}{
@@ -148,13 +154,14 @@ func (h *EmailHandler) TestConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email.Configure(email.Config{
-		Method:   req.EmailMethod,
-		Host:     host,
-		Port:     req.SmtpPort,
-		Username: req.EmailAddress,
-		Password: pass,
-		From:     req.EmailAddress,
-		Region:   req.AwsRegion,
+		Method:       req.EmailMethod,
+		Host:         host,
+		Port:         req.SmtpPort,
+		Username:     req.EmailAddress,
+		Password:     pass,
+		From:         req.EmailAddress,
+		Region:       req.AwsRegion,
+		ResendAPIKey: req.ResendAPIKey,
 	})
 
 	err := email.Send(req.EmailAddress, "Unysol — Sistem Testi", "<h3>E-posta ayarlarınız başarıyla yapılandırıldı!</h3><p>Bu bir test e-postasıdır.</p>")

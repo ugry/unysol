@@ -735,6 +735,35 @@ jobs:
           [ "$ERRORS" -le 2 ] || { echo "❌ Too many unwired modules"; exit 1; }
           echo "✅ Module wiring OK"
 
+      # IMP-054: Resend API integration must exist
+      - name: "IMP-054: Resend email integration exists"
+        run: |
+          if [ -f backend/internal/email/resend.go ]; then
+            echo "✅ resend.go exists"
+          else
+            echo "❌ IMP-054: backend/internal/email/resend.go not found"
+            exit 1
+          fi
+          if grep -q "resend" backend/internal/email/smtp.go; then
+            echo "✅ resend method wired in smtp.go"
+          else
+            echo "❌ IMP-054: resend method not wired in smtp.go"
+            exit 1
+          fi
+          if grep -q "resend_api_key" backend/internal/handlers/email.go; then
+            echo "✅ resend_api_key in email handler"
+          else
+            echo "❌ IMP-054: resend_api_key not in email handler"
+            exit 1
+          fi
+          if grep -q "resend_api_key" frontend/src/pages/AdminDashboard.tsx; then
+            echo "✅ Resend API key field in AdminDashboard"
+          else
+            echo "❌ IMP-054: Resend API key field missing from AdminDashboard"
+            exit 1
+          fi
+          echo "✅ IMP-054: Resend integration complete"
+
       # truckownersettingsanalysis.md: WhatsApp integration tracking
       - name: WhatsApp integration status
         run: |
