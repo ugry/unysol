@@ -21,6 +21,7 @@
 | IMP-059 | Account enumeration prevention — identical responses | OWASP: never reveal whether account exists via error messages | ✅ Done |
 | IMP-060 | Input trimming + validation (phone, company name) | Prevent garbage data, normalize inputs | ✅ Done |
 | IMP-061 | Forgot password resend code + password confirmation | Users locked out if email delayed; typo prevention | ✅ Done |
+| IMP-063 | Tam maliyet hesaplama — kullanıcıya tüm maliyetler gösterilecek | Kamyon servis ücreti, lastik aşınması, kamyon amortismanı, HGS/otoyol, vergiler, tüm değişkenlerle tahmini toplam maliyet | ⬜ |
 
 ## 🟠 P1 — High Impact
 

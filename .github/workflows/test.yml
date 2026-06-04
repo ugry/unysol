@@ -855,6 +855,15 @@ jobs:
             exit 1
           fi
 
+      # IMP-063: Cost calculation module — pending
+      - name: "IMP-063: Cost calculation module tracking"
+        run: |
+          if grep -q "cost_calculation\|maliyet_hesaplama" database/01-schema.sql 2>/dev/null; then
+            echo "✅ Cost calculation table in schema"
+          else
+            echo "⬜ IMP-063: Cost calculation module not yet implemented"
+          fi
+
       # IMP-055: Admin can delete tenants with export
       - name: "IMP-055: Delete tenant endpoint exists"
         run: |
