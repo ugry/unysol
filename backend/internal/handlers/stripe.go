@@ -78,19 +78,20 @@ func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Req
 	}
 
 	// Create Stripe checkout session via form-encoded
-	formData := url.Values{
-		"mode":                     {"subscription"},
-		"customer_email":           {userEmail},
-		"line_items[0][price]":     {req.PriceID},
-		"line_items[0][quantity]":  {"1"},
-		"success_url":              {"https://unysolar.com/dashboard/settings?session_id={CHECKOUT_SESSION_ID}"},
-		"cancel_url":               {"https://unysolar.com/dashboard/settings?canceled=true"},
-		"metadata[tenant_id]":      {tenantID},
-		"metadata[user_id]":        {userID},
-		"metadata[plan]":           {req.Plan},
-	}.Encode()
+	// Build body manually to avoid encoding {CHECKOUT_SESSION_ID} braces
+	formBody := fmt.Sprintf(
+		"mode=subscription&customer_email=%s&line_items[0][price]=%s&line_items[0][quantity]=1&"+
+			"success_url=%s&cancel_url=%s&metadata[tenant_id]=%s&metadata[user_id]=%s&metadata[plan]=%s",
+		url.QueryEscape(userEmail),
+		url.QueryEscape(req.PriceID),
+		url.QueryEscape("https://unysolar.com/dashboard/settings?session_id={CHECKOUT_SESSION_ID}"),
+		url.QueryEscape("https://unysolar.com/dashboard/settings?canceled=true"),
+		url.QueryEscape(tenantID),
+		url.QueryEscape(userID),
+		url.QueryEscape(req.Plan),
+	)
 
-	stripeReq, _ := http.NewRequest("POST", "https://api.stripe.com/v1/checkout/sessions", bytes.NewReader([]byte(formData)))
+	stripeReq, _ := http.NewRequest("POST", "https://api.stripe.com/v1/checkout/sessions", bytes.NewReader([]byte(formBody)))
 	stripeReq.SetBasicAuth(sk, "")
 	stripeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
