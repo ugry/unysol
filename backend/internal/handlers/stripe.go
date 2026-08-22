@@ -257,22 +257,3 @@ func (h *StripeHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
-
-func (h *StripeHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	var pubKey, secretKey, priceMonthly, priceYearly string
-	_ = h.DB.QueryRow(r.Context(),
-		`SELECT COALESCE(stripe_pub_key,''), COALESCE(stripe_secret_key,''), COALESCE(stripe_price_monthly,''), COALESCE(stripe_price_yearly,'') FROM email_config WHERE id=1`,
-	).Scan(&pubKey, &secretKey, &priceMonthly, &priceYearly)
-
-	writeJSON(w, http.StatusOK, map[string]string{
-		"publishable_key":    pubKey,
-		"secret_key_set":     boolToString(secretKey != ""),
-		"price_monthly":      priceMonthly,
-		"price_yearly":       priceYearly,
-	})
-}
-
-func boolToString(b bool) string {
-	if b { return "true" }
-	return "false"
-}

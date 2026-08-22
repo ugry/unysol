@@ -62,6 +62,11 @@ variable "stripe_publishable_key" {
   sensitive = true
 }
 
+variable "resend_api_key" {
+  sensitive = true
+  default   = ""
+}
+
 variable "frontend_desired_count" {
   default = 1
 }

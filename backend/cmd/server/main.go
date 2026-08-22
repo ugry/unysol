@@ -21,7 +21,6 @@ import (
 	"unysol/internal/handlers"
 	"unysol/internal/logging"
 	"unysol/internal/middleware"
-	"unysol/internal/repository"
 )
 
 func main() {
@@ -69,8 +68,6 @@ func main() {
 		defer redisClient.Close()
 	}
 
-	repo := repository.NewRepository(pool)
-
 	authHandler := &handlers.AuthHandler{DB: pool, JWTSecret: cfg.JWTSecret, Environment: cfg.Environment}
 	trucksHandler := &handlers.TrucksHandler{DB: pool}
 	tripsHandler := &handlers.TripsHandler{DB: pool}
@@ -82,10 +79,7 @@ func main() {
 	actionsHandler := &handlers.ActionsHandler{DB: pool}
 	dashboardHandler := &handlers.DashboardHandler{DB: pool}
 	predictionsHandler := &handlers.PredictionsHandler{DB: pool}
-	adminHandler := &handlers.AdminHandler{DB: pool}
 	systemHandler := &handlers.SystemHandler{DB: pool}
-	modulesHandler := &handlers.ModulesHandler{DB: pool}
-	countriesHandler := &handlers.CountriesHandler{DB: pool}
 	billingHandler := &handlers.BillingHandler{DB: pool}
 	settingsHandler := &handlers.SettingsHandler{DB: pool}
 	notificationsHandler := &handlers.NotificationsHandler{DB: pool}
@@ -98,7 +92,6 @@ func main() {
 	allowanceHandler := &handlers.AllowanceHandler{DB: pool}
 	payslipsHandler := &handlers.PayslipsHandler{DB: pool}
 	contactHandler := &handlers.ContactHandler{}
-	emailHandler := &handlers.EmailHandler{DB: pool}
 	googleHandler := &handlers.GoogleHandler{DB: pool, JWTSecret: cfg.JWTSecret}
 	stripeHandler := &handlers.StripeHandler{DB: pool}
 	exportHandler := &handlers.ExportHandler{DB: pool}
@@ -109,8 +102,16 @@ func main() {
 	tollLogHandler := &handlers.TollLogHandler{DB: pool}
 	leaveHandler := &handlers.LeaveHandler{DB: pool}
 
-	// Load email config from database on startup
-	loadEmailConfig(pool)
+	// Email configuration comes from environment (sysadmin-managed)
+	email.Configure(email.Config{
+		Method:       cfg.Email.Method,
+		Host:         cfg.Email.SMTPHost,
+		Port:         cfg.Email.SMTPPort,
+		Username:     cfg.Email.SMTPUsername,
+		Password:     cfg.Email.SMTPPassword,
+		From:         cfg.Email.From,
+		ResendAPIKey: cfg.Email.ResendAPIKey,
+	})
 	email.SetBaseURL(cfg.BaseURL)
 
 	// Cleanup expired load board listings on startup + daily
@@ -123,7 +124,6 @@ func main() {
 		}
 	}()
 
-	_ = repo
 	_ = redisClient
 
 	r := chi.NewRouter()
@@ -186,7 +186,6 @@ func main() {
 		r.Route("/api/tenant", func(r chi.Router) {
 			r.Use(middleware.RequireTenant(pool))
 			r.Use(middleware.PermissionEnforcer(pool))
-
 			r.Mount("/dashboard", dashboardHandler.Routes())
 			r.Mount("/trucks", trucksHandler.Routes())
 			r.Mount("/trips", tripsHandler.Routes())
@@ -216,36 +215,6 @@ func main() {
 			r.Get("/my-permissions", userMgmtHandler.GetAllPermissions)
 			r.Post("/stripe/checkout", stripeHandler.CreateCheckoutSession)
 			r.Mount("/export", exportHandler.Routes())
-		})
-
-		r.Route("/api/admin", func(r chi.Router) {
-			r.Use(middleware.RequireSuperAdmin)
-
-			r.Get("/tenants", adminHandler.ListTenants)
-			r.Get("/tenants/{id}", adminHandler.GetTenant)
-			r.Put("/tenants/{id}/plan", adminHandler.ChangePlan)
-			r.Post("/tenants/{id}/suspend", adminHandler.SuspendTenant)
-			r.Delete("/tenants/{id}", adminHandler.DeleteTenant)
-			r.Get("/tenants/{id}/export", adminHandler.ExportTenant)
-
-			r.Get("/dashboard/summary", adminHandler.DashboardSummary)
-			r.Get("/audit-log", adminHandler.ListAuditLog)
-
-			r.Get("/analytics/mrr", adminHandler.GetMRR)
-			r.Get("/analytics/churn", adminHandler.GetChurn)
-			r.Get("/analytics/growth", adminHandler.GetGrowth)
-
-			r.Get("/users", adminHandler.ListUsers)
-			r.Post("/users", adminHandler.CreateUser)
-
-			r.Get("/email/config", emailHandler.GetConfig)
-			r.Post("/email/config", emailHandler.SaveConfig)
-			r.Post("/email/test", emailHandler.TestConfig)
-
-			r.Get("/stripe/config", stripeHandler.GetConfig)
-
-			r.Mount("/modules", modulesHandler.Routes())
-			r.Mount("/countries", countriesHandler.Routes())
 		})
 	})
 
@@ -328,31 +297,4 @@ func maskPassword(url string) string {
 		}
 	}
 	return url
-}
-
-func loadEmailConfig(pool *pgxpool.Pool) {
-	var method, host, port, username, password, from, region, resendKey string
-	_ = pool.QueryRow(context.Background(), `
-		SELECT COALESCE(email_method,'smtp'), COALESCE(smtp_address,''), COALESCE(port,'587'), COALESCE(username,''),
-		       COALESCE(password,''), COALESCE(from_email,''), COALESCE(aws_region,'eu-central-1'), COALESCE(resend_api_key,'')
-		FROM email_config WHERE id=1
-	`).Scan(&method, &host, &port, &username, &password, &from, &region, &resendKey)
-	if host == "" && method != "resend" {
-		return
-	}
-	email.Configure(email.Config{
-		Method:       method,
-		Host:         host,
-		Port:         port,
-		Username:     username,
-		Password:     password,
-		From:         from,
-		Region:       region,
-		ResendAPIKey: resendKey,
-	})
-	logging.System(logging.LevelInfo, "email config loaded from database", map[string]interface{}{
-		"method": method,
-		"host":   host,
-		"user":   username,
-	})
 }

@@ -1,7 +1,25 @@
 # Unysol — Milestones & Project History
 
 > **Canonical milestone document.**
-> **Last Updated:** 04 June 2026 (IMP-054 Resend API)
+> **Last Updated:** 22 August 2026 (Yapısal dönüşüm)
+
+---
+
+## August 22, 2026 — Yapısal Dönüşüm: TR-only + süper admin kaldırıldı + ülke profili mimarisi
+
+### Ürün Yönü Değişikliği
+- Uygulama TEK ülkeye hizmet verir: **Türkiye** (TR-only runtime)
+- Yeni ülke desteği "ülke profili" seam'i ile: yeni ülke = yeni profil +
+  locale dosyası + uyumluluk modülü; çekirdek kod ve şema DEĞİŞMEZ
+  (tasarım dokümanı: `COUNTRY_PORTABILITY.md`)
+- Süper admin katmanı KALDIRILDI — uygulamada admin paneli/sayfası YOK
+- Platform yönetiminin tamamı (tenant, plan, modül, email, Stripe
+  konfigürasyonu) sistem yöneticisi tarafından backend üzerinden
+  (SQL/ops scriptleri) yapılır
+- Uygulama rolleri yalnızca tenant kapsamında: TENANT_OWNER, DRIVER,
+  OFFICE, ACCOUNTANT
+- Modüller platform genelinde (global); ülke bazlı modül toggle'ı kaldırıldı
+- Hedefler buna göre yeniden yapılandırıldı (bkz. TODO.md "Yapısal Dönüşüm")
 
 ---
 
@@ -11,7 +29,8 @@
 - Resend API sender built (`backend/internal/email/resend.go`)
 - `email.Configure/Send` now supports `resend` method alongside `smtp` and `ses`
 - `email_config` table: `resend_api_key` column added (migration 015)
-- Super admin panel: method selector (SMTP/SES/Resend) + API key field
+- Email yöntemi seçimi (SMTP/SES/Resend) backend konfigürasyonundan yapılır
+  (22 Ağustos 2026 itibarıyla süper admin paneli kaldırılmıştır)
 - CI gate: `IMP-054: Resend integration exists` in production-integrity job
 - All system emails (registration verification, password reset) route through chosen method
 
@@ -58,11 +77,14 @@
 - Resend API → configured, 100/day free, domain verification pending
 - SMTP fixes: TrimPrefix removed, STARTTLS for port 587, auth skip when empty
 
-### Admin Dashboard Fixes
+### Platform Metrik Düzeltmeleri
 - `paket_dagilimi` — real DB query (SELECT plan, COUNT(*) FROM tenants GROUP BY plan)
 - `son_kayitlar` — real DB query (last 5 tenants)
 - Migration 012: seeds modules + countries + plan_modules on production RDS
 - 31 modules registered across 6 categories
+> Not: Bu metrikler daha önce admin panelinde gösteriliyordu; 22 Ağustos 2026
+> dönüşümüyle süper admin katmanı kaldırıldı — metrikler artık Grafana ve
+> backend SQL sorguları üzerinden izlenir.
 
 ### Bug Fixes
 - Reports SQL: `tutar`→`toplam_tutar`, `ORDER BY sum`→`ORDER BY SUM(tutar)`
@@ -76,7 +98,7 @@
 ### CI/CD — 6 new regression gates
 - B-AUTH-02: Forgot password flow completeness
 - IMP-052: access_mgmt seed migration
-- B-ADMIN-01/02/03: Module seed + dashboard real queries
+- B-ADMIN-01/02/03: Module seed + dashboard queries (backend)
 - B-STRIPE-01/02: Stripe env vars + SettingsPage checkout
 - All existing CI gates fixed for Settings refactor
 
@@ -193,8 +215,6 @@ See `TEST_ACCOUNTS.md` for all 10 tenants + 30 sub-users.
 
 | Issue | Workaround |
 |-------|-----------|
-| Admin password has special chars | Use Python JWT generation instead of curl login |
-| SettingsPage JSX bracket issues | Use separate modal components |
 | PostgreSQL enum mismatch | Check actual enum values with `SELECT unnest(enum_range(...))` |
 | Empty date strings in DB | Use `NULLIF(column::text,'')::date` in queries |
 | Docker DNS Cloudflare blocking | Add `dns: 8.8.8.8` to docker-compose backend service |
@@ -263,7 +283,7 @@ See `TODO.md` for the prioritized task list.
 - **Input validation**: Phone format, company name min/max, input trimming
 - **Forgot password**: Resend code with 60s cooldown, password confirmation
 - **Auto-redirect**: Fixed verification→dashboard redirect (location.href)
-- **Admin auth**: username-based login (uguradm), no email required
+- **Admin auth**: kaldırıldı — süper admin girişi yoktur (22 Ağustos 2026 yapısal dönüşümü)
 - **reCAPTCHA**: Temporarily disabled — re-enable when deploys stabilize
 
 ### PRO Upgrade Flow (B-AUTH-12 through B-AUTH-15)
@@ -283,7 +303,7 @@ See `TODO.md` for the prioritized task list.
 - **Email**: Resend API key `REDACTED...`, domain `unysolar.com` verified
 
 ### Credentials
-- Super admin: `uguradm` / `REDACTED` — https://unysolar.com/admin/login
+- Süper admin: KALDIRILDI — platform yönetimi backend üzerinden yapılır (SQL/ops)
 - Test user: `unygms@tutamail.com` / `REDACTED` — PRO plan, tenant 21
 - QA: `admin@qa.local` / `REDACTED` — http://localhost/login
 - AWS: profile `unysol`, credentials in `~/.aws/`

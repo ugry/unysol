@@ -51,7 +51,7 @@ case "$cmd" in
     docker exec unysol-qa-db psql -U unysol -d unysol -c "UPDATE users SET aktif = true WHERE email = 'admin@qa.local';" > /dev/null 2>&1 || true
     echo "  ✅ Test user activated"
     echo ""
-    echo -e "${GREEN}  QA ready: http://localhost/login (admin@qa.local / REDACTED)${NC}"
+    echo -e "${GREEN}  QA ready: http://localhost/login${NC}"
     ;;
   
   down|stop)

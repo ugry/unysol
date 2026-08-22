@@ -30,7 +30,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END$$;
 DO $$
 BEGIN
-    CREATE TYPE user_rol_enum AS ENUM ('SUPER_ADMIN', 'TENANT_OWNER', 'DRIVER', 'OFFICE', 'ACCOUNTANT');
+    CREATE TYPE user_rol_enum AS ENUM ('TENANT_OWNER', 'DRIVER', 'OFFICE', 'ACCOUNTANT');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END$$;
 DO $$
@@ -408,18 +408,6 @@ CREATE TABLE IF NOT EXISTS modules (
 );
 
 -- ============================================================
--- 12. COUNTRY_MODULES
--- ============================================================
-CREATE TABLE IF NOT EXISTS country_modules (
-    id              SERIAL PRIMARY KEY,
-    country_code    VARCHAR(3) NOT NULL,
-    module_id       INTEGER NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
-    enabled         BOOLEAN DEFAULT TRUE,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(country_code, module_id)
-);
-
--- ============================================================
 -- 13. PLAN_MODULES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS plan_modules (
@@ -441,33 +429,6 @@ CREATE TABLE IF NOT EXISTS tenant_modules (
     enabled         BOOLEAN NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(tenant_id, module_id)
-);
-
--- ============================================================
--- 15. COUNTRIES
--- ============================================================
-CREATE TABLE IF NOT EXISTS countries (
-    id              SERIAL PRIMARY KEY,
-    code            VARCHAR(3) UNIQUE NOT NULL,
-    name            VARCHAR(100) NOT NULL,
-    default_locale  VARCHAR(5) DEFAULT 'tr',
-    currency        VARCHAR(3) DEFAULT 'TRY',
-    aktif           BOOLEAN DEFAULT TRUE,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================================
--- 16. COUNTRY_CONFIGS
--- ============================================================
-CREATE TABLE IF NOT EXISTS country_configs (
-    id              SERIAL PRIMARY KEY,
-    country_code    VARCHAR(3) NOT NULL REFERENCES countries(code) ON DELETE CASCADE,
-    config_key      VARCHAR(100) NOT NULL,
-    config_value    JSONB NOT NULL,
-    description     TEXT,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(country_code, config_key)
 );
 
 -- ============================================================
@@ -708,10 +669,8 @@ CREATE INDEX IF NOT EXISTS idx_employees_tenant ON employees(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_tenant ON cek_senet(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_customer ON cek_senet(customer_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_status ON cek_senet(tenant_id, status);
-CREATE INDEX IF NOT EXISTS idx_country_modules_country ON country_modules(country_code, enabled);
 CREATE INDEX IF NOT EXISTS idx_plan_modules_plan ON plan_modules(plan, enabled);
 CREATE INDEX IF NOT EXISTS idx_tenant_modules_tenant ON tenant_modules(tenant_id, enabled);
-CREATE INDEX IF NOT EXISTS idx_country_configs_country ON country_configs(country_code);
 CREATE INDEX IF NOT EXISTS idx_actions_tenant ON actions(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_actions_created ON actions(created_at);
 CREATE INDEX IF NOT EXISTS idx_actions_table ON actions(tenant_id, table_name);

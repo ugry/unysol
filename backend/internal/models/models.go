@@ -638,17 +638,6 @@ type Module struct {
 }
 
 // ============================================================
-// CountryModule
-// ============================================================
-type CountryModule struct {
-	ID          int    `json:"id"`
-	CountryCode string `json:"country_code"`
-	ModuleID    int    `json:"module_id"`
-	Enabled     bool   `json:"enabled"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-// ============================================================
 // PlanModule
 // ============================================================
 type PlanModule struct {
@@ -672,32 +661,6 @@ type TenantModule struct {
 
 type UpdateTenantModuleRequest struct {
 	Enabled bool `json:"enabled"`
-}
-
-// ============================================================
-// Country
-// ============================================================
-type Country struct {
-	ID            int     `json:"id"`
-	Code          string  `json:"code"`
-	Name          string  `json:"name"`
-	DefaultLocale *string `json:"default_locale,omitempty"`
-	Currency      *string `json:"currency,omitempty"`
-	Aktif         bool    `json:"aktif"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-// ============================================================
-// CountryConfig
-// ============================================================
-type CountryConfig struct {
-	ID          int     `json:"id"`
-	CountryCode string  `json:"country_code"`
-	ConfigKey   string  `json:"config_key"`
-	ConfigValue string  `json:"config_value"`
-	Description *string `json:"description,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
 }
 
 // ============================================================
@@ -1082,41 +1045,12 @@ type GrowthData struct {
 	Signups int    `json:"signups"`
 }
 
-// CreateCountryRequest for adding a new country
-type CreateCountryRequest struct {
-	Code          string `json:"code"`
-	Name          string `json:"name"`
-	Currency      string `json:"currency"`
-	DefaultLocale string `json:"default_locale"`
-}
-
-// UpdateCountryRequest for updating an existing country
-type UpdateCountryRequest struct {
-	Name          *string `json:"name,omitempty"`
-	Currency      *string `json:"currency,omitempty"`
-	DefaultLocale *string `json:"default_locale,omitempty"`
-	Aktif         *bool   `json:"aktif,omitempty"`
-}
-
-// CountryConfigEntry represents a single regulatory config entry
-type CountryConfigEntry struct {
-	ConfigKey   string  `json:"config_key"`
-	ConfigValue string  `json:"config_value"`
-	Description *string `json:"description,omitempty"`
-}
-
 // UpdateModuleRequest for updating an existing module
 type UpdateModuleRequest struct {
 	ModuleName     *string `json:"module_name,omitempty"`
 	Category       *string `json:"category,omitempty"`
 	Description    *string `json:"description,omitempty"`
 	DefaultEnabled *bool   `json:"default_enabled,omitempty"`
-}
-
-// ToggleModuleRequest for toggling module assignment on country/plan/tenant
-type ToggleModuleRequest struct {
-	ModuleID int  `json:"module_id"`
-	Enabled  bool `json:"enabled"`
 }
 
 // TenantSettingsResponse contains all tenant settings

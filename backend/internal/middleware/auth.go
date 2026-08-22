@@ -109,17 +109,6 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 	}
 }
 
-func RequireSuperAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		role := GetRole(r.Context())
-		if role != "SUPER_ADMIN" && role != "super_admin" {
-			http.Error(w, `{"error":"super admin access required"}`, http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func GetUserID(ctx context.Context) string {
 	v, _ := ctx.Value(UserIDKey).(string)
 	return v

@@ -1,8 +1,10 @@
 # Unysol SaaS Platformu — Tasarım Dokümanı v1
-## Çok Kiracılı (Multi-Tenant) · Çok Dilli (i18n) · Modüler · Yatay Ölçeklenebilir
+## Çok Kiracılı (Multi-Tenant) · Tek Ülke (TR) · Ülke Profili Seam'i · Modüler · Yatay Ölçeklenebilir
 
-> Hedef: 100.000+ küçük nakliye firması, çok ülkeli, çok dilli, modüler.
-> Başlangıç noktası: Türkiye. Mimari: yatay genişlemeye hazır.
+> Hedef: 100.000+ küçük nakliye firması. Uygulama TEK ülkeye (Türkiye) hizmet verir;
+> mimari "ülke profili" seam'i sayesinde başka bir ülkeye kolayca taşınabilir.
+> Yeni ülke = yeni ülke profili + locale dosyası + uyumluluk modülü; çekirdek kod ve şema değişmez.
+> Süper admin katmanı YOKTUR: platform yönetimi sistem yöneticisi tarafından backend üzerinden (SQL/ops) yapılır.
 > Her katman izlenebilir (Prometheus + Grafana + Loki).
 
 ---
@@ -74,11 +76,16 @@
 1. STATELESS — her Go API instance'ı her isteği işleyebilir.
    Session Redis'te, dosya S3'te, veritabanı paylaşımlı.
 
-2. MODULAR — modül ekle/çıkar. Her ülke farklı modül seti
-   aktif edebilir. Süper admin panelinden toggle.
+2. MODULAR — modül ekle/çıkar. Modüller platform GENELİNDE (global)
+   tanımlanır; aç/kapa ve plan eşlemesi sistem yöneticisi tarafından
+   backend üzerinden (SQL/ops scriptleri) yönetilir. UI'da yönetim
+   paneli YOKTUR.
 
-3. MULTI-LANGUAGE — i18n her katmanda. DB'de country_configs.
-   Frontend'de locale dosyaları. API'de Accept-Language header.
+3. COUNTRY PROFILE — ülkeye özgü HER ŞEY (locale, para birimi, vergi,
+   tarih/sayı formatı, kimlik numarası formatı, uyumluluk modülleri)
+   tek bir "ülke profili" seam'inde toplanır. Aktif ülke: Türkiye (tr).
+   Yeni ülke = yeni profil; çekirdek kod ve şema değişmez.
+   (Bkz. COUNTRY_PORTABILITY.md)
 
 4. OBSERVABLE — her servis /metrics endpoint'i sunar.
    Yapılandırılmış log (slog JSON). Distributed tracing (Trace ID).
@@ -91,18 +98,18 @@
 
 | URL | Kullanıcı | Amaç |
 |-----|-----------|------|
-| `unysol.app` | Herkes | Landing page (ülkeye göre yönlendirme) |
-| `unysol.app/tr` | Türkiye | TR landing |
-| `unysol.app/app` | Firma sahibi | Dashboard (tenant locale'e göre) |
-| `unysol.app/admin` | Süper admin | SaaS yönetim + modül yönetimi + izleme |
-| `{slug}.unysol.app` | Firma sahibi | Firma alt alan adı (opsiyonel) |
+| `unysol.app` | Herkes | Landing page |
+| `unysol.app/app` | Firma sahibi | Dashboard (ülke profiline ait locale ile) |
 
 ---
 
 ## A.1 MODÜLER MİMARİ — Feature Flag Sistemi
 
 Sistem özellikleri bağımsız modüller halinde paketlenir.
-Süper admin her modülü ülke, plan veya tenant bazında açıp kapatabilir.
+Modüller platform GENELİNDEDİR (global): aç/kapa, plan eşlemesi ve
+tenant override'ları sistem yöneticisi tarafından backend üzerinden
+(SQL/ops scriptleri) yönetilir. Uygulamada modül yönetim paneli yoktur;
+uygulama rolleri yalnızca tenant kapsamındadır.
 
 ### Modül Kayıt Defteri
 
@@ -164,17 +171,6 @@ HR (aç/kapa):
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│              COUNTRY_MODULES (ülke bazında açık modüller)     │
-├──────────────────────────────────────────────────────────────┤
-│ id (PK)               serial                                  │
-│ country_code          string     "TR" / "AZ" / "DE"          │
-│ module_id (FK)        integer    FK→modules.id               │
-│ enabled               boolean    default true                 │
-│ created_at            timestamptz                              │
-│ UNIQUE(country_code, module_id)                               │
-└──────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────┐
 │              PLAN_MODULES (plan bazında açık modüller)        │
 ├──────────────────────────────────────────────────────────────┤
 │ id (PK)               serial                                  │
@@ -191,7 +187,7 @@ HR (aç/kapa):
 │ id (PK)               serial                                  │
 │ tenant_id (FK)        integer                                 │
 │ module_id (FK)        integer                                 │
-│ enabled               boolean    plan/ülke ayarını override    │
+│ enabled               boolean    plan ayarını override eder    │
 │ created_at            timestamptz                              │
 │ UNIQUE(tenant_id, module_id)                                  │
 └──────────────────────────────────────────────────────────────┘
@@ -204,55 +200,45 @@ Bir modülün tenant X için aktif olup olmadığı:
 
   1. TENANT_MODULES'e bak → tenant için özel ayar varsa onu kullan
   2. Yoksa PLAN_MODULES'e bak → tenant'ın planında açık mı?
-  3. Yoksa COUNTRY_MODULES'e bak → tenant'ın ülkesinde açık mı?
-  4. Hiçbiri yoksa modules.default_enabled kullan
-  5. modules.is_core = true ise HER ZAMAN AÇIK
+  3. Hiçbiri yoksa modules.default_enabled kullan
+  4. modules.is_core = true ise HER ZAMAN AÇIK
 
   Çözümlenen modül listesi JWT token'a gömülür (claims.allowed_modules)
   Frontend bu listeye göre menüleri render eder.
   Backend her istekte claims'teki modülleri kontrol eder.
 ```
 
-### Süper Admin Modül Paneli
+### Modül Yönetimi (Sistem Yöneticisi — Backend)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│              MODÜL YÖNETİM PANELİ (Super Admin)               │
-│                                                               │
-│  Ülke: [Türkiye ▼]   Plan: [Tümü ▼]                         │
-│                                                               │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ MODÜL                 │ TR │ FREE│ PRO │ PREM│ Durum │    │
-│  ├────────────────────────┼────┼─────┼─────┼─────┼───────┤    │
-│  │ 📡 truck_tracking      │ ✅ │ ✅  │ ✅  │ ✅  │ AKTİF │    │
-│  │ 🔧 maintenance         │ ✅ │ ✅  │ ✅  │ ✅  │ AKTİF │    │
-│  │ 🧾 invoice_mgmt        │ ✅ │ ✅  │ ✅  │ ✅  │ AKTİF │    │
-│  │ 💰 billing             │ ✅ │ ✅  │ ✅  │ ✅  │ AKTİF │    │
-│  │ 📈 predictions         │ ✅ │ ✅  │ ✅  │ ✅  │ AKTİF │    │
-│  │ 🏦 bank_integration    │ ❌ │ ❌  │ ❌  │ ❌  │ PASİF │    │
-│  │ 📱 whatsapp_integration│ ❌ │ ❌  │ ❌  │ ❌  │ PASİF │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                               │
-│  Her hücre tıklanabilir toggle. Değişiklik anında aktif.     │
-│  Core modüller gri, kapatılamaz.                             │
-└──────────────────────────────────────────────────────────────┘
+Uygulamada modül yönetim ekranı YOKTUR. Platform yönetiminin tamamı
+sistem yöneticisi tarafından backend üzerinden yapılır:
+
+  • Yeni modül kaydı ............ INSERT INTO modules (...) (ops script)
+  • Plana modül ekle/çıkar ...... PLAN_MODULES INSERT/DELETE (ops script)
+  • Tenant'a override .......... TENANT_MODULES INSERT/DELETE (ops script)
+  • Yeni plan / ülke profili .... SQL migration / ops script
+
+  Değişiklikler migration dosyası veya versiyonlanmış ops scripti ile
+  kayıt altına alınır; audit için actions tablosu kullanılır.
 ```
 
 ---
 
-## A.2 ÇOK DİLLİ MİMARİ (i18n)
+## A.2 LOKALİZASYON (Locale) MİMARİSİ
 
 ### Dil Stratejisi
 
 ```
-Başlangıç: Türkçe (tr) — varsayılan
-Planlanan: İngilizce (en), Arapça (ar), Rusça (ru), Azerice (az)
+Aktif ülke: Türkiye → tek aktif locale: Türkçe (tr)
+Lokalizasyon, ülke profili seam'inin bir parçasıdır:
+yeni ülke profili eklendiğinde o ülkeye ait locale dosyası eklenir.
 
-Her tenant kendi dilini seçer.
-Her kullanıcı tenant dilini override edebilir.
+Her tenant ülke profiline ait locale'i kullanır.
+Her kullanıcı tenant locale'ini override edebilir.
 ```
 
-### Veritabanı — Ülke Bazlı Konfigürasyon
+### Veritabanı — Ülke Profili Konfigürasyonu
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -271,54 +257,53 @@ Her kullanıcı tenant dilini override edebilir.
 
 ```
 frontend/src/i18n/
-  ├── index.ts              i18next init, dil dedektörü
+  ├── index.ts              i18next init, locale yükleme
   ├── types.ts              Tip tanımları (tüm key'ler)
   └── locales/
-      ├── tr.json           Türkçe (varsayılan)
-      ├── en.json           İngilizce
-      ├── ar.json           Arapça (RTL desteği ile)
-      ├── ru.json           Rusça
-      └── az.json           Azerice
+      └── tr.json           Türkçe (tek aktif locale — TR ülke profili)
 
-Dil dedektörü öncelik sırası:
+Yeni ülke profili eklendiğinde buraya o ülkenin locale dosyası
+eklenir (örn. en.json). Çekirdek kod değişmez.
+
+Locale seçim öncelik sırası:
   1. Kullanıcı ayarı (users.locale preference)
   2. Tenant ayarı (tenants.locale)
-  3. Browser Accept-Language header
-  4. Varsayılan: 'tr'
+  3. Ülke profilinin default_locale değeri
 ```
 
 ### API'de Dil Desteği
 
 ```
-İstek:  Accept-Language: tr, en;q=0.9
+İstek:  Accept-Language: tr
 Cevap:  Content-Language: tr
 
-Hata mesajları istek dilinde döner:
+Hata mesajları aktif ülke profilinin locale'inde döner:
   tr: {"error": "Bu plaka zaten kayıtlı"}
-  en: {"error": "This license plate is already registered"}
 ```
 
 ---
 
-## A.3 ÜLKEYE ÖZEL REGÜLASYON UYUMU
+## A.3 ÜLKE PROFİLİ — REGÜLASYON UYUMU
 
-### Ülke Konfigürasyon Tablosu
+> Detaylı tasarım dokümanı: `COUNTRY_PORTABILITY.md`
+
+### Ülke Profili Kayıt Tablosu
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│              COUNTRIES (ülke tanımları)                       │
+│              COUNTRIES (ülke profili kayıtları)                │
 ├──────────────────────────────────────────────────────────────┤
 │ id (PK)               serial                                  │
-│ code                  string     UNIQUE  "TR" / "DE" / "AZ"  │
-│ name                  string     "Türkiye"                   │
-│ default_locale        string     "tr"                        │
-│ currency              string     "TRY" / "EUR" / "USD"       │
-│ aktif                 boolean    sadece aktif ülkeler         │
-│                           registration'a açık                │
+│ code                  string     UNIQUE  "TR" (şu an tek)      │
+│ name                  string     "Türkiye"                     │
+│ default_locale        string     "tr"                          │
+│ currency              string     "TRY"                         │
+│ aktif                 boolean    sadece aktif ülke profilleri  │
+│                           registration'a açık                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Türkiye Konfigürasyonu (başlangıç)
+### Türkiye Ülke Profili (aktif profil)
 
 ```json
 {
@@ -360,15 +345,19 @@ Hata mesajları istek dilinde döner:
 }
 ```
 
-### Yeni Ülke Ekleme Akışı (Super Admin)
+### Yeni Ülke Profili Ekleme Akışı (Sistem Yöneticisi — Backend)
 
 ```
-1. Super Admin → Ülke Yönetimi → "Yeni Ülke Ekle"
-2. code, name, locale, currency gir
+1. Ülke profili dosyasını hazırla (bkz. COUNTRY_PORTABILITY.md):
+   locale dosyası + regülasyon konfigürasyonu + uyumluluk modülü
+2. countries tablosuna yeni ülkeyi ekle (SQL/ops script)
 3. COUNTRY_CONFIGS'e o ülkenin regülasyon değerlerini gir
-4. COUNTRY_MODULES'te o ülke için modülleri aç/kapa
-5. Veritabanı seed verisine yeni ülkeyi ekle
-6. Ülkeyi "aktif" yap → registration'a açılır
+4. Veritabanı seed verisine yeni ülkeyi ekle
+5. Ülkeyi "aktif" yap → registration'a açılır
+6. Gerekirse ülkeye özel uyumluluk modülünü (örn. e-Fatura karşılığı)
+   modül kayıt defterine ekle
+
+ÇEKİRDEK KOD VE ŞEMA DEĞİŞMEZ.
 ```
 
 ---
@@ -410,11 +399,11 @@ Hata mesajları istek dilinde döner:
 
 ```
 İş Metrikleri (business):
-  - unysol_signups_total{plan, country}         Yeni kayıt sayısı
+  - unysol_signups_total{plan}                   Yeni kayıt sayısı
   - unysol_active_tenants                       Aktif firma sayısı
   - unysol_mrr_try                              Aylık yinelenen gelir
   - unysol_active_trucks{tenant_id}             Aktif kamyon sayısı
-  - unysol_invoices_created_total{country}      Kesilen fatura sayısı
+  - unysol_invoices_created_total               Kesilen fatura sayısı
   - unysol_trips_completed_total                Tamamlanan sefer
 
 Sistem Metrikleri (infrastructure):
@@ -434,7 +423,6 @@ Sistem Metrikleri (infrastructure):
 1. İş Genel Bakış (Business Overview)
    - MRR trend, yeni kayıt, churn, aktif kamyon
    - Paket dağılımı pasta grafik
-   - Ülke bazlı gelir haritası
 
 2. API Performansı
    - İstek/sn, p95/p99 gecikme, hata oranı
@@ -561,19 +549,24 @@ Durum: ✅ = Day 1'den hazır, ⬜ = Büyüyünce eklenecek
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    KULLANICI ROLLERİ                     │
-├──────────────┬──────────────────────┬────────────────────┤
-│ SUPER_ADMIN  │ TENANT_OWNER         │ DRIVER / OFFICE /  │
-│ (biz)        │ (firma sahibi)       │ ACCOUNTANT         │
-├──────────────┼──────────────────────┼────────────────────┤
-│ Tüm firmaları│ Kendi firması        │ Kendi firması      │
-│ görür        │ tüm özellikler       │ sınırlı özellikler │
-│ Fatura keser │ Personel ekler       │ Sadece görevleri   │
-│ Destek verir │ Ayarları yönetir     │ Kendi metriklerini │
-│ Modül yönetir│ Plan yükseltir       │ görür              │
-└──────────────┴──────────────────────┴────────────────────┘
+│               (tümü TENANT kapsamındadır)                │
+├──────────────────────┬──────────────────────────────────┤
+│ TENANT_OWNER         │ DRIVER / OFFICE / ACCOUNTANT     │
+│ (firma sahibi)       │                                  │
+├──────────────────────┼──────────────────────────────────┤
+│ Kendi firması        │ Kendi firması                    │
+│ tüm özellikler       │ sınırlı özellikler               │
+│ Personel ekler       │ Sadece görevleri                 │
+│ Ayarları yönetir     │ Kendi metriklerini               │
+│ Plan yükseltir       │ görür                            │
+└──────────────────────┴──────────────────────────────────┘
 
-Rol enum: SUPER_ADMIN, TENANT_OWNER, DRIVER, OFFICE, ACCOUNTANT
+Rol enum: TENANT_OWNER, DRIVER, OFFICE, ACCOUNTANT
 (schema: users.rol → user_rol_enum)
+
+Süper admin rolü YOKTUR. Platform yönetimi (tenant, plan, modül,
+email, Stripe konfigürasyonu) sistem yöneticisi tarafından backend
+üzerinden (SQL/ops scriptleri) yapılır.
 ```
 
 ---
@@ -586,33 +579,26 @@ Rol enum: SUPER_ADMIN, TENANT_OWNER, DRIVER, OFFICE, ACCOUNTANT
                         │  PAGE       │
                         └──┬──┬───┬──┘
                            │  │   │
-              ┌────────────┘  │   └────────────┐
-              ▼               ▼                ▼
-        ┌──────────┐   ┌───────────┐    ┌───────────┐
-        │  SIGNUP  │   │  LOGIN    │    │ PRICING   │
-        │          │   │           │    │ PAGE      │
-        └────┬─────┘   └─────┬─────┘    └───────────┘
-             │               │
-             │        ┌──────┴──────┐
-             │        │  role check │
-             │        └──┬──────┬──┘
-             │           │      │
-             │    ┌──────┘      └──────┐
-             │    ▼                    ▼
-             │ ┌──────────┐    ┌──────────────┐
-             │ │ TENANT   │    │ SUPER ADMIN  │
-             │ │ DASHBOARD│    │ DASHBOARD    │
-             │ └────┬─────┘    └──────┬───────┘
-             │      │                 │
-             │      │          ┌──────┴──────┐
-             │      │          │             │
-             │      │     ┌────▼───┐   ┌─────▼─────┐
-             │      │     │TENANTS │   │SUBSCRIPT. │
-             │      │     │LIST    │   │& BILLING  │
-             │      │     └────────┘   └───────────┘
-             │      │
-             │      │
-             └──────┘
+               ┌────────────┘  │   └────────────┐
+               ▼               ▼                ▼
+         ┌──────────┐   ┌───────────┐    ┌───────────┐
+         │  SIGNUP  │   │  LOGIN    │    │ PRICING   │
+         │          │   │           │    │ PAGE      │
+         └────┬─────┘   └─────┬─────┘    └───────────┘
+              │               │
+              │        ┌──────┴──────┐
+              │        │  role check │
+              │        │ (tenant içi)│
+              │        └──────┬──────┘
+              │               │
+              │               ▼
+              │        ┌──────────┐
+              │        │ TENANT   │
+              │        │ DASHBOARD│
+              │        └────┬─────┘
+              │             │
+              │             │
+              └─────────────┘
                     │
         ┌───────────┴───────────────────────┐
         │        TENANT DASHBOARD           │
@@ -649,11 +635,9 @@ Rol enum: SUPER_ADMIN, TENANT_OWNER, DRIVER, OFFICE, ACCOUNTANT
   - Aylık gelir-gider chart (recharts)
   - Son aktiviteler tablosu
 
-**4. SUPER ADMIN DASHBOARD**
-- Toplam firma sayısı, aktif/pasif
-- MRR (Monthly Recurring Revenue)
-- Bu ay yeni kayıt, churn rate
-- Tenant listesi (firma adı, sahibi, paket, durum)
+> Süper admin ekranı YOKTUR. Platform metrikleri (firma sayısı, MRR,
+> churn) sistem yöneticisi tarafından Grafana dashboard'ları ve
+> backend SQL sorguları üzerinden izlenir.
 
 ---
 
@@ -704,12 +688,12 @@ Rol enum: SUPER_ADMIN, TENANT_OWNER, DRIVER, OFFICE, ACCOUNTANT
 
 PostgreSQL RLS ile her sorguya otomatik `WHERE tenant_id = current_setting('app.current_tenant_id')` eklenir.
 
-### Tablo Listesi (29 tablo)
+### Tablo Listesi (28 tablo)
 
 | # | Tablo | Katman | Açıklama |
 |---|-------|--------|----------|
 | 1 | tenants | SaaS | Firmalar (slug, plan, locale, country_code) |
-| 2 | users | SaaS | Kullanıcılar (SUPER_ADMIN/TENANT_OWNER/DRIVER/OFFICE/ACCOUNTANT) |
+| 2 | users | SaaS | Kullanıcılar (TENANT_OWNER/DRIVER/OFFICE/ACCOUNTANT) |
 | 3 | trucks | Fleet | Kamyonlar (plaka, marka, tracking_source) |
 | 4 | trailers | Fleet | Dorseler |
 | 5 | trips | Operations | Seferler (durum, rota, ucret, odeme) |
@@ -722,27 +706,26 @@ PostgreSQL RLS ile her sorguya otomatik `WHERE tenant_id = current_setting('app.
 | 12 | expenses | Finance | Giderler (21 kategori) |
 | 13 | employees | HR | Personel (ehliyet, SRC) |
 | 14 | cek_senet | Finance | Çek/Senet takibi |
-| 15 | modules | Platform | Modül kayıt defteri |
-| 16 | country_modules | Platform | Ülke bazlı modüller |
-| 17 | plan_modules | Platform | Plan bazlı modüller |
-| 18 | tenant_modules | Platform | Firmaya özel override |
-| 19 | countries | Platform | Ülke tanımları |
-| 20 | country_configs | Platform | Ülke regülasyon konfigürasyonu |
-| 21 | actions | Core | İşlem kayıtları (audit log) |
-| 22 | settings | Core | Tenant ayarları |
-| 23 | notifications | Core | Bildirimler |
-| 24 | predictions | Analytics | Tahmin motoru |
-| 25 | subscriptions | SaaS | Abonelik geçmişi |
-| 26 | password_resets | Auth | Şifre sıfırlama |
-| 27 | maintenance_records | Fleet | Bakım kayıtları |
-| 28 | fuel_logs | Fleet | Yakıt günlüğü |
-| 29 | toll_logs | Fleet | HGS/otoyol geçişleri |
+| 15 | modules | Platform | Modül kayıt defteri (global) |
+| 16 | plan_modules | Platform | Plan bazlı modüller |
+| 17 | tenant_modules | Platform | Firmaya özel override |
+| 18 | countries | Platform | Ülke profili kayıtları |
+| 19 | country_configs | Platform | Ülke profili regülasyon konfigürasyonu |
+| 20 | actions | Core | İşlem kayıtları (audit log) |
+| 21 | settings | Core | Tenant ayarları |
+| 22 | notifications | Core | Bildirimler |
+| 23 | predictions | Analytics | Tahmin motoru |
+| 24 | subscriptions | SaaS | Abonelik geçmişi |
+| 25 | password_resets | Auth | Şifre sıfırlama |
+| 26 | maintenance_records | Fleet | Bakım kayıtları |
+| 27 | fuel_logs | Fleet | Yakıt günlüğü |
+| 28 | toll_logs | Fleet | HGS/otoyol geçişleri |
 | - | driver_leave | HR | Şoför izin takvimi (schema'da) |
 | - | insurance_policies | Fleet | Sigorta poliçeleri (schema'da) |
 | - | billing | Finance | SaaS faturalandırma (schema'da) |
 | - | load_board | Fleet | Yük panosu (schema'da) |
 
-**Toplam: 29 CREATE TABLE + 17 enum tipi + RLS policy (26 tabloda aktif)**
+**Toplam: 28 CREATE TABLE + 17 enum tipi + RLS policy (tenant tablolarında aktif)**
 
 ### RLS (Row-Level Security)
 
@@ -763,13 +746,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Users özel policy (SUPER_ADMIN bypass)
+-- Users policy: tüm roller tenant kapsamındadır; süper admin bypass'ı YOKTUR
 CREATE POLICY users_tenant_isolation ON users
     FOR ALL
-    USING (
-        tenant_id = COALESCE(NULLIF(current_setting('app.current_tenant_id', TRUE), ''), '0')::INTEGER
-        OR COALESCE(NULLIF(current_setting('app.current_tenant_id', TRUE), ''), '0')::INTEGER = 0
-    );
+    USING (tenant_id = COALESCE(NULLIF(current_setting('app.current_tenant_id', TRUE), ''), '0')::INTEGER)
+    WITH CHECK (tenant_id = COALESCE(NULLIF(current_setting('app.current_tenant_id', TRUE), ''), '0')::INTEGER);
 ```
 
 ---
@@ -804,9 +785,6 @@ internal/
   │   ├── settings.go      ← /api/tenant/settings/*
   │   ├── notifications.go ← /api/tenant/notifications/*
   │   ├── actions.go       ← /api/tenant/actions/*
-  │   ├── admin.go         ← /api/admin/*
-  │   ├── modules.go       ← /api/admin/modules/*
-  │   ├── countries.go     ← /api/admin/countries/*
   │   ├── system.go        ← /api/system/* (health, metrics)
   │   └── tenant.go        ← Tenant ortak middleware/helpers
   └── models/
@@ -852,21 +830,9 @@ internal/
   GET    /notifications             Bildirim listesi
   GET    /actions                   İşlem kayıtları
 
-/api/admin/                          ← SUPER_ADMIN JWT
-  GET    /tenants                   Tüm firmalar
-  GET    /tenants/{id}              Firma detayı
-  PUT    /tenants/{id}/plan         Paket değiştir
-  POST   /tenants/{id}/suspend      Dondur
-  GET    /analytics/mrr             MRR grafiği
-  GET    /analytics/churn           Churn rate
-  GET    /analytics/growth          Büyüme verisi
-  GET    /users                     Kullanıcı listesi
-  POST   /users                     Kullanıcı oluştur
-  GET    /modules                   Tüm modüller
-  POST   /modules                   Yeni modül ekle
-  PUT    /modules/{id}              Modül güncelle
-  GET    /countries                 Tüm ülkeler
-  POST   /countries                 Yeni ülke ekle
+/api/admin/ YOKTUR — platform yönetimi (tenant, plan, modül, ülke profili,
+email, Stripe konfigürasyonu) sistem yöneticisi tarafından backend üzerinden
+SQL/ops scriptleri ile yapılır. (Bkz. COUNTRY_PORTABILITY.md, scripts/)
 ```
 
 ---
@@ -926,11 +892,11 @@ services:
 
 | Faz | Süre | Kapsam |
 |-----|------|--------|
-| **Faz 0** | 1 hafta | Multi-tenant veritabanı + RLS + auth (JWT) + tenant CRUD |
+| **Faz 0** | 1 hafta | Multi-tenant veritabanı + RLS + auth (JWT) + tenant CRUD + ülke profili seam'i |
 | **Faz 1** | 2 hafta | Landing page + Signup akışı + Paket seçimi |
 | **Faz 2** | 2 hafta | Tenant dashboard (KPI + trucks + trips + customers) |
 | **Faz 3** | 2 hafta | Fatura + Gider + Personel modülleri |
-| **Faz 4** | 2 hafta | Super admin panel (tenant listesi, abonelik, MRR) |
+| **Faz 4** | 2 hafta | Ops scriptleri (tenant/plan/modül/email/Stripe yönetimi — backend) |
 | **Faz 5** | 2 hafta | Tahmin motoru + Çek/Senet + Bildirimler |
 | **Faz 6** | 2 hafta | Ödeme entegrasyonu + Otomatik fatura + Test & Launch |
 
@@ -944,7 +910,7 @@ Toplam: **11 hafta**, 1-2 geliştirici ile SaaS MVP.
 /home/ugur/unysol/
 ├── docker-compose.yml           ← 4 servis (PG, Redis, Backend, Frontend)
 ├── database/
-│   └── 01-schema.sql            ← 830 satır, 29 tablo + RLS + seed data
+│   └── 01-schema.sql            ← 830 satır, 28 tablo + RLS + seed data
 ├── backend/
 │   ├── Dockerfile
 │   ├── go.mod                   ← module unysol, Go 1.22
@@ -971,9 +937,7 @@ Toplam: **11 hafta**, 1-2 geliştirici ile SaaS MVP.
         │   └── AuthContext.tsx   ← Auth state management
         ├── lib/
         │   ├── api.ts           ← Tenant axios instance
-        │   ├── adminApi.ts      ← Admin axios instance
         │   ├── auth.ts          ← Login/signup/logout
-        │   ├── adminAuth.ts     ← Admin auth
         │   ├── export.ts        ← CSV/Excel/PDF export
         │   └── share.ts         ← WhatsApp/Email paylaşım
         ├── components/
@@ -984,8 +948,6 @@ Toplam: **11 hafta**, 1-2 geliştirici ile SaaS MVP.
         ├── pages/
         │   ├── LandingPage.tsx
         │   ├── LoginPage.tsx
-        │   ├── AdminLoginPage.tsx
-        │   ├── AdminDashboard.tsx
         │   ├── DashboardHome.tsx
         │   ├── TrucksPage.tsx
         │   ├── TripsPage.tsx

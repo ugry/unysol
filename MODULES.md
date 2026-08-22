@@ -3,6 +3,11 @@
 > **Canonical module list.** All other files reference this one.
 > **Last Updated:** 03 June 2026
 > **Blueprint total:** 49 modules | **Built:** 31 (63%)
+>
+> **Yönetim modeli:** Modüller platform GENELİNDEDİR (global) — aç/kapa,
+> plan eşlemesi ve tenant override'ları sistem yöneticisi tarafından
+> backend üzerinden (SQL/ops scriptleri) yönetilir. Uygulamada modül
+> yönetim ekranı ve ülke bazlı modül toggle'ı YOKTUR.
 
 ---
 
@@ -79,6 +84,10 @@
 
 `tr_efatura`, `tr_vergi`, `kvkk`, `eu_gdpr` — not implemented.
 (e-Fatura UBL-TR XML generation exists in `invoice_mgmt` but GIB API not connected.)
+> Uyumluluk modülleri ülke profiline bağlıdır (bkz. COUNTRY_PORTABILITY.md):
+> TR profilinde `tr_efatura`, `tr_vergi`, `kvkk` aktiftir; `eu_gdpr` yalnızca
+> bir AB ülke profili eklendiğinde devreye girer. Modüller global kayıtlıdır,
+> backend üzerinden açılır/kapanır.
 
 ### INTEGRATION (0/4)
 
@@ -86,8 +95,8 @@
 
 ### PLATFORM (2/3 functional)
 
-- `modules_mgmt` — Admin panel module toggles ✅
-- `countries` — Admin panel country management ✅
+- `modules_mgmt` — Platform modül kayıt defteri; sistem yöneticisi tarafından backend üzerinden (SQL/ops) yönetilir ✅
+- `countries` — Ülke profili kayıtları; sistem yöneticisi tarafından backend üzerinden (SQL/ops) yönetilir ✅
 - `on_premise_deploy` — Not implemented
 
 ---

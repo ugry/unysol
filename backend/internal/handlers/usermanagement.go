@@ -89,6 +89,11 @@ func (h *UserManagementHandler) CreateUser(w http.ResponseWriter, r *http.Reques
 	if req.Rol == "" {
 		req.Rol = "DRIVER"
 	}
+	allowedRoles := map[string]bool{"TENANT_OWNER": true, "OFFICE": true, "DRIVER": true}
+	if !allowedRoles[req.Rol] {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Geçersiz rol"})
+		return
+	}
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 

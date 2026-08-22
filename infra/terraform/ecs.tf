@@ -38,6 +38,11 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "STRIPE_SECRET_KEY", value = var.stripe_secret_key },
       { name = "STRIPE_PUBLISHABLE_KEY", value = var.stripe_publishable_key },
       { name = "ENVIRONMENT", value = "production" },
+      { name = "COUNTRY", value = "TR" },
+      { name = "BASE_URL", value = "https://unysol.com" },
+      { name = "EMAIL_METHOD", value = "resend" },
+      { name = "RESEND_API_KEY", value = var.resend_api_key },
+      { name = "SMTP_FROM", value = "noreply@unysol.com" },
     ]
     logConfiguration = {
       logDriver = "awslogs"

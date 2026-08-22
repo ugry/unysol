@@ -12,7 +12,7 @@ LIVE DATA (Prod):
   Stripe checkout: ✅ LIVE (test mode, 4242...)
   Plan enforcement: ✅ LIVE (FREE=13 modules, PRO=31)
   Resend email: ✅ LIVE (API method)
-  Admin panel: ✅ uguradm / REDACTED
+  Süper admin katmanı KALDIRILDI — platform yönetimi backend üzerinden yapılır
   reCAPTCHA: ⬜ Temporarily disabled
 ```
 
@@ -36,11 +36,11 @@ OVERALL:        ██████████████████░░  %9
 - ✅ Forgot password: resend code, password confirmation
 - ✅ PRO upgrade: Stripe checkout, session verification, plan enforcement
 - ✅ Sidebar: JWT-based module filtering (FREE=13, PRO=31)
-- ✅ Admin: username-based auth (uguradm), tenant delete with export
+- ✅ Süper admin katmanı KALDIRILDI — platform yönetimi (tenant silme + dışa aktarma dahil) backend üzerinden (SQL/ops) yapılır
 - ✅ Multi-tenancy: removed cross-tenant mock data from ExpensesPage
 - ✅ B-AUTH-07 through B-AUTH-15: 9 registration bugs fixed
 - ✅ B-DATA-01: cross-tenant data leakage fixed
-- ✅ B-ADMIN-04: admin panel shows correct tenant plan
+- ✅ B-ADMIN-04: tenant plan görüntüleme backend sorgusu ile doğrulandı
 - ⬜ reCAPTCHA: disabled until deploys stabilize
 - ⬜ GitHub Actions: suspended (billing)
 
@@ -48,9 +48,8 @@ OVERALL:        ██████████████████░░  %9
 
 | Account | Credentials | URL |
 |---------|-----------|-----|
-| Super Admin | uguradm / REDACTED | https://unysolar.com/admin/login |
 | Test User (PRO) | unygms@tutamail.com / REDACTED | https://unysolar.com/login |
-| QA Admin | admin@qa.local / REDACTED | http://localhost/login |
+| QA Test User (TENANT_OWNER) | admin@qa.local / REDACTED | http://localhost/login |
 | AWS | profile unysol | ~/.aws/credentials |
 | Stripe Test Card | 4242 4242 4242 4242 | Any future date / any CVC |
 
@@ -126,10 +125,11 @@ OVERALL:        ██████████████████░░  %9
 - ✅ Resend integration: API key configured, domain pending
 - ⬜ Resend domain verification needed (add unysolar.com at resend.com/domains)
 
-### Admin Dashboard
-- ✅ Real metrics: paket_dagilimi, son_kayitlar from DB
-- ✅ Module seed migration (012) for production RDS
-- ✅ 31 modules registered in DB
+### Süper Admin Katmanı — Kaldırıldı
+- ✅ Süper admin katmanı KALDIRILDI — platform yönetimi backend üzerinden yapılır
+- ✅ Platform metrikleri (paket_dagilimi, son_kayitlar) DB sorguları + Grafana ile izlenir
+- ✅ Modül seed migration'ı (012) production RDS'de
+- ✅ 31 modül DB'de kayıtlı
 
 ### Bug Fixes
 - ✅ Reports SQL: tutar→toplam_tutar, ORDER BY fix

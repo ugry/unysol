@@ -26,9 +26,6 @@ import BillingPage from '@/pages/BillingPage';
 import AccessManagementPage from '@/pages/AccessManagementPage';
 import EmployeesPage from '@/pages/EmployeesPage';
 import SettingsPage from '@/pages/SettingsPage';
-import AdminLoginPage from '@/pages/AdminLoginPage';
-import AdminDashboard from '@/pages/AdminDashboard';
-import { isAdminAuthenticated } from '@/lib/adminAuth';
 import { Loader2 } from 'lucide-react';
 import ActionsPage from '@/pages/ActionsPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
@@ -60,14 +57,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function SuperAdminRoute({ children }: { children: React.ReactNode }) {
-  if (!isAdminAuthenticated()) {
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  return <>{children}</>;
-}
-
 export default function App() {
   return (
     <Routes>
@@ -79,25 +68,6 @@ export default function App() {
       <Route path="/kullanim-kosullari" element={<TermsPage />} />
       <Route path="/gizlilik-politikasi" element={<PrivacyPage />} />
       <Route path="/cerez-politikasi" element={<PrivacyPage />} />
-
-      {/* Admin Routes — separate from tenant layout */}
-      <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route
-        path="/admin/*"
-        element={
-          <SuperAdminRoute>
-            <AdminDashboard />
-          </SuperAdminRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <SuperAdminRoute>
-            <AdminDashboard />
-          </SuperAdminRoute>
-        }
-      />
 
       {/* Tenant Routes */}
       <Route

@@ -31,6 +31,16 @@ type MonitoringConfig struct {
 	MetricsPath string
 }
 
+type EmailConfig struct {
+	Method       string
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUsername string
+	SMTPPassword string
+	From         string
+	ResendAPIKey string
+}
+
 type Config struct {
 	Port         string
 	DatabaseURL  string
@@ -38,10 +48,12 @@ type Config struct {
 	RedisURL     string
 	Environment  string
 	BaseURL      string
+	Country      string
 	RateLimiting RateLimitingConfig
 	PlanLimits   PlanLimitsConfig
 	Redis        RedisConfig
 	Monitoring   MonitoringConfig
+	Email        EmailConfig
 }
 
 func Load() *Config {
@@ -54,6 +66,7 @@ func Load() *Config {
 		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379/0"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		BaseURL:     getEnv("BASE_URL", "https://unysolar.com"),
+		Country:     getEnv("COUNTRY", "TR"),
 		RateLimiting: RateLimitingConfig{
 			Global: getEnvInt("RATE_LIMIT_GLOBAL", 500),
 			Auth:   getEnvInt("RATE_LIMIT_AUTH", 10),
@@ -72,6 +85,15 @@ func Load() *Config {
 		Monitoring: MonitoringConfig{
 			Enabled:     getEnvBool("MONITORING_ENABLED", true),
 			MetricsPath: getEnv("METRICS_PATH", "/api/system/metrics"),
+		},
+		Email: EmailConfig{
+			Method:       getEnv("EMAIL_METHOD", "smtp"),
+			SMTPHost:     getEnv("SMTP_HOST", ""),
+			SMTPPort:     getEnv("SMTP_PORT", "587"),
+			SMTPUsername: getEnv("SMTP_USER", ""),
+			SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+			From:         getEnv("SMTP_FROM", "noreply@unysol.com"),
+			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
 		},
 	}
 

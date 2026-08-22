@@ -1,12 +1,7 @@
 -- ============================================================
--- Migration 012: Seed modules, country_modules, plan_modules
+-- Migration 012: Seed modules, plan_modules
 -- Required for production RDS where 01-schema.sql seed never ran
 -- ============================================================
-
--- Turkey
-INSERT INTO countries (code, name, default_locale, currency)
-VALUES ('TR', 'Türkiye', 'tr', 'TRY')
-ON CONFLICT (code) DO NOTHING;
 
 -- Core modules
 INSERT INTO modules (module_key, module_name, category, is_core, default_enabled) VALUES
@@ -69,15 +64,6 @@ INSERT INTO modules (module_key, module_name, category, is_core, default_enabled
 ('carbon_tracking', 'Karbon Takibi', 'ANALYTICS', FALSE, TRUE),
 ('export', 'Veri Dışa Aktarım', 'ANALYTICS', FALSE, TRUE)
 ON CONFLICT (module_key) DO NOTHING;
-
--- Country modules for TR (all default-enabled modules)
-INSERT INTO country_modules (country_code, module_id, enabled)
-SELECT 'TR', id, default_enabled FROM modules
-WHERE default_enabled = TRUE
-  AND NOT EXISTS (
-    SELECT 1 FROM country_modules cm
-    WHERE cm.country_code = 'TR' AND cm.module_id = modules.id
-  );
 
 -- Plan modules for FREE/PRO/PREMIUM
 INSERT INTO plan_modules (plan, module_id, enabled)

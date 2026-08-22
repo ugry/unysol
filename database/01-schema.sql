@@ -15,7 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================
 CREATE TYPE plan_enum AS ENUM ('FREE', 'PRO', 'PREMIUM');
 CREATE TYPE tenant_durum_enum AS ENUM ('AKTIF', 'PASIF', 'IPTAL');
-CREATE TYPE user_rol_enum AS ENUM ('SUPER_ADMIN', 'TENANT_OWNER', 'DRIVER', 'OFFICE', 'ACCOUNTANT');
+CREATE TYPE user_rol_enum AS ENUM ('TENANT_OWNER', 'DRIVER', 'OFFICE', 'ACCOUNTANT');
 CREATE TYPE tracking_source_enum AS ENUM ('PHONE', 'ESP32_LTE', 'COMM_DEV', 'OBD_ONLY', 'MANUEL');
 CREATE TYPE trip_durum_enum AS ENUM ('AKTIF', 'TAMAMLANDI', 'IPTAL');
 CREATE TYPE odeme_durum_enum AS ENUM ('bekleyen', 'odendi', 'gecikti', 'vadesi_gecti');
@@ -345,18 +345,6 @@ CREATE TABLE IF NOT EXISTS modules (
 );
 
 -- ============================================================
--- 12. COUNTRY_MODULES
--- ============================================================
-CREATE TABLE IF NOT EXISTS country_modules (
-    id              SERIAL PRIMARY KEY,
-    country_code    VARCHAR(3) NOT NULL,
-    module_id       INTEGER NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
-    enabled         BOOLEAN DEFAULT TRUE,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(country_code, module_id)
-);
-
--- ============================================================
 -- 13. PLAN_MODULES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS plan_modules (
@@ -378,33 +366,6 @@ CREATE TABLE IF NOT EXISTS tenant_modules (
     enabled         BOOLEAN NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(tenant_id, module_id)
-);
-
--- ============================================================
--- 15. COUNTRIES
--- ============================================================
-CREATE TABLE IF NOT EXISTS countries (
-    id              SERIAL PRIMARY KEY,
-    code            VARCHAR(3) UNIQUE NOT NULL,
-    name            VARCHAR(100) NOT NULL,
-    default_locale  VARCHAR(5) DEFAULT 'tr',
-    currency        VARCHAR(3) DEFAULT 'TRY',
-    aktif           BOOLEAN DEFAULT TRUE,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================================
--- 16. COUNTRY_CONFIGS
--- ============================================================
-CREATE TABLE IF NOT EXISTS country_configs (
-    id              SERIAL PRIMARY KEY,
-    country_code    VARCHAR(3) NOT NULL REFERENCES countries(code) ON DELETE CASCADE,
-    config_key      VARCHAR(100) NOT NULL,
-    config_value    JSONB NOT NULL,
-    description     TEXT,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(country_code, config_key)
 );
 
 -- ============================================================
@@ -645,10 +606,8 @@ CREATE INDEX IF NOT EXISTS idx_employees_tenant ON employees(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_tenant ON cek_senet(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_customer ON cek_senet(customer_id);
 CREATE INDEX IF NOT EXISTS idx_cek_senet_status ON cek_senet(tenant_id, status);
-CREATE INDEX IF NOT EXISTS idx_country_modules_country ON country_modules(country_code, enabled);
 CREATE INDEX IF NOT EXISTS idx_plan_modules_plan ON plan_modules(plan, enabled);
 CREATE INDEX IF NOT EXISTS idx_tenant_modules_tenant ON tenant_modules(tenant_id, enabled);
-CREATE INDEX IF NOT EXISTS idx_country_configs_country ON country_configs(country_code);
 CREATE INDEX IF NOT EXISTS idx_actions_tenant ON actions(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_actions_created ON actions(created_at);
 CREATE INDEX IF NOT EXISTS idx_actions_table ON actions(tenant_id, table_name);
@@ -750,7 +709,7 @@ SELECT tenant_rls_policy('load_board');
 SELECT tenant_rls_policy('actions');
 SELECT tenant_rls_policy('user_permissions');
 
--- Users: SUPER_ADMIN can see all (tenant_id = 0 means super admin bypass)
+-- Users: tenant-scoped isolation
 CREATE POLICY users_tenant_isolation ON users
     FOR ALL
     USING (
@@ -762,11 +721,6 @@ CREATE POLICY users_tenant_isolation ON users
 -- ============================================================
 -- SEED DATA
 -- ============================================================
-
--- Turkey country record
-INSERT INTO countries (code, name, default_locale, currency)
-VALUES ('TR', 'Türkiye', 'tr', 'TRY')
-ON CONFLICT (code) DO NOTHING;
 
 -- Core modules
 INSERT INTO modules (module_key, module_name, category, is_core, default_enabled) VALUES
@@ -815,15 +769,6 @@ ON CONFLICT (module_key) DO NOTHING;
 INSERT INTO modules (module_key, module_name, category, is_core, default_enabled) VALUES
 ('actions', 'İşlem Kayıtları', 'CORE', FALSE, TRUE)
 ON CONFLICT (module_key) DO NOTHING;
-
--- Country modules for TR (all default-enabled modules)
-INSERT INTO country_modules (country_code, module_id, enabled)
-SELECT 'TR', id, default_enabled FROM modules
-WHERE default_enabled = TRUE
-  AND NOT EXISTS (
-    SELECT 1 FROM country_modules cm
-    WHERE cm.country_code = 'TR' AND cm.module_id = modules.id
-  );
 
 -- Plan modules for FREE plan
 INSERT INTO plan_modules (plan, module_id, enabled)

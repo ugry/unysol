@@ -6,6 +6,17 @@
 
 ---
 
+## 🔧 Yapısal Dönüşüm (Yeni Ürün Yönü)
+
+| ID | Task | Why | Effort | Status |
+|----|------|-----|:---:|:---:|
+| TRF-001 | Ülke profili seam'i — locale, para birimi, vergi (KDV), tarih/sayı formatı, kimlik formatları ve uyumluluk modülleri tek seam altında (bkz. COUNTRY_PORTABILITY.md) | Yeni ülke = yeni profil + locale + uyumluluk modülü; çekirdek kod/şema değişmez | 16h | ⬜ |
+| TRF-002 | TR-only runtime sadeleştirmesi — tek ülke (Türkiye) varsayımı | Çok ülkeli yönlendirme/konfigürasyon kaldırıldı | — | ✅ Done |
+| TRF-003 | Sistem yöneticisi için ops scriptleri — tenant/plan/modül/email/Stripe yönetimi backend üzerinden (SQL/ops) | Süper admin katmanı kaldırıldı; platform yönetimi backend'de | 8h | ⬜ |
+| TRF-004 | Süper admin kod/UI kalıntılarının temizlenmesi (varsa) | Uygulama rolleri yalnızca tenant kapsamında | 4h | ⬜ |
+
+---
+
 ## 🔴 P0 — Revenue / Critical
 
 | ID | Task | Why | Effort | Status |
@@ -14,7 +25,7 @@
 | IMP-002 | SMTP/Email connectivity — verification emails actually send to users | Switched from SES to Hostinger SMTP (smtp.hostinger.com:587). Working in QA. Needs deploy. | ✅ Done |
 | IMP-003 | WhatsApp notification integration — truckers live on WhatsApp | #1 competitor differentiator (FiloAsistan, Filojistik) | ⬜ |
 | IMP-054 | Resend API integration — all system emails via Resend API | Replaces broken SMTP; registration, password reset, notifications | ✅ Done |
-| IMP-055 | Delete tenant with data export — super admin can delete + optional ZIP export | GDPR compliance, data portability, tenant lifecycle management | ✅ Done |
+| IMP-055 | Delete tenant with data export — backend ops script'i ile silme + isteğe bağlı ZIP dışa aktarma | GDPR compliance, data portability, tenant lifecycle management | ✅ Done |
 | IMP-056 | KVKK/Terms consent checkbox on signup | Turkish legal requirement (KVKK Law No. 6698) — explicit opt-in mandatory | ✅ Done |
 | IMP-057 | reCAPTCHA v3 on signup/login/forgot-password | Bot protection — prevent automated account creation | ✅ Done |
 | IMP-058 | Password strength meter + confirmation + inline policy | Reduce typos, improve password quality, match industry UX | ✅ Done |
@@ -27,7 +38,7 @@
 
 | ID | Task | Why | Effort | Source |
 |----|------|-----|:---:|--------|
-| IMP-004 | Admin audit log — track who changed plans/suspended tenants | Compliance, multi-admin teams | 2h | Testing |
+| IMP-004 | Ops işlem logu — plan değişiklikleri / tenant dondurma işlemleri backend üzerinden loglanır | Compliance, çok kişilik ops ekibi | 2h | Testing |
 | IMP-005 | Load board match notification — YUK_VAR ↔ YUK_ARA auto-detect | Network effect: auto-notify when matching loads exist | 4h | Testing |
 | IMP-006 | Load board "İlgileniyorum" notify owner via email | Already logs interest, doesn't notify | 1h | Testing |
 | IMP-007 | WhatsApp share button on load board listings | Drivers share loads in WhatsApp groups — viral growth | 1h | Filojistik |
@@ -36,13 +47,11 @@
 
 | ID | Task | Why | Effort | Source |
 |----|------|-----|:---:|--------|
-| IMP-008 | Admin real package distribution — query subscription counts | Overview shows hardcoded placeholder | ✅ Done |
-| IMP-009 | Admin recent registrations — real last 5 tenants | Overview shows empty list | ✅ Done |
+| IMP-008 | Gerçek paket dağılımı — abonelik sayıları backend sorgusu ile (Grafana/ops script) | Overview hardcoded placeholder idi | ✅ Done |
+| IMP-009 | Son kayıtlar — son 5 tenant backend sorgusu ile (Grafana/ops script) | Overview boş listeydi | ✅ Done |
 | IMP-012 | Password reset flow — forgot password + email recovery | Backend endpoints + frontend modal + email template. Tested 6/6 QA. | ✅ Done |
 | IMP-051 | **FREE plan enforcement** — backend checks plan_modules for module access | 33/33 test passed: FREE blocked from 10 modules, PRO has 31 | ✅ Done |
 | IMP-052 | **Access Management module** — user CRUD + permissions moved from Settings to PRO-only module | FREE blocked, PRO allowed via plan_modules | ✅ Done |
-| IMP-010 | Admin country management UI — add/edit countries | Only TR exists, no UI to add more | 3h | Testing |
-| IMP-011 | Admin module toggle per country/plan — feature flag UI | Modules visible, toggles not fully wired | 2h | Testing |
 | IMP-013 | Fuel price tracking widget — compare to EPDK prices | #1 Turkish trucker pain point (exa.ai research) | 2h | Testing |
 | IMP-014 | SMS notifications — trip status, invoice reminders | FiloMetrik & Filojistik have this | 4h | FiloMetrik |
 | IMP-015 | Bulk CSV import — migrate data from Excel/competitors | FiloMetrik has this; critical for onboarding | 3h | FiloMetrik |
@@ -107,11 +116,12 @@
 
 | Priority | Count | Done |
 |:---:|:---:|:---:|
-| P0 | 3 | 2 |
-| P1 | 5 | 0 |
-| P2 | 16 | 5 |
-| P3 | 25 | 0 |
-| **Total** | **49** | **7** |
+| P0 | 12 | 10 |
+| P1 | 4 | 0 |
+| P2 | 17 | 6 |
+| P3 | 26 | 0 |
+| Yapısal Dönüşüm | 4 | 1 |
+| **Total** | **63** | **17** |
 
 ## By Source
 

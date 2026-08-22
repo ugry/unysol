@@ -262,8 +262,8 @@ func (h *AuthHandler) generateToken(userID, tenantID int, email, role string) (s
 		"iat":       time.Now().Unix(),
 	}
 
-	// If tenant user, query plan_modules for allowed modules
-	if role != "SUPER_ADMIN" && tenantID > 0 {
+	// Query plan_modules for allowed modules
+	if tenantID > 0 {
 		var plan string
 		ctx := context.Background()
 		h.DB.QueryRow(ctx, `SELECT COALESCE(plan::text,'FREE') FROM tenants WHERE id=$1`, tenantID).Scan(&plan)

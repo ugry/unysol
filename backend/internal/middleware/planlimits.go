@@ -33,12 +33,6 @@ var planCache sync.Map
 func PlanLimitsMiddleware(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			role := GetRole(r.Context())
-			if role == "SUPER_ADMIN" || role == "super_admin" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			if r.Method == http.MethodGet || r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return

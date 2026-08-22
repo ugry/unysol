@@ -22,7 +22,7 @@ import (
 //   errors.log  — all errors with full context (tenant, user, trace)
 //   access.log  — HTTP request/response (method, path, status, duration)
 //
-// Super Admin actions go to:     logs/actions/admin/
+// Action logs go to:             logs/actions/
 // Tenant actions go to:          logs/actions/tenant_{id}/
 //
 // All logs are structured JSON (Loki-compatible) with consistent fields:

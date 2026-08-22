@@ -16,7 +16,6 @@ import {
   Settings,
   BarChart3,
   Package,
-  Globe,
   LogOut,
   Fuel,
   Wrench,
@@ -61,7 +60,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [permittedModules, setPermittedModules] = useState<Set<string> | null | undefined>(undefined);
 
   useEffect(() => {
@@ -116,11 +115,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       ? navItems
       : navItems.filter(item => item.moduleKey === 'dashboard' || item.moduleKey === 'settings' || permittedModules.has(item.moduleKey));
 
-  const toggleLanguage = () => {
-    const next = i18n.language === 'tr' ? 'en' : 'tr';
-    i18n.changeLanguage(next);
-  };
-
   return (
     <aside className="w-56 bg-[#0f1011] border-r border-[rgba(255,255,255,0.05)] flex flex-col h-screen flex-shrink-0">
       {/* Logo */}
@@ -160,15 +154,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
-
-      {/* Language switcher */}
-      <div className="px-3 py-2">
-        <button onClick={toggleLanguage}
-          className="w-full flex items-center gap-2 text-[13px] text-[#8a8f98] hover:text-[#d0d6e0] transition-colors py-1.5 rounded-md hover:bg-[rgba(255,255,255,0.05)] px-2">
-          <Globe size={14} />
-          {i18n.language === 'tr' ? 'TR → EN' : 'EN → TR'}
-        </button>
-      </div>
 
       {/* User footer */}
       <div className="p-3 border-t border-[rgba(255,255,255,0.05)]">

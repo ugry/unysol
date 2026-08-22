@@ -110,17 +110,11 @@ func PermissionEnforcer(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 				return
 			}
 
-			// SUPER_ADMIN bypass (admin routes handled separately)
-			if role == "SUPER_ADMIN" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// No user ID → can't check permissions
-			if userID == "" {
-				next.ServeHTTP(w, r)
-				return
-			}
+		// No user ID → can't check permissions
+		if userID == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
 
 			// Module key already resolved above
 			// If no module mapping, allow (e.g., /api/system/health)
