@@ -1,4 +1,5 @@
 # Unysol SaaS Platformu — Tasarım Dokümanı v1
+Managed by the EILA agent workforce.
 ## Çok Kiracılı (Multi-Tenant) · Tek Ülke (TR) · Ülke Profili Seam'i · Modüler · Yatay Ölçeklenebilir
 
 > Hedef: 100.000+ küçük nakliye firması. Uygulama TEK ülkeye (Türkiye) hizmet verir;
